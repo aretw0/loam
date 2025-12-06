@@ -68,7 +68,7 @@ Objetivo: Preparar o terreno para funcionalidades complexas.
 - [x] **CLI Refactor**: Migrar para `spf13/cobra`.
 - [x] **Observability**: Adotar `log/slog` para logs estruturados e debug.
 
-## Fase 5: CRUD & Querying (Em Progresso)
+## Fase 5: CRUD & Querying (Concluído)
 
 Objetivo: Completar as operações de CRUD e permitir a listagem e filtragem de notas, transformando o Loam em um driver de banco de dados e backend funcional.
 
@@ -82,19 +82,25 @@ Objetivo: Completar as operações de CRUD e permitir a listagem e filtragem de 
   - [x] Implementar File-based Locking (Spike validado).
   - [x] Suporte a subdiretórios (Namespaces).
 
-## Fase 6: Refinamento & Garantia de Qualidade (Próxima)
+## Fase 6: Refinamento & Garantia de Qualidade (Concluído)
 
 Objetivo: Solidificar o core antes de distribuir. Revisar testes das funções alteradas (Locking, Namespaces).
 
-- [ ] **Revisão de Testes**:
-  - [ ] Verificar cobertura de `Vault.Write` (Lock + Mkdir).
-  - [ ] Verificar cobertura de `Vault.List` (Recursividade).
-  - [ ] Adicionar testes unitários para `pkg/git` (Lock).
+- [x] **Revisão de Testes**:
+  - [x] Verificar cobertura de `Vault.Write` (Lock + Mkdir).
+  - [x] Verificar cobertura de `Vault.List` (Recursividade).
+  - [x] Adicionar testes unitários para `pkg/git` (Lock).
 
-## Futuro (Backlog)
+## Fase 7: Otimização & Cache (Planejado)
 
-De acordo com `docs/PRODUCT.md` (Visão: "Driver de Banco de Dados"):
+Objetivo: Garantir performance em escala (10k+ notas) com sistema de cache de metadados.
 
-1. **Distribuição & Sync**:
-    - [ ] `loam sync` (git pull/push).
+- [ ] **Spike: Benchmarking**:
+  - [ ] Criar ferramenta de geração de carga (1k, 10k notas).
+  - [ ] Medir baseline de `loam list`.
+- [ ] **Sistema de Cache (.loam/index.json)**:
+  - [ ] Implementar índices persistentes (Path -> Mtime, Tags, Title).
+  - [ ] Invalidar cache baseado em `mtime` ou `git status`.
+- [ ] **Validação**:
+  - [ ] Provar melhoria de 10x+ no `loam list` em grandes vaults.
     - [ ] CI/CD para release de binários.
