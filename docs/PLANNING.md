@@ -1,6 +1,6 @@
 # Planning & Roadmap
 
-## Backlog Atual: Fase 0 (Spike)
+## Fase 0 (Spike)
 
 **Objetivo:** Validar escrita concorrente e integração com Git (Latency & Integrity).
 
@@ -27,10 +27,24 @@
 - **Tempo:** 8.3s para 100 commits (~12 ops/sec).
 - **Conclusão:** Viável para uso humano/single-tenant. O gargalo do Git é aceitável.
 
-## Próximos Passos (Fase 1: Kernel)
+## Fase 1: Kernel (Concluído)
 
-Após validar o Spike:
+Foco na estrutura de dados e parsing.
 
-- [ ] Definir `struct Note` e `struct Vault`.
-- [ ] Escolher lib de YAML (ex: `gopkg.in/yaml.v3`).
-- [ ] Implementar leitura de Frontmatter.
+- [x] Definir `struct Note` e `struct Vault` em `pkg/loam`.
+- [x] Escolher lib de YAML (`gopkg.in/yaml.v3`).
+- [x] Implementar leitura de Frontmatter (`Note.Parse`).
+- [x] Testes Unitários para o Parser.
+
+## Próximos Passos (Fase 2: Git-Backed Storage)
+
+Objetivo: Tornar o `Vault` capaz de persistir mudanças usando Git.
+
+- [ ] **Git Wrapper (`pkg/git`)**:
+  - [ ] Criar abstração para comandos git (`git add`, `commit`, `status`).
+  - [ ] Implementar Global Lock (mutex) para garantir acesso exclusivo.
+- [ ] **Vault Writer**:
+  - [ ] Implementar `Vault.Write(note)` que grava no disco.
+  - [ ] Implementar `Vault.Commit(msg)` que efetiva a mudança no Git.
+- [ ] **CLI Básico**:
+  - [ ] Criar comando `loam init` e `loam write`.
