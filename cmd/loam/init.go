@@ -1,0 +1,34 @@
+package main
+
+import (
+	"fmt"
+	"log/slog"
+	"os"
+
+	"github.com/aretw0/loam/pkg/git"
+	"github.com/spf13/cobra"
+)
+
+// initCmd represents the init command
+var initCmd = &cobra.Command{
+	Use:   "init",
+	Short: "Initialize a loam vault (git init)",
+	Long:  `Initialize a new Loam vault in the current directory. This effectively runs 'git init'.`,
+	Run: func(cmd *cobra.Command, args []string) {
+		cwd, err := os.Getwd()
+		if err != nil {
+			fatal("Failed to get CWD", err)
+		}
+
+		client := git.NewClient(cwd, slog.Default())
+
+		if err := client.Init(); err != nil {
+			fatal("Failed to init git", err)
+		}
+		fmt.Println("Initialized empty Loam vault in", cwd)
+	},
+}
+
+func init() {
+	rootCmd.AddCommand(initCmd)
+}

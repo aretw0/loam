@@ -2,6 +2,7 @@ package loam
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 
@@ -10,13 +11,14 @@ import (
 
 // Vault represents a directory containing notes backed by Git.
 type Vault struct {
-	Path string
-	Git  *git.Client
+	Path   string
+	Git    *git.Client
+	Logger *slog.Logger
 }
 
 // NewVault creates a Vault instance rooted at the given path.
 // It ensures the path exists and initializes the Git client.
-func NewVault(path string) (*Vault, error) {
+func NewVault(path string, logger *slog.Logger) (*Vault, error) {
 	info, err := os.Stat(path)
 	if os.IsNotExist(err) {
 		return nil, fmt.Errorf("vault path does not exist: %s", path)
@@ -25,14 +27,12 @@ func NewVault(path string) (*Vault, error) {
 		return nil, fmt.Errorf("vault path is not a directory: %s", path)
 	}
 
-	client := git.NewClient(path)
-	// Optionally init git if not present?
-	// For now, let's assume it might not be initialized and we can do it lazily or explicit.
-	// Let's just create the client.
+	client := git.NewClient(path, logger)
 
 	return &Vault{
-		Path: path,
-		Git:  client,
+		Path:   path,
+		Git:    client,
+		Logger: logger,
 	}, nil
 }
 
@@ -70,6 +70,10 @@ func (v *Vault) Write(n *Note) error {
 	data, err := n.String()
 	if err != nil {
 		return fmt.Errorf("failed to serialize note: %w", err)
+	}
+
+	if v.Logger != nil {
+		v.Logger.Debug("writing note to disk", "id", n.ID, "path", fullPath)
 	}
 
 	// Write to disk

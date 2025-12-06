@@ -13,7 +13,7 @@ func TestVault_WriteCommit(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	// Init Vault
-	vault, err := loam.NewVault(tmpDir)
+	vault, err := loam.NewVault(tmpDir, nil)
 	if err != nil {
 		t.Fatalf("Failed to init vault: %v", err)
 	}

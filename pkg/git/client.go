@@ -2,6 +2,7 @@ package git
 
 import (
 	"fmt"
+	"log/slog"
 	"os/exec"
 	"strings"
 	"sync"
@@ -11,12 +12,16 @@ import (
 // within a single process.
 type Client struct {
 	WorkDir string
+	Logger  *slog.Logger
 	mu      sync.Mutex
 }
 
 // NewClient creates a new git client for the given working directory.
-func NewClient(workDir string) *Client {
-	return &Client{WorkDir: workDir}
+func NewClient(workDir string, logger *slog.Logger) *Client {
+	return &Client{
+		WorkDir: workDir,
+		Logger:  logger,
+	}
 }
 
 // Run executes a raw git command in the working directory.
@@ -24,6 +29,10 @@ func NewClient(workDir string) *Client {
 func (c *Client) Run(args ...string) (string, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+
+	if c.Logger != nil {
+		c.Logger.Debug("executing git", "args", args, "dir", c.WorkDir)
+	}
 
 	cmd := exec.Command("git", args...)
 	cmd.Dir = c.WorkDir
