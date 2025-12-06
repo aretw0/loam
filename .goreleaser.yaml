@@ -7,6 +7,7 @@ before:
 builds:
   - env:
       - CGO_ENABLED=0
+    main: ./cmd/loam
     goos:
       - linux
       - windows
@@ -16,10 +17,11 @@ builds:
       - arm64
     binary: loam
     ldflags:
-      - -s -w -X main.version={{.Version}}
+      - -s -w -X github.com/aretw0/loam.Version={{.Version}}
 
 archives:
-  - format: tar.gz
+  - formats:
+      - tar.gz
     # this name template makes the OS and Arch compatible with the results of uname.
     name_template: >-
       {{ .ProjectName }}_
@@ -31,7 +33,8 @@ archives:
     # use zip for windows
     format_overrides:
       - goos: windows
-        format: zip
+        formats:
+          - zip
 
 changelog:
   sort: asc
