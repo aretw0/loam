@@ -64,6 +64,16 @@ func (c *Client) Add(files ...string) error {
 	return err
 }
 
+// Rm removes files from the working tree and from the index.
+func (c *Client) Rm(files ...string) error {
+	if len(files) == 0 {
+		return nil
+	}
+	args := append([]string{"rm", "-f"}, files...)
+	_, err := c.Run(args...)
+	return err
+}
+
 // Commit records changes to the repository.
 func (c *Client) Commit(msg string) error {
 	_, err := c.Run("commit", "-m", msg)

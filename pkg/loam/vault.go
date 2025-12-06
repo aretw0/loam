@@ -93,3 +93,55 @@ func (v *Vault) Write(n *Note) error {
 func (v *Vault) Commit(msg string) error {
 	return v.Git.Commit(msg)
 }
+
+// Delete removes a note from the vault and stages the deletion in Git.
+func (v *Vault) Delete(id string) error {
+	filename := id + ".md"
+	fullPath := filepath.Join(v.Path, filename)
+
+	if v.Logger != nil {
+		v.Logger.Debug("deleting note", "id", id, "path", fullPath)
+	}
+
+	// Check if file exists
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		return fmt.Errorf("note %s not found", id)
+	}
+
+	// Git Rm (removes from disk and stages deletion)
+	if err := v.Git.Rm(filename); err != nil {
+		return fmt.Errorf("failed to git rm: %w", err)
+	}
+
+	return nil
+}
+
+// List returns a list of all notes in the vault.
+// It scans the directory for .md files and parses them.
+func (v *Vault) List() ([]Note, error) {
+	entries, err := os.ReadDir(v.Path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read vault dir: %w", err)
+	}
+
+	var notes []Note
+	for _, entry := range entries {
+		if entry.IsDir() || filepath.Ext(entry.Name()) != ".md" {
+			continue
+		}
+
+		id := entry.Name()[0 : len(entry.Name())-3]
+		note, err := v.Read(id)
+		if err != nil {
+			// Log error but continue? Or fail?
+			// For now, let's log and skip invalid notes to avoid breaking the whole list.
+			if v.Logger != nil {
+				v.Logger.Warn("failed to parse note during list", "id", id, "error", err)
+			}
+			continue
+		}
+		notes = append(notes, *note)
+	}
+
+	return notes, nil
+}

@@ -83,3 +83,69 @@ func TestVault_WriteCommit(t *testing.T) {
 		t.Errorf("Metadata mismatch. Want title='Integration Test', Got '%v'", readNote.Metadata["title"])
 	}
 }
+
+func TestVault_DeleteList(t *testing.T) {
+	// Setup
+	tmpDir := t.TempDir()
+	vault, err := loam.NewVault(tmpDir, nil)
+	if err != nil {
+		t.Fatalf("Failed to init vault: %v", err)
+	}
+	if err := vault.Git.Init(); err != nil {
+		t.Fatalf("Failed to git init: %v", err)
+	}
+
+	// Create Notes
+	notes := []loam.Note{
+		{ID: "note1", Content: "Content 1"},
+		{ID: "note2", Content: "Content 2"},
+		{ID: "note3", Content: "Content 3"},
+	}
+
+	for _, n := range notes {
+		if err := vault.Write(&n); err != nil {
+			t.Fatalf("Failed to write %s: %v", n.ID, err)
+		}
+	}
+	// Commit initial state
+	vault.Commit("initial commit")
+
+	// List - Should have 3
+	list, err := vault.List()
+	if err != nil {
+		t.Fatalf("Failed to list: %v", err)
+	}
+	if len(list) != 3 {
+		t.Errorf("Expected 3 notes, got %d", len(list))
+	}
+
+	// Delete note2
+	if err := vault.Delete("note2"); err != nil {
+		t.Fatalf("Failed to delete note2: %v", err)
+	}
+
+	// Verify Deletion on Disk (should be gone)
+	if _, err := os.Stat(filepath.Join(tmpDir, "note2.md")); !os.IsNotExist(err) {
+		t.Error("note2.md still exists on disk after Delete")
+	}
+
+	// List - Should have 2
+	list, err = vault.List()
+	if err != nil {
+		t.Fatalf("Failed to list post-delete: %v", err)
+	}
+	if len(list) != 2 {
+		t.Errorf("Expected 2 notes, got %d", len(list))
+	}
+
+	// Commit Deletion
+	if err := vault.Commit("delete note2"); err != nil {
+		t.Fatalf("Failed to commit deletion: %v", err)
+	}
+
+	// Verify Git Status (should be clean)
+	status, _ := vault.Git.Status()
+	if status != "" {
+		t.Errorf("Expected clean status, got:\n%s", status)
+	}
+}
