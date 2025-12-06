@@ -43,3 +43,21 @@ O **Loam** opera como um motor NoSQL sobre arquivos de texto plano, utilizando o
   - `gopkg.in/yaml.v3`: Parsing de metadados.
 - **Dependências Externas:**
   - Git CLI instalado no PATH.
+
+## Estratégia de Qualidade
+
+Adotamos diferentes abordagens de teste para diferentes camadas do sistema:
+
+### 1. Kernel (TDD - Test Driven Development)
+
+- **Escopo:** Pacotes puros em `pkg/loam`.
+- **Foco:** Lógica de negócios, parsing, validação de regras.
+- **Ferramenta:** `go test ./pkg/...` (Testes unitários rápidos).
+- **Exemplo:** Validar que o parser de Frontmatter rejeita YAML inválido.
+
+### 2. Vault/Git (BDD/Integração)
+
+- **Escopo:** Integração com Sistema de Arquivos e Git.
+- **Foco:** Ciclos de vida completos (Write -> Commit -> Verify).
+- **Ferramenta:** Testes de integração (provavelmente em pasta separada ou com build tags).
+- **Exemplo:** "Dado um cofre limpo, quando escrevo uma nota, então um arquivo deve ser criado E um commit deve ser registrado."
