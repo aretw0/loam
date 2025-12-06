@@ -48,15 +48,21 @@ Objetivo: Tornar o `Vault` capaz de persistir mudanças usando Git.
   - [x] `Vault.Commit` exposto.
 - [x] **Verificação**: TDD para Note e Teste de Integração para ciclo completo.
 
-## Próximos Passos (Fase 3: CLI & Entrypoint)
+## Fase 3: CLI & Entrypoint (Concluído)
 
 Objetivo: Criar a interface de linha de comando (`loam`) para consumo do usuário.
 
-- [ ] **Estrutura da CLI**:
-  - [ ] Setup do `cmd/loam/main.go`.
-  - [ ] Parsing de flags (usar stdlib `flag` ou `cobra`? Decisão: `flag` purista para começar).
-- [ ] **Comandos**:
-  - [ ] `loam init`: Inicializa um repositório Git/Loam na pasta atual.
-  - [ ] `loam write <id> "conteúdo"`: Cria/Edita uma nota.
-  - [ ] `loam commit -m "msg"`: Realiza o commit das mudanças pendentes.
-  - [ ] `loam read <id>`: Imprime o conteúdo JSON da nota (para pipes).
+- [x] **Estrutura da CLI**:
+  - [x] Setup do `cmd/loam/main.go`.
+  - [x] Parsing de flags (usar stdlib `flag` ou `cobra`? Decisão: `flag` purista para começar).
+- [x] **Comandos**:
+  - [x] `loam init`: Inicializa um repositório Git/Loam na pasta atual.
+  - [x] `loam write <id> "conteúdo"`: Cria/Edita uma nota.
+  - [x] `loam commit -m "msg"`: Realiza o commit das mudanças pendentes.
+  - [x] `loam read <id>`: Imprime o conteúdo JSON da nota (para pipes).
+
+## Futuro (Backlog)
+
+- [ ] Melhorar `loam read` (suporte a JSON output real).
+- [ ] Implementar file locking (além do mutex em memória) para segurança entre processos.
+- [ ] Suporte a `loam sync` (git pull/push).
