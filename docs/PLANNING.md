@@ -145,6 +145,7 @@ Objetivo: Transformar o Loam em um "Knowledge Engine" com busca semântica e ful
 
 ## Futuro / Blue Sky
 
+- **Definir minima imagem**: Isolar Git e o repositório, i.e. melhor do que executar o script numa pasta que você pode mexer livremente ou até remover a necessidade de ter o repositório baixado. Claro que estamos falando do Loam ter que resolver a configuração do git para que o checkou aconteça e o posterior push, mas acredito que se seguirmos as melhores práticas de como fazer isso respeitando o acesso que nos vai ser dado para colaborar no repositório no servidor git. As perguntas: é o Loam que vai administrar essa parte de checkout e autenticação (PAT ou coisa parecida) ou vamos deixar scripts shell para fazer isso apenas na imagem do container?
 - **Multi-Tenant**: Suporte a múltiplos vaults simultâneos no servidor.
 - **Web UI**: Interface gráfica simples acoplada ao `loam serve`.
 - **Smart Commits**:
