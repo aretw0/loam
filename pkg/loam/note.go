@@ -72,3 +72,23 @@ func Parse(r io.Reader) (*Note, error) {
 
 	return n, nil
 }
+
+// String serializes the note back to Markdown with Frontmatter.
+func (n *Note) String() (string, error) {
+	var buf bytes.Buffer
+
+	// Write Frontmatter if exists
+	if len(n.Metadata) > 0 {
+		buf.WriteString("---\n")
+		encoder := yaml.NewEncoder(&buf)
+		encoder.SetIndent(2) // Pretty print
+		if err := encoder.Encode(n.Metadata); err != nil {
+			return "", err
+		}
+		encoder.Close()
+		buf.WriteString("---\n")
+	}
+
+	buf.WriteString(n.Content)
+	return buf.String(), nil
+}

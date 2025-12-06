@@ -4,15 +4,18 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"github.com/aretw0/loam/pkg/git"
 )
 
-// Vault represents a directory containing notes.
+// Vault represents a directory containing notes backed by Git.
 type Vault struct {
 	Path string
+	Git  *git.Client
 }
 
 // NewVault creates a Vault instance rooted at the given path.
-// It ensures the path exists or returns an error.
+// It ensures the path exists and initializes the Git client.
 func NewVault(path string) (*Vault, error) {
 	info, err := os.Stat(path)
 	if os.IsNotExist(err) {
@@ -21,7 +24,16 @@ func NewVault(path string) (*Vault, error) {
 	if !info.IsDir() {
 		return nil, fmt.Errorf("vault path is not a directory: %s", path)
 	}
-	return &Vault{Path: path}, nil
+
+	client := git.NewClient(path)
+	// Optionally init git if not present?
+	// For now, let's assume it might not be initialized and we can do it lazily or explicit.
+	// Let's just create the client.
+
+	return &Vault{
+		Path: path,
+		Git:  client,
+	}, nil
 }
 
 // Read loads a note by its ID (filename without extension).
@@ -44,30 +56,36 @@ func (v *Vault) Read(id string) (*Note, error) {
 	return note, nil
 }
 
-// Write saves a note to the vault.
-// It constructs the Frontmatter + Content and writes atomically (WriteFile).
-// Note: This does NOT commit to Git yet.
+// Write saves a note to the vault and stages it in Git.
+// It writes the file atomically and calls 'git add'.
 func (v *Vault) Write(n *Note) error {
 	if n.ID == "" {
 		return fmt.Errorf("note has no ID")
 	}
 
-	// This assumes simple serialization for now.
-	// In the future, we might want a proper Marshal function in note.go
-	// But let's keep it simple: manual string building is risky for YAML escapement.
-	// Let's use yaml.Marshal for metadata.
+	filename := n.ID + ".md"
+	fullPath := filepath.Join(v.Path, filename)
 
-	// TODO: Implement proper Note.String() or Note.Marshal()
-	// For now, let's just write empty file if no content to verify stub.
-	// Actually, let's implement the marshal logic here or in note.go to be complete.
+	// Serialize Note
+	data, err := n.String()
+	if err != nil {
+		return fmt.Errorf("failed to serialize note: %w", err)
+	}
 
-	// Delegate to a method on Note? Or keep it here?
-	// Let's defer strict writing implementation until we have the Marshal helper.
-	// For Phase 1 Kernel, READ is the critical path for the parser validation.
-	// However, the plan said "Define method Write".
+	// Write to disk
+	if err := os.WriteFile(fullPath, []byte(data), 0644); err != nil {
+		return fmt.Errorf("failed to write file: %w", err)
+	}
 
-	filename := filepath.Join(v.Path, n.ID+".md")
+	// Git Add
+	if err := v.Git.Add(filename); err != nil {
+		return fmt.Errorf("failed to git add: %w", err)
+	}
 
-	// Create the file (simple implementation)
-	return os.WriteFile(filename, []byte(n.Content), 0644)
+	return nil
+}
+
+// Commit persists the staged changes to the Git history.
+func (v *Vault) Commit(msg string) error {
+	return v.Git.Commit(msg)
 }
