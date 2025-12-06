@@ -74,10 +74,22 @@ Objetivo: Completar as operações de CRUD e permitir a listagem e filtragem de 
 
 - [x] **CRUD Completo**:
   - [x] Implementar `loam delete <id>`.
-- [ ] **Querying & Indexing**:
+- [x] **Querying & Indexing**:
   - [x] Implementar `loam list` (listar todas as notas).
-  - [ ] Indexação em memória de Frontmatter para filtro rápido (ex: `loam list --tag finance`).
-  - [ ] JSON Structured Output para `loam read` e `loam list` (facilitar consumo por scripts).
+  - [x] Filtro básico por tag (`--tag`).
+  - [x] JSON Output para `loam read` e `loam list`.
+- [x] **Concorrência & Namespaces**:
+  - [x] Implementar File-based Locking (Spike validado).
+  - [x] Suporte a subdiretórios (Namespaces).
+
+## Fase 6: Refinamento & Garantia de Qualidade (Próxima)
+
+Objetivo: Solidificar o core antes de distribuir. Revisar testes das funções alteradas (Locking, Namespaces).
+
+- [ ] **Revisão de Testes**:
+  - [ ] Verificar cobertura de `Vault.Write` (Lock + Mkdir).
+  - [ ] Verificar cobertura de `Vault.List` (Recursividade).
+  - [ ] Adicionar testes unitários para `pkg/git` (Lock).
 
 ## Futuro (Backlog)
 
