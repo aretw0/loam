@@ -2,8 +2,11 @@
 
 > A Transactional Storage Engine for Markdown + Frontmatter backed by Git.
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/aretw0/loam)](https://goreportcard.com/report/github.com/aretw0/loam)
+[![Go Doc](https://godoc.org/github.com/aretw0/loam?status.svg)](https://godoc.org/github.com/aretw0/loam/pkg/loam)
+
 **Loam** trata seu diretório de notas Markdown como um banco de dados NoSQL.
-Ele oferece operações de CRUD atômicas e seguras, garantindo que suas automações não corrompam seu cofre pessoal.
+Ele oferece operações de CRUD atômicas e seguras, garantindo que suas automações não corrompam seu cofre pessoal. É ideal para **toolmakers** que querem criar bots ou scripts sobre suas bases de conhecimento (Obsidian, Logseq, etc).
 
 ## 🚀 Instalação
 
@@ -11,41 +14,102 @@ Ele oferece operações de CRUD atômicas e seguras, garantindo que suas automa�
 go install github.com/aretw0/loam/cmd/loam@latest
 ```
 
-## 🛠️ Uso
+## 🛠️ CLI: Uso Básico
 
-### Inicializar um Cofre
+O Loam CLI funciona como um "Git para Humanos", abstraindo o versionamento.
+
+### Inicializar
+
+Transforma a pasta atual em um cofre Loam (git init + configuração).
 
 ```bash
-mkdir notas
-cd notas
 loam init
 ```
 
 ### Criar/Editar Nota
 
-```bash
-loam write -id minha-nota -content "Texto da nota"
-```
-
-### Salvar (Commit)
+Salva conteúdo atomicamente e faz `git add`.
 
 ```bash
-loam commit -m "Minha primeira nota"
+loam write -id daily/2025-12-06 -content "Hoje foi um dia produtivo."
 ```
 
-### Ler Nota (Raw)
+### Sincronizar (Sync)
+
+Puxa mudanças remotas (rebase) e envia as locais. Seguro contra conflitos simples.
 
 ```bash
-loam read -id minha-nota
+loam sync
 ```
 
-## 📚 Documentação
+### Outros Comandos
+
+- **Commit**: `loam commit -m "feat: adiciona nota diária"`
+- **Ler**: `loam read -id daily/2025-12-06`
+- **Listar**: `loam list` (Usa cache para alta performance)
+- **Deletar**: `loam delete -id daily/2025-12-06`
+
+---
+
+## 📦 Library: Uso em Go
+
+Você pode embutir o Loam em seus próprios projetos Go para gerenciar persistência de arquivos Markdown.
+
+```bash
+go get github.com/aretw0/loam
+```
+
+### Exemplo
+
+```go
+package main
+
+import (
+ "fmt"
+ "log/slog"
+ "os"
+
+ "github.com/aretw0/loam/pkg/loam"
+)
+
+func main() {
+ logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+
+ // 1. Conectar ao Vault
+ vault, err := loam.NewVault("./minhas-notas", logger)
+ if err != nil {
+  panic(err)
+ }
+
+ // 2. Criar uma Nota
+ nota := &loam.Note{
+  ID: "exemplo",
+  Metadata: loam.Metadata{
+   "title": "Minha Nota",
+   "tags":  []string{"teste", "golang"},
+  },
+  Content: "Conteúdo da nota em Markdown.",
+ }
+
+ if err := vault.Write(nota); err != nil {
+  panic(err)
+ }
+
+ // 3. Commit
+ if err := vault.Commit("chore: cria nota de exemplo"); err != nil {
+  panic(err)
+ }
+
+ fmt.Println("Nota salva com sucesso!")
+}
+```
+
+## 📚 Documentação Técnica
 
 - [Visão do Produto](docs/PRODUCT.md)
 - [Arquitetura Técnica](docs/TECHNICAL.md)
-- [Roadmap](docs/PLANNING.md)
+- [Roadmap & Planning](docs/PLANNING.md)
 
 ## Status
 
-🚧 **Alpha**. O kernel e a CLI básica estão funcionais, mas a API pode mudar.
-Use por sua conta e risco (mas hey, é Git, você pode sempre dar revert!).
+🚧 **Alpha**. A API interna `pkg/loam` está se estabilizando, mas mudanças podem ocorrer. A CLI é estável para uso diário.
