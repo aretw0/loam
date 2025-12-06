@@ -6,20 +6,25 @@
 
 ### Tarefas do Spike
 
-- [ ] **Setup do Spike** (`cmd/spike/main.go`)
-  - [ ] Criar diretório de trabalho temporário.
-  - [ ] Inicializar repo git (`git init`).
-- [ ] **Teste de Carga (Concorrência)**
-  - [ ] Disparar 100 goroutines simultâneas.
-  - [ ] Cada goroutine cria um arquivo `file_{id}.md` com conteúdo aleatório.
-  - [ ] Tentar realizar commit de todos os arquivos.
-  - [ ] **Desafio:** Implementar um *lock* ou fila simples para garantir que o `git commit` não colida (Git lock file error).
-- [ ] **Validação**
-  - [ ] Verificar se `git status --porcelain` retorna vazio (clean slate).
-  - [ ] Verificar se todos os 100 arquivos existem.
-  - [ ] Medir tempo total da operação.
+- [x] **Setup do Spike** (`cmd/spike/main.go`)
+  - [x] Criar diretório de trabalho temporário.
+  - [x] Inicializar repo git (`git init`).
+- [x] **Teste de Carga (Concorrência)**
+  - [x] Disparar 100 goroutines simultâneas.
+  - [x] Cada goroutine cria um arquivo `file_{id}.md` com conteúdo aleatório.
+  - [x] Tentar realizar commit de todos os arquivos.
+  - [x] **Desafio:** Implementar um *lock* ou fila simples para garantir que o `git commit` não colida (Git lock file error).
+- [x] **Validação**
+  - [x] Verificar se `git status --porcelain` retorna vazio (clean slate).
+  - [x] Verificar se todos os 100 arquivos existem.
+  - [x] Medir tempo total da operação.
 - [ ] **Cenários de Borda**
   - [ ] "Dirty State": Iniciar com arquivos não "trackeados" e ver se o Loam se perde.
+
+#### Resultados do Spike (2025-12-06)
+
+- **Tempo:** 8.3s para 100 commits (~12 ops/sec).
+- **Conclusão:** Viável para uso humano/single-tenant. O gargalo do Git é aceitável.
 
 ## Próximos Passos (Fase 1: Kernel)
 

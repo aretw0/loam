@@ -20,7 +20,7 @@ const (
 var gitLock sync.Mutex
 
 func main() {
-	log.Println("⚡ Iniciando Spike: Loam Concurency Test")
+	log.Println("⚡ Iniciando Spike: Loam Concurrency Test")
 
 	// 1. Setup do Diretório Temporário
 	tmpDir, err := os.MkdirTemp("", "loam-spike-*")
@@ -38,6 +38,7 @@ func main() {
 	runGit(tmpDir, "config", "user.email", "spike@loam.dev")
 	runGit(tmpDir, "config", "user.name", "Loam Spike")
 
+	// 2.2 Iniciar cronometragem
 	start := time.Now()
 
 	// 3. Execução Concorrente
@@ -79,6 +80,7 @@ func main() {
 	}
 
 	wg.Wait()
+	// 2.3 Cronometragem final
 	duration := time.Since(start)
 
 	// 4. Validação Final
