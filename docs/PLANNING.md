@@ -18,8 +18,9 @@
   - [x] Verificar se `git status --porcelain` retorna vazio (clean slate).
   - [x] Verificar se todos os 100 arquivos existem.
   - [x] Medir tempo total da operação.
-- [ ] **Cenários de Borda**
-  - [ ] "Dirty State": Iniciar com arquivos não "trackeados" e ver se o Loam se perde.
+- [x] **Cenários de Borda**
+  - [x] "Dirty State": Iniciar com arquivos não "trackeados" e ver se o Loam se perde.
+    - *Resultado:* Validado. Arquivos garbage permaneceram untracked e o Loam comitou apenas o necessário.
 
 #### Resultados do Spike (2025-12-06)
 

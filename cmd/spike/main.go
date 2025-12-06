@@ -38,6 +38,13 @@ func main() {
 	runGit(tmpDir, "config", "user.email", "spike@loam.dev")
 	runGit(tmpDir, "config", "user.name", "Loam Spike")
 
+	// 2.1 Cenário Dirty State: Criar lixo não rastreado
+	log.Println("🗑️  Criando arquivos 'lixo' (untracked)...")
+	for i := 0; i < 10; i++ {
+		garbageName := fmt.Sprintf("garbage_%d.txt", i)
+		os.WriteFile(filepath.Join(tmpDir, garbageName), []byte("Eu não deveria ser comitado!"), 0644)
+	}
+
 	// 2.2 Iniciar cronometragem
 	start := time.Now()
 
@@ -88,12 +95,14 @@ func main() {
 	log.Printf("⏱️  Tempo Total: %v", duration)
 	log.Printf("⚡ Throughput: %.2f commits/seg", float64(NumFiles)/duration.Seconds())
 
-	// Verificar git status
+	// Validação Dirty State
 	status := getGitOutput(tmpDir, "status", "--porcelain")
-	if status != "" {
-		log.Fatalf("❌ FALHA: Git status não está limpo:\n%s", status)
+	log.Printf("🔍 Status Final (deve ter garbage files):\n%s", status)
+
+	if status == "" {
+		log.Fatalf("❌ FALHA: Status deveria estar sujo com os garbage files, mas está limpo!")
 	} else {
-		log.Println("✅ SUCESSO: Git status limpo (clean slate).")
+		log.Println("✅ SUCESSO: Garbage files detectados e ignorados pelo commit.")
 	}
 
 	// Contar commits
