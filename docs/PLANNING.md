@@ -36,15 +36,27 @@ Foco na estrutura de dados e parsing.
 - [x] Implementar leitura de Frontmatter (`Note.Parse`).
 - [x] Testes Unitários para o Parser.
 
-## Próximos Passos (Fase 2: Git-Backed Storage)
+## Fase 2: Git-Backed Storage (Concluído)
 
 Objetivo: Tornar o `Vault` capaz de persistir mudanças usando Git.
 
-- [ ] **Git Wrapper (`pkg/git`)**:
-  - [ ] Criar abstração para comandos git (`git add`, `commit`, `status`).
-  - [ ] Implementar Global Lock (mutex) para garantir acesso exclusivo.
-- [ ] **Vault Writer**:
-  - [ ] Implementar `Vault.Write(note)` que grava no disco.
-  - [ ] Implementar `Vault.Commit(msg)` que efetiva a mudança no Git.
-- [ ] **CLI Básico**:
-  - [ ] Criar comando `loam init` e `loam write`.
+- [x] **Git Wrapper (`pkg/git`)**:
+  - [x] Abstração thread-safe para comandos git.
+  - [x] Global Lock implementado.
+- [x] **Vault Writer**:
+  - [x] `Vault.Write` integra `os.WriteFile` + `git add`.
+  - [x] `Vault.Commit` exposto.
+- [x] **Verificação**: TDD para Note e Teste de Integração para ciclo completo.
+
+## Próximos Passos (Fase 3: CLI & Entrypoint)
+
+Objetivo: Criar a interface de linha de comando (`loam`) para consumo do usuário.
+
+- [ ] **Estrutura da CLI**:
+  - [ ] Setup do `cmd/loam/main.go`.
+  - [ ] Parsing de flags (usar stdlib `flag` ou `cobra`? Decisão: `flag` purista para começar).
+- [ ] **Comandos**:
+  - [ ] `loam init`: Inicializa um repositório Git/Loam na pasta atual.
+  - [ ] `loam write <id> "conteúdo"`: Cria/Edita uma nota.
+  - [ ] `loam commit -m "msg"`: Realiza o commit das mudanças pendentes.
+  - [ ] `loam read <id>`: Imprime o conteúdo JSON da nota (para pipes).
