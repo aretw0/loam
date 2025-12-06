@@ -105,7 +105,7 @@ Objetivo: Garantir performance em escala (10k+ notas) com sistema de cache de me
   - [x] Provar melhoria de 10x+ no `loam list` em grandes vaults.
     - *Resultado:* Melhoria de ~22% (Cold 1.07s -> Warm 0.83s). Gargalo movido para I/O de diretório.
 
-## Fase 8: Distribuição & Sync (Backlog)
+## Fase 8: Distribuição & Sync (Atual)
 
 Objetivo: Facilitar a sincronização remota e uso distribuído.
 
@@ -118,9 +118,29 @@ Objetivo: Facilitar a sincronização remota e uso distribuído.
   - [ ] **Library**: Estabilizar API pública de `pkg/loam` para uso como DB embedado em outros projetos Go.
   - [ ] **SDK**: Gerar clients (Polyglot) para integrar Loam com outras linguagens.
 
-## Futuro / Ideias
+## Fase 9: Server & Interoperability (Backlog)
 
-- **Servidor HTTP**: `loam serve` para expor uma API REST/GraphQL sobre o vault.
-- **Schema Validation**: Validação rápida de frontmatter/conteúdo em tempo de execução (loam-native), sem depender de githooks que podem trazer erros a nível de git (gargalo).
-- **Indexação Full-Text**: Integração com SQLite ou Bleve para busca por conteúdo, não apenas metadados.
-- **Integração com LLMs**: `loam chat` para RAG (Retrieval-Augmented Generation) sobre as notas.
+Objetivo: Permitir que ferramentas externas (não-Go) interajam com o Loam via rede/socket, reforçando a visão de "Driver".
+
+- [ ] **HTTP/JSON-RPC Server**:
+  - [ ] `loam serve`: Expor API para leitura/escrita e listagem.
+  - [ ] Tratamento de concorrência no servidor (Single Writer, Multiple Readers).
+- [ ] **Schema Validation**:
+  - [ ] `loam validate`: Validar frontmatter contra um schema (JSON Schema ou struct Go).
+  - [ ] Garantir tipos de dados (Datas, Arrays) para integridade.
+
+## Fase 10: Intelligence & Search (Backlog)
+
+Objetivo: Transformar o Loam em um "Knowledge Engine" com busca semântica e full-text.
+
+- [ ] **Indexação Full-Text**:
+  - [ ] Integração com Bleve ou SQLite FTS.
+  - [ ] Busca por conteúdo: `loam search "query"`.
+- [ ] **LLM Integration (RAG)**:
+  - [ ] `loam chat`: Interface de chat com contexto das notas.
+  - [ ] Embeddings locais para busca semântica.
+
+## Futuro / Blue Sky
+
+- **Multi-Tenant**: Suporte a múltiplos vaults simultâneos no servidor.
+- **Web UI**: Interface gráfica simples acoplada ao `loam serve`.
