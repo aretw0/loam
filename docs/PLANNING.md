@@ -109,9 +109,9 @@ Objetivo: Garantir performance em escala (10k+ notas) com sistema de cache de me
 
 Objetivo: Facilitar a sincronização remota e uso distribuído.
 
-- [ ] **Sync Command**:
-  - [ ] `loam sync` (wrapper para `git pull --rebase && git push`).
-  - [ ] Tratamento básico de conflitos de merge (estratégia "ours" ou "theirs"?).
+- [x] **Sync Command**:
+  - [x] `loam sync` (wrapper para `git pull --rebase && git push`).
+  - [x] Tratamento básico de conflitos de merge (estratégia "ours" ou "theirs"?). -> *Decisão: Manual resolution por enquanto.*
 - [ ] **Distribuição**:
   - [ ] CI/CD com GoReleaser para gerar binários (Windows, Mac, Linux).
   - [ ] Publicação via Homebrew/Scoop?

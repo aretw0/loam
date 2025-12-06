@@ -252,3 +252,33 @@ func (v *Vault) List() ([]Note, error) {
 
 	return notes, nil
 }
+
+// Sync synchronizes the vault with the remote repository.
+// It effectively performs a git pull --rebase and git push.
+func (v *Vault) Sync() error {
+	if v.Logger != nil {
+		v.Logger.Info("syncing vault with remote")
+	}
+
+	// Lock to ensure exclusive access during sync
+	unlock, err := v.Git.Lock()
+	if err != nil {
+		return fmt.Errorf("failed to acquire lock: %w", err)
+	}
+	defer unlock()
+
+	// Check if remote exists
+	if !v.Git.HasRemote() {
+		return fmt.Errorf("remote 'origin' not configured")
+	}
+
+	if err := v.Git.Sync(); err != nil {
+		return fmt.Errorf("sync failed: %w", err)
+	}
+
+	if v.Logger != nil {
+		v.Logger.Info("sync completed successfully")
+	}
+
+	return nil
+}

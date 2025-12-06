@@ -110,3 +110,35 @@ func (c *Client) Commit(msg string) error {
 func (c *Client) Status() (string, error) {
 	return c.Run("status", "--porcelain")
 }
+
+// HasRemote checks if there is a 'origin' remote configured.
+// For now, we hardcode 'origin' as the default remote to check.
+func (c *Client) HasRemote() bool {
+	// simple check: git remote get-url origin
+	_, err := c.Run("remote", "get-url", "origin")
+	return err == nil
+}
+
+// Sync performs a pull --rebase and then a push.
+// It assumes the caller handles locking if necessary, though git operations themselves are somewhat atomic,
+// coordinating multiple git commands usually requires a lock to prevent state changes in between.
+func (c *Client) Sync() error {
+	// 1. Pull --rebase
+	// We want to rebase local changes on top of upstream
+	if _, err := c.Run("pull", "--rebase", "origin", "main"); err != nil {
+		// Try master if main fails? Or just rely on default branch config?
+		// For now let's just do 'git pull --rebase' which uses the tracked branch.
+		// If no upstream is set, this might fail.
+		// Let's retry without arguments to rely on default tracking configuration.
+		if _, err2 := c.Run("pull", "--rebase"); err2 != nil {
+			return fmt.Errorf("pull --rebase failed: %w (ensure you have set up a tracking branch)", err2)
+		}
+	}
+
+	// 2. Push
+	if _, err := c.Run("push"); err != nil {
+		return fmt.Errorf("push failed: %w", err)
+	}
+
+	return nil
+}
