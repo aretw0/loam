@@ -40,6 +40,11 @@ Seguiremos uma abordagem incremental para evitar *over-engineering*:
 **Objetivo:** Validar a viabilidade técnica da stack Go + Git + Concorrência.
 *Por que?* Precisamos provar que conseguimos gerenciar *locks* de arquivos e invocar comandos Git de forma confiável e performática antes de construir abstrações complexas. O Spike deve resultar em um pequeno programa que escreve em 100 arquivos simultaneamente e garante que o `git status` final esteja limpo e consistente.
 
+**Critérios de Sucesso Adicionais:**
+
+- **Teste de "Dirty State":** Verificar comportamento se o diretório já estiver sujo antes da execução.
+- **Teste de "File Watching":** Garantir que a escrita atômica não dispare eventos excessivos em watchers externos.
+
 ### 2. SDD - Specification Driven Development (Simplificado)
 
 Evitar a "burocracia de documentação". Focaremos em poucos arquivos vivos em `/docs`:
@@ -60,6 +65,12 @@ Definir um ambiente reprodutível (Dev Container) apenas após validar o Spike, 
 
 - **BDD:** Testes de aceitação para garantir que o fluxo "Transação Iniciada -> Escrita -> Commit -> Confirmação" funcione como esperado pelo usuário final.
 - **TDD:** Testes unitários rigorosos para o *Core*, especialmente para o parser de Frontmatter e o gerenciador de filas/locks, utilizando diretórios temporários (`t.TempDir`) para não poluir o repositório do projeto.
+
+## Premissas e Restrições Técnicas
+
+1. **Latência "Humana":** Aceitamos que o Git será o gargalo. A performance não precisa competir com bancos SQL, mas deve ser aceitável para interações humanas (segundos, não milissegundos).
+2. **Acesso Exclusivo (Single-Tenant):** O Loam assume que é o único processo escrevendo ativamente na pasta durante uma transação. Não lidaremos com *locking* complexo entre múltiplos usuários simultâneos no SO.
+3. **Forward Only (Sem Rollback de Commit):** O Loam nunca reverte um commit já realizado no Git ("git revert"). Se uma transação falhar *antes* do commit, descartamos as mudanças nos arquivos. Se falhar *durante/após*, o commit persiste. A consistência é garantida apenas *checkpoints* (commits).
 
 ### Próximos Passos Imediatos
 
