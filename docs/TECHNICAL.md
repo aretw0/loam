@@ -61,3 +61,12 @@ Adotamos diferentes abordagens de teste para diferentes camadas do sistema:
 - **Foco:** Ciclos de vida completos (Write -> Commit -> Verify).
 - **Ferramenta:** Testes de integração (provavelmente em pasta separada ou com build tags).
 - **Exemplo:** "Dado um cofre limpo, quando escrevo uma nota, então um arquivo deve ser criado E um commit deve ser registrado."
+
+### 4. Otimização: Cache de Metadados
+
+- **Problema:** Listar 10k+ arquivos lendo do disco e parseando YAML custa O(N) IO (~1.1s).
+- **Solução:** Index Persistente (`.loam/index.json`) contendo apenas metadados (Título, ID, Tags).
+- **Invalidation:** Mtime check. `se file.mtime > cache.mtime` -> re-ler arquivo.
+- **Trade-off:**
+  - `loam list` é extremamente rápido (O(1) para arquivos não modificados).
+  - `loam list` **não carrega o conteúdo** (`Content` vazio) para economizar memória e IO. Para acessar o conteúdo, deve-se usar `loam read`.

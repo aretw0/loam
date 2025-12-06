@@ -59,16 +59,31 @@ func main() {
 	cmd := exec.Command(loamPath, "list")
 	cmd.Dir = benchDir // Run inside the bench vault
 
+	// Run 1: Cold (or build cache)
+	fmt.Println("Running 'loam list' (Run 1 - Cold)...")
 	startList := time.Now()
 	out, err := cmd.CombinedOutput()
 	duration := time.Since(startList)
-
 	if err != nil {
 		log.Fatalf("loam list failed: %v\nOutput: %s", err, string(out))
+	}
+	fmt.Printf("Run 1 Result: %v\n", duration)
+
+	// Run 2: Warm (should use cache)
+	fmt.Println("Running 'loam list' (Run 2 - Warm)...")
+	cmd2 := exec.Command(loamPath, "list")
+	cmd2.Dir = benchDir
+	startList2 := time.Now()
+	out2, err := cmd2.CombinedOutput()
+	duration2 := time.Since(startList2)
+	if err != nil {
+		log.Fatalf("loam list run 2 failed: %v\nOutput: %s", err, string(out2))
 	}
 
 	fmt.Printf("--------------------------------------------------\n")
 	fmt.Printf("Validation: Output size: %d bytes\n", len(out))
-	fmt.Printf("Benchmark Result (%d notes): %v\n", *count, duration)
+	fmt.Printf("Benchmark Result (%d notes):\n", *count)
+	fmt.Printf("  Cold: %v\n", duration)
+	fmt.Printf("  Warm: %v\n", duration2)
 	fmt.Printf("--------------------------------------------------\n")
 }
