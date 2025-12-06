@@ -68,16 +68,21 @@ Objetivo: Preparar o terreno para funcionalidades complexas.
 - [x] **CLI Refactor**: Migrar para `spf13/cobra`.
 - [x] **Observability**: Adotar `log/slog` para logs estruturados e debug.
 
+## Fase 5: CRUD & Querying (Em Progresso)
+
+Objetivo: Completar as operações de CRUD e permitir a listagem e filtragem de notas, transformando o Loam em um driver de banco de dados e backend funcional.
+
+- [ ] **CRUD Completo**:
+  - [ ] Implementar `loam delete <id>`.
+- [ ] **Querying & Indexing**:
+  - [ ] Implementar `loam list` (listar todas as notas).
+  - [ ] Indexação em memória de Frontmatter para filtro rápido (ex: `loam list --tag finance`).
+  - [ ] JSON Structured Output para `loam read` e `loam list` (facilitar consumo por scripts).
+
 ## Futuro (Backlog)
 
 De acordo com `docs/PRODUCT.md` (Visão: "Driver de Banco de Dados"):
 
-1. **CRUD Completo**:
-    - [ ] Implementar `loam delete <id>`.
-2. **Querying & Indexing (Alta Prioridade para Toolmakers)**:
-    - [ ] Implementar `loam list` (listar todas as notas).
-    - [ ] Indexação em memória de Frontmatter para filtro rápido (ex: `loam list --tag finance`).
-    - [ ] JSON Structured Output para `loam read` (facilitar consumo por scripts).
-3. **Distribuição & Sync**:
+1. **Distribuição & Sync**:
     - [ ] `loam sync` (git pull/push).
     - [ ] CI/CD para release de binários.
