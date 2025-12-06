@@ -61,6 +61,13 @@ Objetivo: Criar a interface de linha de comando (`loam`) para consumo do usuári
   - [x] `loam commit -m "msg"`: Realiza o commit das mudanças pendentes.
   - [x] `loam read <id>`: Imprime o conteúdo JSON da nota (para pipes).
 
+## Fase 4: Scaling & Observability (Em Progresso)
+
+Objetivo: Preparar o terreno para funcionalidades complexas.
+
+- [ ] **CLI Refactor**: Migrar para `spf13/cobra`.
+- [ ] **Observability**: Adotar `log/slog` para logs estruturados e debug.
+
 ## Futuro (Backlog)
 
 De acordo com `docs/PRODUCT.md` (Visão: "Driver de Banco de Dados"):
