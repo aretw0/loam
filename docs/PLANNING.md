@@ -103,4 +103,23 @@ Objetivo: Garantir performance em escala (10k+ notas) com sistema de cache de me
   - [ ] Invalidar cache baseado em `mtime` ou `git status`.
 - [ ] **Validação**:
   - [ ] Provar melhoria de 10x+ no `loam list` em grandes vaults.
-    - [ ] CI/CD para release de binários.
+
+## Fase 8: Distribuição & Sync (Backlog)
+
+Objetivo: Facilitar a sincronização remota e uso distribuído.
+
+- [ ] **Sync Command**:
+  - [ ] `loam sync` (wrapper para `git pull --rebase && git push`).
+  - [ ] Tratamento básico de conflitos de merge (estratégia "ours" ou "theirs"?).
+- [ ] **Distribuição**:
+  - [ ] CI/CD com GoReleaser para gerar binários (Windows, Mac, Linux).
+  - [ ] Publicação via Homebrew/Scoop?
+  - [ ] **Library**: Estabilizar API pública de `pkg/loam` para uso como DB embedado em outros projetos Go.
+  - [ ] **SDK**: Gerar clients (Polyglot) para integrar Loam com outras linguagens.
+
+## Futuro / Ideias
+
+- **Servidor HTTP**: `loam serve` para expor uma API REST/GraphQL sobre o vault.
+- **Schema Validation**: Validação rápida de frontmatter/conteúdo em tempo de execução (loam-native), sem depender de githooks que podem trazer erros a nível de git (gargalo).
+- **Indexação Full-Text**: Integração com SQLite ou Bleve para busca por conteúdo, não apenas metadados.
+- **Integração com LLMs**: `loam chat` para RAG (Retrieval-Augmented Generation) sobre as notas.
