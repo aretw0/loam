@@ -149,3 +149,59 @@ func TestVault_DeleteList(t *testing.T) {
 		t.Errorf("Expected clean status, got:\n%s", status)
 	}
 }
+
+func TestVault_Namespaces(t *testing.T) {
+	// Setup
+	tmpDir := t.TempDir()
+	vault, err := loam.NewVault(tmpDir, nil)
+	if err != nil {
+		t.Fatalf("Failed to init vault: %v", err)
+	}
+	if err := vault.Git.Init(); err != nil {
+		t.Fatalf("Failed to git init: %v", err)
+	}
+
+	// Create Note in Subdirectory
+	noteID := "deep/nested/note"
+	note := &loam.Note{
+		ID: noteID,
+		Metadata: map[string]interface{}{
+			"title": "Deep Note",
+		},
+		Content: "Content in a folder",
+	}
+
+	if err := vault.Write(note); err != nil {
+		t.Fatalf("Failed to write nested note: %v", err)
+	}
+
+	// Verify File Existence
+	expectedPath := filepath.Join(tmpDir, "deep", "nested", "note.md")
+	if _, err := os.Stat(expectedPath); os.IsNotExist(err) {
+		t.Errorf("File was not created at %s", expectedPath)
+	}
+
+	// Verify List finds it
+	notes, err := vault.List()
+	if err != nil {
+		t.Fatalf("Failed to list: %v", err)
+	}
+
+	// List currently implemented with os.ReadDir(v.Path) which is shallow?
+	// The implementation plan said "Scan directory recursively (walk)".
+	// But previously I implemented simple ReadDir. I need to check Vault.List implementation again.
+	// If I didn't verify that, this test will fail.
+	// Let's assume I need to fix Vault.List to be recursive.
+
+	found := false
+	for _, n := range notes {
+		if n.ID == noteID {
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		t.Errorf("Nested note %s not found in list. Got %d notes.", noteID, len(notes))
+	}
+}

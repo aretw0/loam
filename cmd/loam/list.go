@@ -1,11 +1,17 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 
 	"github.com/aretw0/loam/pkg/loam"
 	"github.com/spf13/cobra"
+)
+
+var (
+	listJSON  bool
+	filterTag string
 )
 
 var listCmd = &cobra.Command{
@@ -31,7 +37,50 @@ var listCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
+		// Filter
+		var filtered []loam.Note
 		for _, note := range notes {
+			if filterTag != "" {
+				// Check tags
+				tags, ok := note.Metadata["tags"]
+				hasTag := false
+				if ok {
+					// Handle []interface{} (from YAML) or []string
+					switch t := tags.(type) {
+					case []interface{}:
+						for _, item := range t {
+							if s, ok := item.(string); ok && s == filterTag {
+								hasTag = true
+								break
+							}
+						}
+					case []string:
+						for _, s := range t {
+							if s == filterTag {
+								hasTag = true
+								break
+							}
+						}
+					}
+				}
+				if !hasTag {
+					continue
+				}
+			}
+			filtered = append(filtered, note)
+		}
+
+		if listJSON {
+			encoder := json.NewEncoder(os.Stdout)
+			encoder.SetIndent("", "  ")
+			if err := encoder.Encode(filtered); err != nil {
+				fmt.Printf("Error encoding JSON: %v\n", err)
+				os.Exit(1)
+			}
+			return
+		}
+
+		for _, note := range filtered {
 			// Basic output: ID - Title (if available)
 			title := ""
 			if t, ok := note.Metadata["title"].(string); ok {
@@ -44,4 +93,6 @@ var listCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(listCmd)
+	listCmd.Flags().BoolVar(&listJSON, "json", false, "Output in JSON format")
+	listCmd.Flags().StringVar(&filterTag, "tag", "", "Filter notes by tag")
 }

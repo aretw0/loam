@@ -63,8 +63,20 @@ func (v *Vault) Write(n *Note) error {
 		return fmt.Errorf("note has no ID")
 	}
 
+	// Transaction: Lock -> EnsureDir -> Write -> Stage -> Unlock
+	unlock, err := v.Git.Lock()
+	if err != nil {
+		return fmt.Errorf("failed to acquire lock: %w", err)
+	}
+	defer unlock()
+
 	filename := n.ID + ".md"
 	fullPath := filepath.Join(v.Path, filename)
+
+	// Ensure parent directory exists (Namespace support)
+	if err := os.MkdirAll(filepath.Dir(fullPath), 0755); err != nil {
+		return fmt.Errorf("failed to create directories: %w", err)
+	}
 
 	// Serialize Note
 	data, err := n.String()
@@ -103,6 +115,12 @@ func (v *Vault) Delete(id string) error {
 		v.Logger.Debug("deleting note", "id", id, "path", fullPath)
 	}
 
+	unlock, err := v.Git.Lock()
+	if err != nil {
+		return fmt.Errorf("failed to acquire lock: %w", err)
+	}
+	defer unlock()
+
 	// Check if file exists
 	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
 		return fmt.Errorf("note %s not found", id)
@@ -117,30 +135,55 @@ func (v *Vault) Delete(id string) error {
 }
 
 // List returns a list of all notes in the vault.
-// It scans the directory for .md files and parses them.
+// It scans the directory recursively for .md files and parses them.
 func (v *Vault) List() ([]Note, error) {
-	entries, err := os.ReadDir(v.Path)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read vault dir: %w", err)
-	}
-
 	var notes []Note
-	for _, entry := range entries {
-		if entry.IsDir() || filepath.Ext(entry.Name()) != ".md" {
-			continue
+
+	err := filepath.WalkDir(v.Path, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			// Skip .git directory
+			if d.Name() == ".git" {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if filepath.Ext(d.Name()) != ".md" {
+			return nil
 		}
 
-		id := entry.Name()[0 : len(entry.Name())-3]
+		// Calculate ID from path relative to Vault Root
+		relPath, err := filepath.Rel(v.Path, path)
+		if err != nil {
+			return err
+		}
+		// ID is path without extension, converted to forward slashes for extensive compatibility?
+		// Note: filepath.Rel returns OS specific separators.
+		// Loam ID convention: we should normalize to forward slashes if we want cross-platform IDs consistency?
+		// For now, let's keep OS separator but trim extension.
+		// Wait, user asked for "namespace". `deep/nested/note`.
+		// If on Windows result is `deep\nested\note.md`.
+		// Code should handle conversion.
+
+		id := relPath[0 : len(relPath)-3]
+		// Create normalized ID?
+		id = filepath.ToSlash(id)
+
 		note, err := v.Read(id)
 		if err != nil {
-			// Log error but continue? Or fail?
-			// For now, let's log and skip invalid notes to avoid breaking the whole list.
 			if v.Logger != nil {
 				v.Logger.Warn("failed to parse note during list", "id", id, "error", err)
 			}
-			continue
+			return nil // Continue walking
 		}
 		notes = append(notes, *note)
+		return nil
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to walk vault dir: %w", err)
 	}
 
 	return notes, nil

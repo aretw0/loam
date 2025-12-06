@@ -3,33 +3,59 @@ package git
 import (
 	"fmt"
 	"log/slog"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
-	"sync"
+	"time"
 )
 
-// Client wraps git command execution with a global lock for minimal thread safety
-// within a single process.
+// Client wraps git command execution with a global file-based lock for process safety.
 type Client struct {
-	WorkDir string
-	Logger  *slog.Logger
-	mu      sync.Mutex
+	WorkDir  string
+	Logger   *slog.Logger
+	lockPath string
 }
 
 // NewClient creates a new git client for the given working directory.
 func NewClient(workDir string, logger *slog.Logger) *Client {
 	return &Client{
-		WorkDir: workDir,
-		Logger:  logger,
+		WorkDir:  workDir,
+		Logger:   logger,
+		lockPath: ".loam.lock", // Lock file name
+	}
+}
+
+// Lock acquires a file-based lock. It blocks until the lock is acquired.
+func (c *Client) Lock() (func(), error) {
+	fullLockPath := filepath.Join(c.WorkDir, c.lockPath)
+
+	for {
+		// Try to create lock file atomically
+		f, err := os.OpenFile(fullLockPath, os.O_CREATE|os.O_EXCL, 0666)
+		if err == nil {
+			f.Close()
+			// Return unlock function
+			return func() {
+				os.Remove(fullLockPath)
+			}, nil
+		}
+
+		if os.IsExist(err) {
+			// Lock exists, wait and retry
+			// Simple spinlock with backoff.
+			// TODO: Add timeout to prevent infinite deadlocks?
+			time.Sleep(10 * time.Millisecond)
+			continue
+		}
+
+		return nil, fmt.Errorf("failed to acquire lock: %w", err)
 	}
 }
 
 // Run executes a raw git command in the working directory.
-// It is protected by the client's mutex to ensure sequential access.
+// NOTE: It does NOT acquire the lock automatically. The caller must manage transaction safety via Client.Lock().
 func (c *Client) Run(args ...string) (string, error) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
 	if c.Logger != nil {
 		c.Logger.Debug("executing git", "args", args, "dir", c.WorkDir)
 	}
