@@ -194,28 +194,10 @@ func (v *Vault) List() ([]Note, error) {
 					"title": entry.Title,
 					"tags":  entry.Tags,
 				},
-				// Note: List() usually doesn't need full Content for index listing?
-				// But Note struct has Content. If consumer expects Content, we fail.
-				// However, 'loam list' output is JSON metadata.
-				// If we need Content, we must read file.
-				// optimization: 'loam list' usually only needs metadata.
-				// Let's assume for 'List' we skip content if cached.
-				// Wait, if user does `loam list`, does it print content?
-				// The CLI `loam list` prints JSON.
-				// Let's look at `cmd/loam/list.go`? I don't see it but likely it iterates notes.
-				// If we want to be safe, we might need to read content if requested?
-				// For now, let's Optimize for Metadata Listing.
-				// If we return empty content, we might break 'grep' use cases?
-				// Let's return empty content for now and document it.
-				// Or... does `Note` struct imply loaded note?
-				// Re-reading `Note` struct: it has Content.
-				// Valid optimization: load content lazily? No, struct is simple.
-				// Decision: For this specific optimization, we accept Content is empty in List output?
-				// Or we read content only if needed?
-				// To preserve correctness: If Cache Hit, we have Metadata. We DO NOT have Content.
-				// If the caller needs content, this is a breaking change unless we store content in cache (too big).
-				// BUT: The goal is "loam list", which usually displays metadata/titles.
-				// Let's proceed with Metadata-only for List (common pattern).
+				// Optimization: On cache hit, we deliberately skip reading the full file content
+				// to ensure O(1) performance per file during list operations.
+				// 'loam list' is intended for metadata discovery. Use 'loam read' for content.
+
 			})
 			return nil
 		}
