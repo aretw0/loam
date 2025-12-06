@@ -9,47 +9,47 @@ import (
 	"time"
 )
 
-// IndexEntry represents collected metadata for a single file.
-type IndexEntry struct {
+// indexEntry represents collected metadata for a single file.
+type indexEntry struct {
 	ID           string    `json:"id"`
 	Title        string    `json:"title,omitempty"`
 	Tags         []string  `json:"tags,omitempty"`
 	LastModified time.Time `json:"lastLimit"` // Ensure typo is fixed: LastModified
 }
 
-// Index represents the persistent cache state.
-type Index struct {
+// index represents the persistent cache state.
+type index struct {
 	Version int                    `json:"version"`
-	Entries map[string]*IndexEntry `json:"entries"` // Key is relative path (e.g. "notes/foo.md")
+	Entries map[string]*indexEntry `json:"entries"` // Key is relative path (e.g. "notes/foo.md")
 	dirty   bool
 	mu      sync.RWMutex
 }
 
-// Cache manages the loading, updating, and saving of the index.
-type Cache struct {
+// cache manages the loading, updating, and saving of the index.
+type cache struct {
 	Path  string // Path to .loam/index.json
-	Index *Index
+	index *index
 }
 
-// NewCache initializes a Cache at the given path.
-func NewCache(vaultPath string) *Cache {
+// newCache initializes a cache at the given path.
+func newCache(vaultPath string) *cache {
 	// Cache lives in {vaultPath}/.loam/index.json
 	cacheDir := filepath.Join(vaultPath, ".loam")
 	cachePath := filepath.Join(cacheDir, "index.json")
 
-	return &Cache{
+	return &cache{
 		Path: cachePath,
-		Index: &Index{
+		index: &index{
 			Version: 1,
-			Entries: make(map[string]*IndexEntry),
+			Entries: make(map[string]*indexEntry),
 		},
 	}
 }
 
 // Load reads the cache from disk. If not found or invalid, returns empty index (no error).
-func (c *Cache) Load() error {
-	c.Index.mu.Lock()
-	defer c.Index.mu.Unlock()
+func (c *cache) Load() error {
+	c.index.mu.Lock()
+	defer c.index.mu.Unlock()
 
 	data, err := os.ReadFile(c.Path)
 	if os.IsNotExist(err) {
@@ -59,30 +59,30 @@ func (c *Cache) Load() error {
 		return fmt.Errorf("failed to read cache: %w", err)
 	}
 
-	if err := json.Unmarshal(data, c.Index); err != nil {
+	if err := json.Unmarshal(data, c.index); err != nil {
 		// If corrupted, just start fresh? Or warn?
 		// For now, let's treat corruption as empty cache to self-heal.
-		c.Index.Entries = make(map[string]*IndexEntry)
+		c.index.Entries = make(map[string]*indexEntry)
 		return nil
 	}
 
-	c.Index.dirty = false
+	c.index.dirty = false
 	return nil
 }
 
 // Save attempts to persist the cache to disk if it's dirty.
-func (c *Cache) Save() error {
-	c.Index.mu.RLock()
+func (c *cache) Save() error {
+	c.index.mu.RLock()
 	// Optimization: check dirty bit before locking for write?
 	// But simple logic first.
-	if !c.Index.dirty {
-		c.Index.mu.RUnlock()
+	if !c.index.dirty {
+		c.index.mu.RUnlock()
 		return nil
 	}
 	// Copy data to serializable struct? Or just Marshal under lock?
 	// Marshaling under lock is safer.
-	data, err := json.MarshalIndent(c.Index, "", "  ")
-	c.Index.mu.RUnlock()
+	data, err := json.MarshalIndent(c.index, "", "  ")
+	c.index.mu.RUnlock()
 
 	if err != nil {
 		return err
@@ -99,9 +99,9 @@ func (c *Cache) Save() error {
 		return err
 	}
 
-	c.Index.mu.Lock()
-	c.Index.dirty = false
-	c.Index.mu.Unlock()
+	c.index.mu.Lock()
+	c.index.dirty = false
+	c.index.mu.Unlock()
 
 	return nil
 }
@@ -109,11 +109,11 @@ func (c *Cache) Save() error {
 // Get retrieves an entry if it exists and is fresh.
 // Returns entry and true if hit.
 // Returns nil and false if miss or stale.
-func (c *Cache) Get(relPath string, currentMtime time.Time) (*IndexEntry, bool) {
-	c.Index.mu.RLock()
-	defer c.Index.mu.RUnlock()
+func (c *cache) Get(relPath string, currentMtime time.Time) (*indexEntry, bool) {
+	c.index.mu.RLock()
+	defer c.index.mu.RUnlock()
 
-	entry, ok := c.Index.Entries[relPath]
+	entry, ok := c.index.Entries[relPath]
 	if !ok {
 		return nil, false
 	}
@@ -129,23 +129,23 @@ func (c *Cache) Get(relPath string, currentMtime time.Time) (*IndexEntry, bool) 
 }
 
 // Set updates an entry in the cache.
-func (c *Cache) Set(relPath string, entry *IndexEntry) {
-	c.Index.mu.Lock()
-	defer c.Index.mu.Unlock()
+func (c *cache) Set(relPath string, entry *indexEntry) {
+	c.index.mu.Lock()
+	defer c.index.mu.Unlock()
 
-	c.Index.Entries[relPath] = entry
-	c.Index.dirty = true
+	c.index.Entries[relPath] = entry
+	c.index.dirty = true
 }
 
 // Prune removes entries that are not in the 'keep' set.
-func (c *Cache) Prune(keep map[string]bool) {
-	c.Index.mu.Lock()
-	defer c.Index.mu.Unlock()
+func (c *cache) Prune(keep map[string]bool) {
+	c.index.mu.Lock()
+	defer c.index.mu.Unlock()
 
-	for path := range c.Index.Entries {
+	for path := range c.index.Entries {
 		if !keep[path] {
-			delete(c.Index.Entries, path)
-			c.Index.dirty = true
+			delete(c.index.Entries, path)
+			c.index.dirty = true
 		}
 	}
 }

@@ -13,7 +13,7 @@ import (
 type Vault struct {
 	Path   string
 	Git    *git.Client
-	Cache  *Cache
+	cache  *cache
 	Logger *slog.Logger
 }
 
@@ -28,12 +28,12 @@ func NewVault(path string, logger *slog.Logger) (*Vault, error) {
 		return nil, fmt.Errorf("vault path is not a directory: %s", path)
 	}
 	client := git.NewClient(path, logger)
-	cache := NewCache(path)
+	cache := newCache(path)
 
 	return &Vault{
 		Path:   path,
 		Git:    client,
-		Cache:  cache,
+		cache:  cache,
 		Logger: logger,
 	}, nil
 }
@@ -142,7 +142,7 @@ func (v *Vault) List() ([]Note, error) {
 	var notes []Note
 
 	// Load Cache Logic
-	if err := v.Cache.Load(); err != nil {
+	if err := v.cache.Load(); err != nil {
 		if v.Logger != nil {
 			v.Logger.Warn("failed to load cache", "error", err)
 		}
@@ -186,7 +186,7 @@ func (v *Vault) List() ([]Note, error) {
 		seen[relPath] = true
 
 		// Check Cache
-		if entry, hit := v.Cache.Get(relPath, mtime); hit {
+		if entry, hit := v.cache.Get(relPath, mtime); hit {
 			// Cache Hit
 			notes = append(notes, Note{
 				ID: entry.ID,
@@ -227,7 +227,7 @@ func (v *Vault) List() ([]Note, error) {
 			}
 		}
 
-		v.Cache.Set(relPath, &IndexEntry{
+		v.cache.Set(relPath, &indexEntry{
 			ID:           id,
 			Title:        title,
 			Tags:         tags,
@@ -243,8 +243,9 @@ func (v *Vault) List() ([]Note, error) {
 	}
 
 	// Save Cache
-	v.Cache.Prune(seen)
-	if err := v.Cache.Save(); err != nil {
+	// Save Cache
+	v.cache.Prune(seen)
+	if err := v.cache.Save(); err != nil {
 		if v.Logger != nil {
 			v.Logger.Warn("failed to save cache", "error", err)
 		}

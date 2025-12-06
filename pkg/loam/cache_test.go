@@ -7,10 +7,10 @@ import (
 
 func TestCache_SaveLoad(t *testing.T) {
 	tmpDir := t.TempDir()
-	c := NewCache(tmpDir)
+	c := newCache(tmpDir)
 
 	// Set some data
-	c.Set("notes/foo.md", &IndexEntry{
+	c.Set("notes/foo.md", &indexEntry{
 		ID:           "notes/foo",
 		Title:        "Foo",
 		Tags:         []string{"a", "b"},
@@ -22,7 +22,8 @@ func TestCache_SaveLoad(t *testing.T) {
 	}
 
 	// Create new cache instance to simulate restart
-	c2 := NewCache(tmpDir)
+	// Create new cache instance to simulate restart
+	c2 := newCache(tmpDir)
 	if err := c2.Load(); err != nil {
 		t.Fatalf("failed to load cache: %v", err)
 	}
@@ -44,10 +45,10 @@ func TestCache_SaveLoad(t *testing.T) {
 
 func TestCache_Prune(t *testing.T) {
 	tmpDir := t.TempDir()
-	c := NewCache(tmpDir)
+	c := newCache(tmpDir)
 
-	c.Set("a.md", &IndexEntry{ID: "a"})
-	c.Set("b.md", &IndexEntry{ID: "b"})
+	c.Set("a.md", &indexEntry{ID: "a"})
+	c.Set("b.md", &indexEntry{ID: "b"})
 
 	keep := map[string]bool{
 		"a.md": true,
@@ -61,10 +62,10 @@ func TestCache_Prune(t *testing.T) {
 		// Let's inspect map directly or use zero time if logic allows.
 		// Our Get implementation enforces equality.
 		// Let's verify via internal map for test simplicity.
-		if _, ok := c.Index.Entries["a.md"]; !ok {
+		if _, ok := c.index.Entries["a.md"]; !ok {
 			t.Errorf("expected a.md to remain")
 		}
-		if _, ok := c.Index.Entries["b.md"]; ok {
+		if _, ok := c.index.Entries["b.md"]; ok {
 			t.Errorf("expected b.md to be pruned")
 		}
 	}
