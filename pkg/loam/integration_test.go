@@ -68,4 +68,18 @@ func TestVault_WriteCommit(t *testing.T) {
 	if status != "" {
 		t.Errorf("Expected git status to be clean after commit, got:\n%s", status)
 	}
+
+	// Read Back (Round-trip verification)
+	readNote, err := vault.Read("test_note")
+	if err != nil {
+		t.Fatalf("Vault.Read failed: %v", err)
+	}
+
+	if readNote.Content != note.Content {
+		t.Errorf("Content mismatch. Want:\n%s\nGot:\n%s", note.Content, readNote.Content)
+	}
+
+	if readNote.Metadata["title"] != "Integration Test" {
+		t.Errorf("Metadata mismatch. Want title='Integration Test', Got '%v'", readNote.Metadata["title"])
+	}
 }
