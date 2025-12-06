@@ -16,16 +16,15 @@ func main() {
 	flag.Parse()
 
 	// 1. Setup Namespace
-	benchDir := "bench_vault"
-	if err := os.RemoveAll(benchDir); err != nil {
-		log.Fatalf("Failed to clean bench dir: %v", err)
-	}
-	if err := os.MkdirAll(benchDir, 0755); err != nil {
-		log.Fatalf("Failed to create bench dir: %v", err)
+	benchDir, err := os.MkdirTemp("", "loam_bench_")
+	if err != nil {
+		log.Fatalf("Failed to create temp dir: %v", err)
 	}
 	defer func() {
 		if !*keep {
 			os.RemoveAll(benchDir)
+		} else {
+			fmt.Printf("Keeping bench dir: %s\n", benchDir)
 		}
 	}()
 
