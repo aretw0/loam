@@ -60,10 +60,9 @@ func (v *Vault) Read(id string) (*Note, error) {
 
 // Transaction represents a multi-step operation that holds the lock.
 type Transaction struct {
-	vault        *Vault
-	unlock       func()
-	dirtyFiles   []string
-	filesToWrite map[string][]byte // Staged in memory (or disk?)
+	vault      *Vault
+	unlock     func()
+	dirtyFiles []string
 	// Design choice: Write to disk immediately or buffer?
 	// User requirement: "tirar de stage se foi colocado e deve desfazer as alterações em disco"
 	// So we write to disk, track it, and revert on rollback.
