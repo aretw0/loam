@@ -22,3 +22,13 @@ O objetivo principal é fornecer uma **camada de persistência transacional** pa
 - "Como desenvolvedor, quero garantir que minhas automações não corrompam o repositório Git (concorrência interna)."
 - "Como usuário, quero desfazer um script mal sucedido usando `git revert` sem perder o estado consistente do cofre."
 - "Como ferramenta externa, quero ler o frontmatter de 1000 notas rapidamente."
+
+## Filosofia de Design
+
+### Commits Semânticos Abstraídos
+
+O Loam deve tratar o histórico do Git como um log estruturado, não apenas texto livre.
+
+- **Abstração:** O usuário não escreve mensagens de commit livres (`-m "fixed stuff"`). Ele informa a *intenção* (Feat, Chore, Fix) e um título.
+- **Padronização:** O Loam gera a mensagem final seguindo Conventional Commits, garantindo que feeds de changelog sejam gerados automaticamente.
+- **Assinatura:** Commits gerados via CLI/Driver devem conter um footer `Footer: Powered by Loam`, indicando a origem da mudança.
