@@ -72,10 +72,10 @@ Objetivo: Preparar o terreno para funcionalidades complexas.
 
 Objetivo: Completar as operações de CRUD e permitir a listagem e filtragem de notas, transformando o Loam em um driver de banco de dados e backend funcional.
 
-- [ ] **CRUD Completo**:
-  - [ ] Implementar `loam delete <id>`.
+- [x] **CRUD Completo**:
+  - [x] Implementar `loam delete <id>`.
 - [ ] **Querying & Indexing**:
-  - [ ] Implementar `loam list` (listar todas as notas).
+  - [x] Implementar `loam list` (listar todas as notas).
   - [ ] Indexação em memória de Frontmatter para filtro rápido (ex: `loam list --tag finance`).
   - [ ] JSON Structured Output para `loam read` e `loam list` (facilitar consumo por scripts).
 
