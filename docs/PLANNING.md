@@ -112,10 +112,9 @@ Objetivo: Facilitar a sincronização remota e uso distribuído.
 - [x] **Sync Command**:
   - [x] `loam sync` (wrapper para `git pull --rebase && git push`).
   - [x] Tratamento básico de conflitos de merge (estratégia "ours" ou "theirs"?). -> *Decisão: Manual resolution por enquanto.*
-- [ ] **Distribuição**:
-  - [ ] CI/CD com GoReleaser para gerar binários (Windows, Mac, Linux).
-  - [ ] **Changelog**: Configurar geração automática via GoReleaser (evitar manutenção manual).
-  - [ ] Publicação via Homebrew/Scoop?
+- [x] **Distribuição**:
+  - [x] CI/CD com GoReleaser para gerar binários (Windows, Mac, Linux).
+  - [x] **Changelog**: Configurar geração automática via GoReleaser (evitar manutenção manual).
   - [ ] **Library**: Estabilizar API pública de `pkg/loam` para uso como DB embedado em outros projetos Go.
   - [ ] **SDK**: Gerar clients (Polyglot) para integrar Loam com outras linguagens.
 
@@ -148,3 +147,4 @@ Objetivo: Transformar o Loam em um "Knowledge Engine" com busca semântica e ful
 - **Smart Commits**:
   - Implementar flag `--type` (feat, fix, chore) no `loam commit`.
   - Garantir footer "Powered by Loam".
+- **Distribuição**: Publicação via Homebrew/Scoop.
