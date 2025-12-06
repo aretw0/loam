@@ -63,6 +63,14 @@ Objetivo: Criar a interface de linha de comando (`loam`) para consumo do usuári
 
 ## Futuro (Backlog)
 
-- [ ] Melhorar `loam read` (suporte a JSON output real).
-- [ ] Implementar file locking (além do mutex em memória) para segurança entre processos.
-- [ ] Suporte a `loam sync` (git pull/push).
+De acordo com `docs/PRODUCT.md` (Visão: "Driver de Banco de Dados"):
+
+1. **CRUD Completo**:
+    - [ ] Implementar `loam delete <id>`.
+2. **Querying & Indexing (Alta Prioridade para Toolmakers)**:
+    - [ ] Implementar `loam list` (listar todas as notas).
+    - [ ] Indexação em memória de Frontmatter para filtro rápido (ex: `loam list --tag finance`).
+    - [ ] JSON Structured Output para `loam read` (facilitar consumo por scripts).
+3. **Distribuição & Sync**:
+    - [ ] `loam sync` (git pull/push).
+    - [ ] CI/CD para release de binários.
