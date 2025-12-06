@@ -35,7 +35,8 @@ var commitCmd = &cobra.Command{
 			fatal("Failed to open vault", err)
 		}
 
-		if err := vault.Commit(commitMsg); err != nil {
+		// Access Git directly for manual commit of staged changes
+		if err := vault.Git.Commit(commitMsg); err != nil {
 			fatal("Failed to commit", err)
 		}
 

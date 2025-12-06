@@ -142,3 +142,28 @@ func (c *Client) Sync() error {
 
 	return nil
 }
+
+// Restore restores working tree files (discards changes in working directory).
+// Use with caution.
+func (c *Client) Restore(files ...string) error {
+	if len(files) == 0 {
+		return nil
+	}
+	// git restore <files>
+	args := append([]string{"restore"}, files...)
+	_, err := c.Run(args...)
+	return err
+}
+
+// Clean removes untracked files from the working tree.
+func (c *Client) Clean(files ...string) error {
+	if len(files) == 0 {
+		return nil
+	}
+	// git clean -f <files>
+	// careful: git clean usually takes a path. If we pass specific files, it might need -f.
+	// Actually `git clean` works on paths.
+	args := append([]string{"clean", "-f"}, files...)
+	_, err := c.Run(args...)
+	return err
+}

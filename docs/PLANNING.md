@@ -116,6 +116,9 @@ Objetivo: Facilitar a sincronização remota e uso distribuído.
   - [x] CI/CD com GoReleaser para gerar binários (Windows, Mac, Linux).
   - [x] **Changelog**: Configurar geração automática via GoReleaser (evitar manutenção manual).
   - [x] **Library**: Estabilizar API pública de `pkg/loam` para uso como DB embedado em outros projetos Go.
+  - [x] **Integridade (Refatoração)**:
+    - [x] Implementar Transações (`Vault.Begin`, `Transaction.Apply`).
+    - [x] Tornar `Vault.Write` em `Vault.Save` (Atômico: Lock -> Write -> Add -> Commit -> Unlock).
   - [ ] **SDK**: Gerar clients (Polyglot) para integrar Loam com outras linguagens.
 
 ## Fase 9: Server & Interoperability (Backlog)

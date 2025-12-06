@@ -35,9 +35,9 @@ func TestVault_WriteCommit(t *testing.T) {
 		Content: "# Hello Loam\nThis note is versioned.",
 	}
 
-	// Write (should Save to Disk + Git Add)
-	if err := vault.Write(note); err != nil {
-		t.Fatalf("Vault.Write failed: %v", err)
+	// Save (Atomic Write + Commit)
+	if err := vault.Save(note, "feat: add test note"); err != nil {
+		t.Fatalf("Vault.Save failed: %v", err)
 	}
 
 	// Check if file exists on disk
@@ -46,21 +46,17 @@ func TestVault_WriteCommit(t *testing.T) {
 		t.Errorf("File was not created at %s", expectedPath)
 	}
 
-	// Verify Git Status (Should be staged, i.e., "A" or "??")
-	// If `git add` worked, it should be "A " or "M " depending.
+	// Verify Git Status (Should be clean after Save)
 	status, err := vault.Git.Status()
 	if err != nil {
 		t.Fatalf("Git Status failed: %v", err)
 	}
-	t.Logf("Git Status after Write:\n%s", status)
+	t.Logf("Git Status after Save:\n%s", status)
 
-	if status == "" {
-		t.Error("Expected git status to show changes, got empty")
-	}
-
-	// Commit
-	if err := vault.Commit("feat: add test note"); err != nil {
-		t.Fatalf("Vault.Commit failed: %v", err)
+	// Since Save commits, status should be clean (except maybe untracked files if any, but in this test we only wrote one file)
+	// Actually, if we want to verify it was committed, we can check logs or ensure status is empty.
+	if status != "" {
+		t.Errorf("Expected git status to be clean, got %s", status)
 	}
 
 	// Verify Status is clean
@@ -103,12 +99,10 @@ func TestVault_DeleteList(t *testing.T) {
 	}
 
 	for _, n := range notes {
-		if err := vault.Write(&n); err != nil {
-			t.Fatalf("Failed to write %s: %v", n.ID, err)
+		if err := vault.Save(&n, "initial commit"); err != nil {
+			t.Fatalf("Failed to save %s: %v", n.ID, err)
 		}
 	}
-	// Commit initial state
-	vault.Commit("initial commit")
 
 	// List - Should have 3
 	list, err := vault.List()
@@ -139,7 +133,7 @@ func TestVault_DeleteList(t *testing.T) {
 	}
 
 	// Commit Deletion
-	if err := vault.Commit("delete note2"); err != nil {
+	if err := vault.Git.Commit("delete note2"); err != nil {
 		t.Fatalf("Failed to commit deletion: %v", err)
 	}
 
@@ -154,7 +148,7 @@ func TestVault_DeleteList(t *testing.T) {
 	if err := vault.Git.Add(".gitignore"); err != nil {
 		t.Fatalf("Failed to add .gitignore: %v", err)
 	}
-	if err := vault.Commit("add gitignore"); err != nil {
+	if err := vault.Git.Commit("add gitignore"); err != nil {
 		t.Fatalf("Failed to commit gitignore: %v", err)
 	}
 
@@ -185,7 +179,7 @@ func TestVault_Namespaces(t *testing.T) {
 		Content: "Content in a folder",
 	}
 
-	if err := vault.Write(note); err != nil {
+	if err := vault.Save(note, "add nested note"); err != nil {
 		t.Fatalf("Failed to write nested note: %v", err)
 	}
 

@@ -28,7 +28,7 @@ loam init
 
 ### Criar/Editar Nota
 
-Salva conteúdo atomicamente e faz `git add`.
+Salva conteúdo e cria um commit automaticamente. (Uso atômico/Save)
 
 ```bash
 loam write -id daily/2025-12-06 -content "Hoje foi um dia produtivo."
@@ -91,14 +91,19 @@ func main() {
   Content: "Conteúdo da nota em Markdown.",
  }
 
- if err := vault.Write(nota); err != nil {
+ // 3. Salvar (Save = Lock + Write + Add + Commit + Unlock)
+ if err := vault.Save(nota, "chore: cria nota de exemplo"); err != nil {
   panic(err)
  }
 
- // 3. Commit
- if err := vault.Commit("chore: cria nota de exemplo"); err != nil {
-  panic(err)
- }
+ // Opcional: Para múltiplas notas, use transações
+ /*
+ tx, _ := vault.Begin()
+ defer tx.Rollback()
+ tx.Write(nota1)
+ tx.Write(nota2)
+ tx.Apply("chore: batch update")
+ */
 
  fmt.Println("Nota salva com sucesso!")
 }

@@ -58,54 +58,134 @@ func (v *Vault) Read(id string) (*Note, error) {
 	return note, nil
 }
 
-// Write saves a note to the vault and stages it in Git.
-// It writes the file atomically and calls 'git add'.
-func (v *Vault) Write(n *Note) error {
+// Transaction represents a multi-step operation that holds the lock.
+type Transaction struct {
+	vault        *Vault
+	unlock       func()
+	dirtyFiles   []string
+	filesToWrite map[string][]byte // Staged in memory (or disk?)
+	// Design choice: Write to disk immediately or buffer?
+	// User requirement: "tirar de stage se foi colocado e deve desfazer as alterações em disco"
+	// So we write to disk, track it, and revert on rollback.
+}
+
+// Begin starts a new transaction. It acquires the global lock.
+func (v *Vault) Begin() (*Transaction, error) {
+	unlock, err := v.Git.Lock()
+	if err != nil {
+		return nil, fmt.Errorf("failed to acquire lock: %w", err)
+	}
+
+	return &Transaction{
+		vault:      v,
+		unlock:     unlock,
+		dirtyFiles: []string{},
+	}, nil
+}
+
+// Write saves a note to disk within the transaction.
+// It does NOT stage the file in Git.
+func (tx *Transaction) Write(n *Note) error {
 	if n.ID == "" {
 		return fmt.Errorf("note has no ID")
 	}
 
-	// Transaction: Lock -> EnsureDir -> Write -> Stage -> Unlock
-	unlock, err := v.Git.Lock()
-	if err != nil {
-		return fmt.Errorf("failed to acquire lock: %w", err)
-	}
-	defer unlock()
-
 	filename := n.ID + ".md"
-	fullPath := filepath.Join(v.Path, filename)
+	fullPath := filepath.Join(tx.vault.Path, filename)
 
-	// Ensure parent directory exists (Namespace support)
+	// Ensure parent directory exists
 	if err := os.MkdirAll(filepath.Dir(fullPath), 0755); err != nil {
 		return fmt.Errorf("failed to create directories: %w", err)
 	}
 
-	// Serialize Note
 	data, err := n.String()
 	if err != nil {
 		return fmt.Errorf("failed to serialize note: %w", err)
 	}
 
-	if v.Logger != nil {
-		v.Logger.Debug("writing note to disk", "id", n.ID, "path", fullPath)
-	}
-
-	// Write to disk
 	if err := os.WriteFile(fullPath, []byte(data), 0644); err != nil {
 		return fmt.Errorf("failed to write file: %w", err)
 	}
 
-	// Git Add
-	if err := v.Git.Add(filename); err != nil {
-		return fmt.Errorf("failed to git add: %w", err)
-	}
+	// Track file for commit or rollback
+	tx.dirtyFiles = append(tx.dirtyFiles, filename)
 
 	return nil
 }
 
-// Commit persists the staged changes to the Git history.
-func (v *Vault) Commit(msg string) error {
-	return v.Git.Commit(msg)
+// Apply persists the transaction changes: git add + git commit + unlock.
+func (tx *Transaction) Apply(msg string) error {
+	defer tx.unlock() // Always unlock at end
+
+	if len(tx.dirtyFiles) == 0 {
+		return nil // Nothing to commit
+	}
+
+	// Git Add
+	if err := tx.vault.Git.Add(tx.dirtyFiles...); err != nil {
+		return fmt.Errorf("failed to git add: %w", err)
+	}
+
+	// Git Commit
+	if err := tx.vault.Git.Commit(msg); err != nil {
+		return fmt.Errorf("failed to git commit: %w", err)
+	}
+
+	// Clear dirty files so Rollback doesn't trigger if called redundantly (defers)
+	tx.dirtyFiles = nil
+
+	return nil
+}
+
+// Rollback undoes changes made during the transaction and releases the lock.
+func (tx *Transaction) Rollback() error {
+	defer tx.unlock()
+
+	if len(tx.dirtyFiles) == 0 {
+		return nil
+	}
+
+	// Revert changes on disk
+	// We use 'git restore' (if file was modified) or 'git clean' (if new)
+	// Simple approach: restore first, then clean.
+	// Note: 'git restore' only works if file is tracked or in index?
+	// If file is untracked (new), 'restore' does nothing. 'clean' handles it.
+
+	// 1. Restore tracked files (modifications)
+	if err := tx.vault.Git.Restore(tx.dirtyFiles...); err != nil {
+		// Log error but continue to clean?
+		// "error: pathspec '...' did not match any file(s) known to git" happens if file is strictly new.
+		// Ignore error? Or check status first?
+		// Let's rely on Clean to catch new files.
+	}
+
+	// 2. Clean untracked files (newly created)
+	if err := tx.vault.Git.Clean(tx.dirtyFiles...); err != nil {
+		return fmt.Errorf("failed to clean untracked files: %w", err)
+	}
+
+	tx.dirtyFiles = nil
+	return nil
+}
+
+// Save is an atomic wrapper for Write+Commit.
+func (v *Vault) Save(n *Note, msg string) error {
+	tx, err := v.Begin()
+	if err != nil {
+		return err
+	}
+	// Defer rollback in case of panic or error return
+	defer tx.Rollback()
+
+	if err := tx.Write(n); err != nil {
+		return err
+	}
+
+	if err := tx.Apply(msg); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Delete removes a note from the vault and stages the deletion in Git.

@@ -12,6 +12,7 @@ import (
 var (
 	writeID      string
 	writeContent string
+	writeMsg     string
 )
 
 // writeCmd represents the write command
@@ -41,11 +42,15 @@ var writeCmd = &cobra.Command{
 			Content: writeContent,
 		}
 
-		if err := vault.Write(note); err != nil {
-			fatal("Failed to write note", err)
+		if writeMsg == "" {
+			writeMsg = fmt.Sprintf("feat: update note %s", writeID)
 		}
 
-		fmt.Printf("Note '%s' written and staged.\n", writeID)
+		if err := vault.Save(note, writeMsg); err != nil {
+			fatal("Failed to save note", err)
+		}
+
+		fmt.Printf("Note '%s' saved and committed.\n", writeID)
 	},
 }
 
@@ -53,5 +58,6 @@ func init() {
 	rootCmd.AddCommand(writeCmd)
 	writeCmd.Flags().StringVar(&writeID, "id", "", "Note ID (filename)")
 	writeCmd.Flags().StringVar(&writeContent, "content", "", "Note content")
+	writeCmd.Flags().StringVarP(&writeMsg, "message", "m", "", "Commit message")
 	writeCmd.MarkFlagRequired("id")
 }
