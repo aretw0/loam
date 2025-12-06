@@ -1,0 +1,45 @@
+# Arquitetura Técnica
+
+O **Loam** opera como um motor NoSQL sobre arquivos de texto plano, utilizando o Git como backend de transação.
+
+## Decisões Arquiteturais
+
+### 1. Storage Engine: Filesystem + Git
+
+- **Formato:** Markdown (`.md`) com YAML Frontmatter.
+- **Transações:** O Git é tratado como o *Write-Ahead Log*.
+  - O estado "real" é o diretório de trabalho + `.git`.
+  - Commits agem como *checkpoints* de consistência.
+
+### 2. Concorrência: Single-Tenant com Lock Global
+
+- **Problema:** O Git não suporta escritas concorrentes no índice (`index.lock`).
+- **Solução:** O Loam utiliza um **Mutex Global** (no nível da aplicação/biblioteca).
+- **Restrição:** Assume-se que o Loam é o único *writer* automatizado ativo no momento da transação. Edições manuais do usuário são toleradas, mas o Loam não compete por lock com outros processos Loam externos sem coordenação (futuramente: file lock no disco).
+
+### 3. Modelo de Consistência
+
+- **Latência "Humana":** Operações de I/O e Git levam ~10ms a ~1s. O sistema não é otimizado para *high-frequency trading*, mas para interações de UI/CLI.
+- **Forward-Only:** Não realizamos *rollbacks* automáticos de commits ( `git reset`) durante a execução normal para evitar inconsistência de arquivos abertos em editores externos. Se uma transação falha *antes* do commit, o estado é descartado. Se falha *no* commit, o erro é retornado mas o estado sujo pode persistir para intervenção manual.
+
+## Componentes do Sistema (Kernel)
+
+### `pkg/loam`
+
+- **`Note`:** Estrutura em memória representando o arquivo.
+  - Parsing: `gopkg.in/yaml.v3` para Frontmatter separada do conteúdo.
+- **`Vault`:** Interface de acesso ao diretório.
+  - Responsável por montar caminhos e orquestrar I/O básico.
+
+### `pkg/git` (Planejado)
+
+- Wrapper sobre a CLI do git (`os/exec`).
+- Responsável por `git add`, `git commit` e verificação de status.
+
+## Stack Tecnológica
+
+- **Linguagem:** Go 1.25+
+- **Dependências Chave:**
+  - `gopkg.in/yaml.v3`: Parsing de metadados.
+- **Dependências Externas:**
+  - Git CLI instalado no PATH.
