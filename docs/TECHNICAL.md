@@ -68,5 +68,16 @@ Adotamos diferentes abordagens de teste para diferentes camadas do sistema:
 - **Solução:** Index Persistente (`.loam/index.json`) contendo apenas metadados (Título, ID, Tags).
 - **Invalidation:** Mtime check. `se file.mtime > cache.mtime` -> re-ler arquivo.
 - **Trade-off:**
-  - `loam list` é extremamente rápido (O(1) para arquivos não modificados).
   - `loam list` **não carrega o conteúdo** (`Content` vazio) para economizar memória e IO. Para acessar o conteúdo, deve-se usar `loam read`.
+
+### 5. Configuração e Segurança (Functional Options)
+
+A partir da Fase 9, o `NewVault` utiliza o padrão **Functional Options** para flexibilidade e segurança:
+
+- **Configuração Explicita**: `WithAutoInit(bool)`, `WithGitless(bool)`, `WithTempDir()`.
+- **Gitless Mode**: Degradação graciosa. Se o git não estiver presente ou configurado, o `Vault` opera como um gerenciador de arquivos Markdown simples (sem histórico).
+- **Safety Guardrails (Dev Mode)**:
+  - Detectamos automaticamente se o Loam está rodando via `go run` ou `go test`.
+  - **Isolamento**: Em Dev Mode, qualquer path fornecido é tratado como um *namespace* dentro de diretório temporário do sistema (`%TEMP%/loam-dev/<namespace>`).
+  - **Exceção**: Se o path já estiver dentro do diretório temporário (e.g. `t.TempDir()`), ele é aceito.
+  - Isso previne poluição acidental do repositório "host" ao rodar exemplos ou testes manuais.

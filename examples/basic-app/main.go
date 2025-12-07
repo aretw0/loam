@@ -14,22 +14,16 @@ func main() {
 
 	vaultPath := "./my-notes"
 
-	// Ensure the vault directory exists.
-	// Loam requires an existing directory to serve as the vault root.
-	if err := os.MkdirAll(vaultPath, 0755); err != nil {
-		panic(fmt.Errorf("failed to create vault directory: %w", err))
-	}
-
-	// 1. Connect to Vault
-	vault, err := loam.NewVault(vaultPath, logger)
+	// 1. Connect to Vault (Zero Config)
+	// WithAutoInit automatically creates the directory and initializes git if not present.
+	// NOTE: If running via 'go run', IsDevRun() will intercept this path and redirect it
+	// to a safe temp directory (e.g. %TEMP%/loam-dev/my-notes) to prevent host pollution.
+	vault, err := loam.NewVault(vaultPath, logger, loam.WithAutoInit(true))
 	if err != nil {
 		panic(err)
 	}
 
-	// Initialize Git repository if it doesn't exist
-	if err := vault.Git.Init(); err != nil {
-		panic(fmt.Errorf("failed to init git: %w", err))
-	}
+	fmt.Printf("Vault initialized at: %s\n", vault.Path)
 
 	// 2. Create a Note
 	note := &loam.Note{
@@ -47,7 +41,7 @@ func main() {
 		panic(err)
 	}
 
-	fmt.Println("Note saved successfully at", vaultPath)
+	fmt.Println("Note saved successfully.")
 
 	// Show how to read back
 	readNote, err := vault.Read("example")

@@ -120,20 +120,21 @@ Objetivo: Facilitar a sincronização remota e uso distribuído.
     - [x] Implementar Transações (`Vault.Begin`, `Transaction.Apply`).
     - [x] Tornar `Vault.Write` em `Vault.Save` (Atômico: Lock -> Write -> Add -> Commit -> Unlock).
 
-## Fase 9: Developer Experience & Safety (Atual)
+## Fase 9: Developer Experience & Safety (Concluído)
 
 Objetivo: Tornar o uso local e efêmero do Loam mais seguro e amigável.
 
-- [ ] **Zero Config / Ephemeral Mode**:
-  - [ ] `NewVault` deve oferecer opção de auto-inicializar diretório e git se não existirem (e.g. `loam.WithAutoInit()`).
-  - [ ] Melhorar suporte para vaults temporários.
-- [ ] **Gitless Mode**:
-  - [ ] Permitir operações de leitura/escrita mesmo sem git instalado (com warnings).
-  - [ ] Degradar graciosamente feature set (desabilitar history/sync).
-- [ ] **Dev Safety Guidelines**:
-  - [ ] O que o Loam pode fazer para evitar poluição do repositório quando estamos rodando projetos localmente com `go run .`? Tem como não forçar o uso de temporário só quando estamos buildados?
-  - [ ] Documentar como desenvolver o Loam e com o Loam (importando no projeto) sem poluir o próprio repositório.
-  - [ ] Criar guards para evitar commits acidentais no repo "host" quando rodando testes locais.
+- [x] **Zero Config / Ephemeral Mode**:
+  - [x] `NewVault` defe oferecer opção de auto-inicializar diretório e git se não existirem (e.g. `loam.WithAutoInit()`).
+  - [x] Melhorar suporte para vaults temporários (`loam.WithTempDir()`).
+- [x] **Gitless Mode**:
+  - [x] Permitir operações de leitura/escrita mesmo sem git instalado (com warnings).
+  - [x] Degradar graciosamente feature set (desabilitar history/sync).
+- [x] **Dev Safety Guidelines**:
+  - [x] O que o Loam pode fazer para evitar poluição do repositório quando estamos rodando projetos localmente com `go run .`? Tem como não forçar o uso de temporário só quando estamos buildados?
+    - *Solução:* `IsDevRun` detecta `go run`/`go test` e força temp dir Namespaced.
+  - [x] Documentar como desenvolver o Loam e com o Loam (importando no projeto) sem poluir o próprio repositório.
+  - [x] Criar guards para evitar commits acidentais no repo "host" quando rodando testes locais.
 
 ## Fase 10: Server & Interoperability (Backlog)
 
