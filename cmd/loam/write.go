@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"os"
@@ -34,27 +35,28 @@ var writeCmd = &cobra.Command{
 			fatal("Failed to get CWD", err)
 		}
 
-		vault, err := loam.NewVault(cwd, slog.Default(), loam.WithGitless(gitless))
-		if err != nil {
-			fatal("Failed to open vault", err)
+		// Configure Loam using the new Config struct
+		cfg := loam.Config{
+			Path:      cwd,
+			IsGitless: gitless,
+			Logger:    slog.Default(),
+			// In CLI, we assume we might want auto-init behavior if we are 'init'ing, but 'write' implies usage.
+			// Existing NewVault(WithGitless) implied no AutoInit unless specified.
+			// Check if we have AutoInit flag globally?
+			// Global 'rootCmd' has no auto-init flag visible here.
+			// Default behavior of NewVault was: AutoInit false.
+			AutoInit: false,
 		}
 
-		note := &loam.Note{
-			ID:      writeID,
-			Content: writeContent,
+		service, err := loam.New(cfg)
+		if err != nil {
+			fatal("Failed to initialize loam", err)
 		}
 
 		// Logic to construct message
 		var finalMsg string
-
-		// Strategy:
-		// 1. If explicit --type is given, use it + message as subject.
-		// 2. If NO --type but --message is given, use legacy mode (append footer).
-		// 3. If NO --type AND NO --message, auto-generate semantic message (default: chore or docs).
-
 		if writeType != "" {
 			if writeMsg == "" {
-				// Auto-generate subject if missing?
 				writeMsg = fmt.Sprintf("update %s", writeID)
 			}
 			finalMsg = loam.FormatCommitMessage(writeType, writeScope, writeMsg, "")
@@ -63,18 +65,18 @@ var writeCmd = &cobra.Command{
 				// Legacy mode
 				finalMsg = loam.AppendFooter(writeMsg)
 			} else {
-				// Auto mode: Default to 'docs' type
-				// "docs(notes): update {id}"
 				scope := "notes"
 				if writeScope != "" {
 					scope = writeScope
 				}
-				// Default type: docs
 				finalMsg = loam.FormatCommitMessage(loam.CommitTypeDocs, scope, fmt.Sprintf("update %s", writeID), "")
 			}
 		}
 
-		if err := vault.Save(note, finalMsg); err != nil {
+		// Pass commit message via context (Adapter specific requirement)
+		ctx := context.WithValue(context.Background(), "commit_message", finalMsg)
+
+		if err := service.SaveNote(ctx, writeID, writeContent, nil); err != nil {
 			fatal("Failed to save note", err)
 		}
 

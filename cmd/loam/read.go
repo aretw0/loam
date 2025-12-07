@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -27,17 +28,22 @@ var readCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		// Use slog.Default() if nil was passed before, or just clean up
-		v, err := loam.NewVault(wd, slog.Default(), loam.WithGitless(gitless), loam.WithMustExist())
+		// Configure Loam
+		cfg := loam.Config{
+			Path:      wd,
+			IsGitless: gitless,
+			MustExist: true,
+			Logger:    slog.Default(),
+		}
+
+		service, err := loam.New(cfg)
 		if err != nil {
-			fmt.Printf("Error initializing vault: %v\n", err)
+			fmt.Printf("Error initializing loam: %v\n", err)
 			os.Exit(1)
 		}
 
-		note, err := v.Read(id)
+		note, err := service.GetNote(context.Background(), id)
 		if err != nil {
-			// If JSON requested, maybe output empty JSON or error JSON?
-			// For now, standard error to stderr.
 			fmt.Fprintf(os.Stderr, "Error reading note: %v\n", err)
 			os.Exit(1)
 		}

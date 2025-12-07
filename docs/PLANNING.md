@@ -146,18 +146,18 @@ Objetivo: Garantir que a ferramenta imponha boas práticas e coesão no projeto.
   - [x] Revisão de coesão (Docs vs Code).
   - [x] Atualização de Exemplos e README para refletir a API fluente (`WithAutoInit`).
 
-## Fase 9.6: Refatoração Arquitetural (Hexagonal)
+## Fase 12: Refatoração Arquitetural (Hexagonal) (Concluído)
 
 **Objetivo:** Desacoplar o núcleo (`Domain`) das implementações de CLI, Filesystem e Git, conforme solicitado ("núcleo não sabe que roda no terminal ou em Markdown").
 
-- [ ] **Definição do Core (`pkg/core`)**:
-  - [ ] Criar entidade `Note` pura (sem dependências de YAML/Filesystem).
-  - [ ] Definir interfaces `Repository` e `Service`.
-- [ ] **Adapters**:
-  - [ ] **Persistence**: Migrar lógica de `pkg/loam` para `pkg/adapters/fs` (implementando `Repository`).
-  - [ ] **Git**: Isolar `pkg/git` como um mecanismo de *transaction log* por trás do adapter de persistência.
-- [ ] **Wiring**:
-  - [ ] Atualizar `cmd/loam` para instanciar os adapters e injetar no serviço.
+- [x] **Definição do Core (`pkg/core`)**:
+  - [x] Criar entidade `Note` pura (sem dependências de YAML/Filesystem).
+  - [x] Definir interfaces `Repository` e `Service`.
+- [x] **Adapters**:
+  - [x] **Persistence**: Migrar lógica de `pkg/loam` para `pkg/adapters/fs` (implementando `Repository`).
+  - [x] **Git**: Isolar `pkg/git` como um mecanismo de *transaction log* por trás do adapter de persistência.
+- [x] **Wiring**:
+  - [x] Atualizar `cmd/loam` para instanciar os adapters e injetar no serviço.
 
 ## Fase 10: Server & Interoperability (Backlog)
 

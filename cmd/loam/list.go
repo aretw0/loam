@@ -1,11 +1,13 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log/slog"
 	"os"
 
+	"github.com/aretw0/loam/pkg/core"
 	"github.com/aretw0/loam/pkg/loam"
 	"github.com/spf13/cobra"
 )
@@ -26,20 +28,27 @@ var listCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		v, err := loam.NewVault(wd, slog.Default(), loam.WithGitless(gitless), loam.WithMustExist())
+		cfg := loam.Config{
+			Path:      wd,
+			IsGitless: gitless,
+			MustExist: true,
+			Logger:    slog.Default(),
+		}
+
+		service, err := loam.New(cfg)
 		if err != nil {
-			fmt.Printf("Error initializing vault: %v\n", err)
+			fmt.Printf("Error initializing loam: %v\n", err)
 			os.Exit(1)
 		}
 
-		notes, err := v.List()
+		notes, err := service.ListNotes(context.Background())
 		if err != nil {
 			fmt.Printf("Error listing notes: %v\n", err)
 			os.Exit(1)
 		}
 
 		// Filter
-		var filtered []loam.Note
+		var filtered []core.Note
 		for _, note := range notes {
 			if filterTag != "" {
 				// Check tags

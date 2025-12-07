@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -21,13 +22,20 @@ var deleteCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		v, err := loam.NewVault(wd, nil, loam.WithGitless(gitless), loam.WithMustExist())
+		cfg := loam.Config{
+			Path:      wd,
+			IsGitless: gitless,
+			MustExist: true,
+			// Logger nil is fine for delete if we don't want verbosity
+		}
+
+		service, err := loam.New(cfg)
 		if err != nil {
-			fmt.Printf("Error initializing vault: %v\n", err)
+			fmt.Printf("Error initializing loam: %v\n", err)
 			os.Exit(1)
 		}
 
-		if err := v.Delete(id); err != nil {
+		if err := service.DeleteNote(context.Background(), id); err != nil {
 			fmt.Printf("Error deleting note: %v\n", err)
 			os.Exit(1)
 		}
