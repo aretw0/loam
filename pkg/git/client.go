@@ -125,14 +125,10 @@ func (c *Client) HasRemote() bool {
 func (c *Client) Sync() error {
 	// 1. Pull --rebase
 	// We want to rebase local changes on top of upstream
-	if _, err := c.Run("pull", "--rebase", "origin", "main"); err != nil {
-		// Try master if main fails? Or just rely on default branch config?
-		// For now let's just do 'git pull --rebase' which uses the tracked branch.
-		// If no upstream is set, this might fail.
-		// Let's retry without arguments to rely on default tracking configuration.
-		if _, err2 := c.Run("pull", "--rebase"); err2 != nil {
-			return fmt.Errorf("pull --rebase failed: %w (ensure you have set up a tracking branch)", err2)
-		}
+	// For now let's just do 'git pull --rebase' which uses the tracked branch.
+	// If no upstream is set, this might fail.
+	if _, err := c.Run("pull", "--rebase"); err != nil {
+		return fmt.Errorf("pull --rebase failed: %w (ensure you have set up a tracking branch)", err)
 	}
 
 	// 2. Push
