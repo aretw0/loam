@@ -75,7 +75,12 @@ import (
 func main() {
  logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
- // 1. Conectar ao Vault
+// Garante que a pasta existe
+ if err := os.MkdirAll("./minhas-notas", 0755); err != nil {
+  panic(err)
+ }
+
+// 1. Conectar ao Vault
  vault, err := loam.NewVault("./minhas-notas", logger)
  if err != nil {
   panic(err)
