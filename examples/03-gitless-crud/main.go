@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os"
 
+	"github.com/aretw0/loam/pkg/core"
 	"github.com/aretw0/loam/pkg/loam"
 )
 
@@ -43,7 +44,7 @@ func main() {
 
 	for _, n := range notes {
 		// Even in Gitless mode, we pass a 'commit message' context to keep API consistent.
-		ctxMsg := context.WithValue(ctx, "commit_message", "ignored message")
+		ctxMsg := context.WithValue(ctx, core.CommitMessageKey, "ignored message")
 		if err := service.SaveNote(ctxMsg, n.ID, n.Content, nil); err != nil {
 			panic(fmt.Errorf("failed to save %s: %w", n.ID, err))
 		}

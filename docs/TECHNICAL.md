@@ -1,84 +1,74 @@
 # Arquitetura Técnica
 
-O **Loam** opera como um motor NoSQL sobre arquivos de texto plano, utilizando o Git como backend de transação.
+O **Loam** adota uma **Arquitetura Hexagonal (Ports & Adapters)** para garantir desacoplamento, testabilidade e extensibilidade. O núcleo do sistema opera independentemente do mecanismo de persistência, permitindo trocar o sistema de arquivos (FS + Git) por outras implementações (SQL, API, etc.) sem alterar as regras de negócio.
 
-## Decisões Arquiteturais
+## Visão Geral
 
-### 1. Storage Engine: Filesystem + Git
+```mermaid
+graph TD
+    CLI[CMD / CLI] --> Factory[LOAM FACTORY]
+    Factory --> Service[CORE SERVICE]
+    Service --> Port([REPOSITORY PORT])
+    Adapters[ADAPTERS] -. implementa .-> Port
+```
+
+## Componentes
+
+### 1. Core Domain (`pkg/core`)
+
+O coração do sistema. Contém apenas lógica de negócios pura e definições de tipos.
+
+- **Entidades**: `Note` (ID, Content, Metadata).
+- **Ports (Interfaces)**: `Repository` (Save, Get, List, Delete).
+- **Services**: `NoteService` (Orquestra validações e chama o Repository).
+- **Dependências**: Zero dependências de infraestrutura.
+
+### 2. Adapters (`pkg/adapters`)
+
+Implementações concretas dos Ports definidos no Core.
+
+- **FS Adapter (`pkg/adapters/fs`)**: Implementa `core.Repository`.
+  - Gerencia arquivos Markdown e YAML Frontmatter.
+  - Utiliza `pkg/git` para controle de versão.
+  - Mantém um **Cache (.loam/index.json)** para listagens rápidas (Otimização).
+
+### 3. Composition Root (`pkg/loam`)
+
+O ponto de entrada que conecta tudo.
+
+- **`loam.New(config)`**: Factory function que instancia o Adapter adequado (baseado na config) e injeta no Service.
+- **`Config`**: Estrutura de configuração centralizada (Path, Logger, Flags).
+
+## Decisões Arquiteturais Chave
+
+### 1. Storage Engine: Filesystem + Git (Driver Padrão)
 
 - **Formato:** Markdown (`.md`) com YAML Frontmatter.
-- **Transações:** O Git é tratado como o *Write-Ahead Log*.
-  - O estado "real" é o diretório de trabalho + `.git`.
-  - Commits agem como *checkpoints* de consistência.
-- **Padronização:** Todo commit gerado pelo Loam segue o padrão **Conventional Commits** (`type(scope): subject`) e inclui um footer `Powered-by: Loam` para rastreabilidade.
+- **Transações:** O Git atua como *Write-Ahead Log*.
+- **Semântica de Commit:** O adapter `fs` lê `commit_message` do `context.Context` durante operações de escrita.
 
-### 2. Concorrência: Single-Tenant com Lock Global
+### 2. Cache de Metadados
 
-- **Problema:** O Git não suporta escritas concorrentes no índice (`index.lock`).
-- **Solução:** O Loam utiliza um **Mutex Global** (no nível da aplicação/biblioteca).
-- **Restrição:** Assume-se que o Loam é o único *writer* automatizado ativo no momento da transação. Edições manuais do usuário são toleradas, mas o Loam não compete por lock com outros processos Loam externos sem coordenação (futuramente: file lock no disco).
+- **Problema:** Listar milhares de arquivos lendo do disco é lento.
+- **Solução:** Index Persistente (`.loam/index.json`) mantido pelo Adapter FS.
+- **Invalidação:** Baseada em timestamp (`mtime`).
+- **Performance:** Reduz tempo de listagem de segundos para milissegundos (ex: 6s -> 13ms para 1k notas).
 
-### 3. Modelo de Consistência
+### 3. Segurança (Dev Safety)
 
-- **Latência "Humana":** Operações de I/O e Git levam ~10ms a ~1s. O sistema não é otimizado para *high-frequency trading*, mas para interações de UI/CLI.
-- **Forward-Only:** Não realizamos *rollbacks* automáticos de commits ( `git reset`) durante a execução normal para evitar inconsistência de arquivos abertos em editores externos. Se uma transação falha *antes* do commit, o estado é descartado. Se falha *no* commit, o erro é retornado mas o estado sujo pode persistir para intervenção manual.
+- **Isolamento**: Em modo de desenvolvimento (`go run`, `go test`), o Loam redireciona automaticamente operações para um diretório temporário (`%TEMP%/loam-dev/`) para evitar sujar o repositório do usuário.
+- **ForceTemp**: Configurável via `loam.Config`.
 
-## Componentes do Sistema (Kernel)
+## Estratégia de Testes
 
-### `pkg/loam`
+### 1. Unitários (`pkg/core`)
 
-- **`Note`:** Estrutura em memória representando o arquivo.
-  - Parsing: `gopkg.in/yaml.v3` para Frontmatter separada do conteúdo.
-- **`Vault`:** Interface de acesso ao diretório.
-  - Responsável por montar caminhos e orquestrar I/O básico.
+Testam regras de negócio usando Mocks em memória. Execução instantânea.
 
-### `pkg/git` (Planejado)
+### 2. Integração (`pkg/loam`)
 
-- Wrapper sobre a CLI do git (`os/exec`).
-- Responsável por `git add`, `git commit` e verificação de status.
+Testam o fluxo completo (Service + FS Adapter + Git) em diretórios temporários reais. Garantem que o contrato de persistência é cumprido.
 
-## Stack Tecnológica
+### 3. Benchmarks (`cmd/bench`)
 
-- **Linguagem:** Go 1.25+
-- **Dependências Chave:**
-  - `gopkg.in/yaml.v3`: Parsing de metadados.
-- **Dependências Externas:**
-  - Git CLI instalado no PATH.
-
-## Estratégia de Qualidade
-
-Adotamos diferentes abordagens de teste para diferentes camadas do sistema:
-
-### 1. Kernel (TDD - Test Driven Development)
-
-- **Escopo:** Pacotes puros em `pkg/loam`.
-- **Foco:** Lógica de negócios, parsing, validação de regras.
-- **Ferramenta:** `go test ./pkg/...` (Testes unitários rápidos).
-- **Exemplo:** Validar que o parser de Frontmatter rejeita YAML inválido.
-
-### 2. Vault/Git (BDD/Integração)
-
-- **Escopo:** Integração com Sistema de Arquivos e Git.
-- **Foco:** Ciclos de vida completos (Write -> Commit -> Verify).
-- **Ferramenta:** Testes de integração (provavelmente em pasta separada ou com build tags).
-- **Exemplo:** "Dado um cofre limpo, quando escrevo uma nota, então um arquivo deve ser criado E um commit deve ser registrado."
-
-### 4. Otimização: Cache de Metadados
-
-- **Problema:** Listar 10k+ arquivos lendo do disco e parseando YAML custa O(N) IO (~1.1s).
-- **Solução:** Index Persistente (`.loam/index.json`) contendo apenas metadados (Título, ID, Tags).
-- **Invalidation:** Mtime check. `se file.mtime > cache.mtime` -> re-ler arquivo.
-- **Trade-off:**
-  - `loam list` **não carrega o conteúdo** (`Content` vazio) para economizar memória e IO. Para acessar o conteúdo, deve-se usar `loam read`.
-
-### 5. Configuração e Segurança (Functional Options)
-
-A partir da Fase 9, o `NewVault` utiliza o padrão **Functional Options** para flexibilidade e segurança:
-
-- **Configuração Explicita**: `WithAutoInit(bool)`, `WithGitless(bool)`, `WithTempDir()`.
-- **Gitless Mode**: Degradação graciosa. Se o git não estiver presente ou configurado, o `Vault` opera como um gerenciador de arquivos Markdown simples (sem histórico).
-- **Safety Guardrails (Dev Mode)**:
-  - Detectamos automaticamente se o Loam está rodando via `go run` ou `go test`.
-  - **Isolamento**: Em Dev Mode, qualquer path fornecido é tratado como um *namespace* dentro de diretório temporário do sistema (`%TEMP%/loam-dev/<namespace>`).
-  - **Exceção**: Se o path já estiver dentro do diretório temporário (e.g. `t.TempDir()`), ele é aceito.
-  - Isso previne poluição acidental do repositório "host" ao rodar exemplos ou testes manuais.
+Medem a performance do Adapter e eficácia do Cache.

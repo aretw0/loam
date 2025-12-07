@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os"
 
+	"github.com/aretw0/loam/pkg/core"
 	"github.com/aretw0/loam/pkg/loam"
 	"github.com/spf13/cobra"
 )
@@ -74,7 +75,7 @@ var writeCmd = &cobra.Command{
 		}
 
 		// Pass commit message via context (Adapter specific requirement)
-		ctx := context.WithValue(context.Background(), "commit_message", finalMsg)
+		ctx := context.WithValue(context.Background(), core.CommitMessageKey, finalMsg)
 
 		if err := service.SaveNote(ctx, writeID, writeContent, nil); err != nil {
 			fatal("Failed to save note", err)

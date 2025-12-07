@@ -94,7 +94,7 @@ func main() {
 
  // 3. Salvar uma Nota (Save Note)
  // O Context pode passar metadados para o Adapter (ex: mensagem de commit)
- ctx := context.WithValue(context.Background(), "commit_message", "chore: cria nota de exemplo")
+ ctx := context.WithValue(context.Background(), core.CommitMessageKey, "chore: cria nota de exemplo")
 
  err = service.SaveNote(ctx, "exemplo", "Conteúdo da nota em Markdown.", core.Metadata{
   "title": "Minha Nota",
