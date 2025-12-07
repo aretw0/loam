@@ -10,6 +10,7 @@ import (
 
 var (
 	verbose bool
+	gitless bool
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -43,4 +44,5 @@ func Execute() {
 
 func init() {
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Enable verbose logging")
+	rootCmd.PersistentFlags().BoolVar(&gitless, "gitless", false, "Run in gitless mode (no git operations)")
 }

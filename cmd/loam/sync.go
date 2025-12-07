@@ -22,7 +22,8 @@ It performs a 'git pull --rebase' to integrate remote changes, followed by a 'gi
 		}
 
 		logger := slog.Default()
-		vault, err := loam.NewVault(cwd, logger)
+		// sync command uses WithGitless
+		vault, err := loam.NewVault(cwd, logger, loam.WithGitless(gitless))
 		if err != nil {
 			fatal("Failed to open vault", err)
 		}

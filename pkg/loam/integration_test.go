@@ -13,16 +13,10 @@ func TestVault_WriteCommit(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	// Init Vault
-	vault, err := loam.NewVault(tmpDir, nil)
+	// Must use WithAutoInit(true) so that git is initialized, otherwise it falls back to Gitless
+	vault, err := loam.NewVault(tmpDir, nil, loam.WithAutoInit(true))
 	if err != nil {
 		t.Fatalf("Failed to init vault: %v", err)
-	}
-
-	// Must init git manually for the test environment??
-	// Vault constructor only inits the CLIENT, but doesn't run `git init` automatically yet based on previous code.
-	// But `git.Client` has `Init()`.
-	if err := vault.Git.Init(); err != nil {
-		t.Fatalf("Failed to git init: %v", err)
 	}
 
 	// Create a Note
@@ -53,8 +47,7 @@ func TestVault_WriteCommit(t *testing.T) {
 	}
 	t.Logf("Git Status after Save:\n%s", status)
 
-	// Since Save commits, status should be clean (except maybe untracked files if any, but in this test we only wrote one file)
-	// Actually, if we want to verify it was committed, we can check logs or ensure status is empty.
+	// Since Save commits, status should be clean
 	if status != "" {
 		t.Errorf("Expected git status to be clean, got %s", status)
 	}
@@ -83,12 +76,9 @@ func TestVault_WriteCommit(t *testing.T) {
 func TestVault_DeleteList(t *testing.T) {
 	// Setup
 	tmpDir := t.TempDir()
-	vault, err := loam.NewVault(tmpDir, nil)
+	vault, err := loam.NewVault(tmpDir, nil, loam.WithAutoInit(true))
 	if err != nil {
 		t.Fatalf("Failed to init vault: %v", err)
-	}
-	if err := vault.Git.Init(); err != nil {
-		t.Fatalf("Failed to git init: %v", err)
 	}
 
 	// Create Notes
@@ -137,14 +127,10 @@ func TestVault_DeleteList(t *testing.T) {
 		t.Fatalf("Failed to commit deletion: %v", err)
 	}
 
-	// Verify Git Status (should be clean or only contain .loam which is untracked but we should probably ignore it)
-	// Actually, the test environment fails because .loam is present and untracked.
-	// We can update .gitignore in the test, OR we can filter the status output in the test.
-	// Let's create a .gitignore in the test setup.
+	// Verify Git Status
 	if err := os.WriteFile(filepath.Join(tmpDir, ".gitignore"), []byte(".loam/\n"), 0644); err != nil {
 		t.Fatalf("Failed to create .gitignore: %v", err)
 	}
-	// Git add the gitignore so it's not untracked
 	if err := vault.Git.Add(".gitignore"); err != nil {
 		t.Fatalf("Failed to add .gitignore: %v", err)
 	}
@@ -161,12 +147,9 @@ func TestVault_DeleteList(t *testing.T) {
 func TestVault_Namespaces(t *testing.T) {
 	// Setup
 	tmpDir := t.TempDir()
-	vault, err := loam.NewVault(tmpDir, nil)
+	vault, err := loam.NewVault(tmpDir, nil, loam.WithAutoInit(true))
 	if err != nil {
 		t.Fatalf("Failed to init vault: %v", err)
-	}
-	if err := vault.Git.Init(); err != nil {
-		t.Fatalf("Failed to git init: %v", err)
 	}
 
 	// Create Note in Subdirectory
@@ -194,12 +177,6 @@ func TestVault_Namespaces(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to list: %v", err)
 	}
-
-	// List currently implemented with os.ReadDir(v.Path) which is shallow?
-	// The implementation plan said "Scan directory recursively (walk)".
-	// But previously I implemented simple ReadDir. I need to check Vault.List implementation again.
-	// If I didn't verify that, this test will fail.
-	// Let's assume I need to fix Vault.List to be recursive.
 
 	found := false
 	for _, n := range notes {

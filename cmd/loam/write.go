@@ -32,7 +32,7 @@ var writeCmd = &cobra.Command{
 			fatal("Failed to get CWD", err)
 		}
 
-		vault, err := loam.NewVault(cwd, slog.Default())
+		vault, err := loam.NewVault(cwd, slog.Default(), loam.WithGitless(gitless))
 		if err != nil {
 			fatal("Failed to open vault", err)
 		}

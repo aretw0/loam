@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"os"
 
 	"github.com/aretw0/loam/pkg/loam"
@@ -26,7 +27,8 @@ var readCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		v, err := loam.NewVault(wd, nil)
+		// Use slog.Default() if nil was passed before, or just clean up
+		v, err := loam.NewVault(wd, slog.Default(), loam.WithGitless(gitless))
 		if err != nil {
 			fmt.Printf("Error initializing vault: %v\n", err)
 			os.Exit(1)

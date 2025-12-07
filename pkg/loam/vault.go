@@ -11,31 +11,99 @@ import (
 
 // Vault represents a directory containing notes backed by Git.
 type Vault struct {
-	Path   string
-	Git    *git.Client
-	cache  *cache
-	Logger *slog.Logger
+	Path      string
+	Git       *git.Client
+	cache     *cache
+	Logger    *slog.Logger
+	autoInit  bool
+	isGitless bool
+	forceTemp bool
 }
 
 // NewVault creates a Vault instance rooted at the given path.
-// It ensures the path exists and initializes the Git client.
-func NewVault(path string, logger *slog.Logger) (*Vault, error) {
-	info, err := os.Stat(path)
-	if os.IsNotExist(err) {
-		return nil, fmt.Errorf("vault path does not exist: %s", path)
-	}
-	if !info.IsDir() {
-		return nil, fmt.Errorf("vault path is not a directory: %s", path)
-	}
-	client := git.NewClient(path, logger)
-	cache := newCache(path)
-
-	return &Vault{
-		Path:   path,
-		Git:    client,
-		cache:  cache,
+// It accepts options to configure behavior (AutoInit, Gitless, Safety).
+func NewVault(path string, logger *slog.Logger, opts ...Option) (*Vault, error) {
+	v := &Vault{
 		Logger: logger,
-	}, nil
+	}
+
+	// Apply options first to capture configuration intended by code
+	for _, opt := range opts {
+		if err := opt(v); err != nil {
+			return nil, fmt.Errorf("failed to apply option: %w", err)
+		}
+	}
+
+	// Safety Logic: Resolve final path.
+	// If IsDevRun() is true OR WithTempDir() was used (v.forceTemp),
+	// we force the path to be safe/namespaced in temp.
+	useTemp := v.forceTemp || IsDevRun()
+	resolvedPath := ResolveVaultPath(path, useTemp)
+
+	v.Path = resolvedPath
+	v.cache = newCache(resolvedPath)
+	v.Git = git.NewClient(resolvedPath, logger)
+
+	// Logging for visibility
+	if logger != nil && useTemp {
+		logger.Warn("running in SAFE MODE (Dev/Test)", "original_path", path, "resolved_path", resolvedPath)
+	}
+
+	// Initialization Logic
+	// 1. Ensure Directory Exists (if AutoInit or Safe Mode implied it)
+	// Safe Mode implies we essentially own that temp dir, so we should probably ensure it exists.
+	// If AutoInit is explicitly requested, we definitely create it.
+	shouldEnsureDir := v.autoInit || useTemp
+
+	if shouldEnsureDir {
+		if err := os.MkdirAll(resolvedPath, 0755); err != nil {
+			return nil, fmt.Errorf("failed to create vault directory: %w", err)
+		}
+	} else {
+		// Verify existence if we didn't just create it
+		info, err := os.Stat(resolvedPath)
+		if os.IsNotExist(err) {
+			return nil, fmt.Errorf("vault path does not exist: %s", resolvedPath)
+		}
+		if !info.IsDir() {
+			return nil, fmt.Errorf("vault path is not a directory: %s", resolvedPath)
+		}
+	}
+
+	// 2. Git Initialization
+	// If Gitless mode is NOT forced, we check environment.
+	if !v.isGitless {
+		if !git.IsInstalled() {
+			v.isGitless = true
+			if logger != nil {
+				logger.Warn("git not found in PATH; falling back to gitless mode")
+			}
+		} else {
+			// Git is installed. Should we init?
+			if !v.Git.IsRepo() {
+				if v.autoInit {
+					if logger != nil {
+						logger.Info("initializing git repository", "path", resolvedPath)
+					}
+					if err := v.Git.Init(); err != nil {
+						return nil, fmt.Errorf("failed to git init: %w", err)
+					}
+				} else {
+					// Not a repo and not asked to init -> Gitless mode for this session?
+					// Or fail? "Git-Backed Storage" implies Git.
+					// But current Phase 9 requirement says "Gitless Mode" allows read/write without git.
+					// So if no repo exists, we just run in gitless mode unless user explicitly wanted git error?
+					// Let's warn and degrade to gitless.
+					v.isGitless = true
+					if logger != nil {
+						logger.Warn("vault is not a git repository; running in gitless mode", "path", resolvedPath)
+					}
+				}
+			}
+		}
+	}
+
+	return v, nil
 }
 
 // Read loads a note by its ID (filename without extension).
@@ -120,6 +188,12 @@ func (tx *Transaction) Apply(msg string) error {
 		return nil // Nothing to commit
 	}
 
+	// Gitless: Skip git operations
+	if tx.vault.isGitless {
+		tx.dirtyFiles = nil
+		return nil
+	}
+
 	// Git Add
 	if err := tx.vault.Git.Add(tx.dirtyFiles...); err != nil {
 		return fmt.Errorf("failed to git add: %w", err)
@@ -141,6 +215,21 @@ func (tx *Transaction) Rollback() error {
 	defer tx.unlock()
 
 	if len(tx.dirtyFiles) == 0 {
+		return nil
+	}
+
+	// Gitless: Just clean up files? Or we can't rollback easily without git?
+	// If gitless, "Rollback" of changes on disk implies deleting new files or reverting modified ones.
+	// Without git, we can't easily revert modifications. We can only maybe delete new files if we tracked that they were new.
+	// Current Transaction.Write implementation just writes. It doesn't backup previous state.
+	// So Rollback in Gitless mode is best-effort or impossible for modifications.
+	// For now, let's just skip unless we implement a manual backup system (out of scope).
+	// Ideally, we should at least clean up files that were *created* in this transaction if we knew they were new.
+	// But `Write` creates them.
+	// Let's assume Gitless mode doesn't support transactional rollback for now, or just logs a warning.
+	if tx.vault.isGitless {
+		// Attempt to delete dirtied files? No, that might destroy user data if it was just an edit.
+		// Risky. Let's do nothing safely.
 		return nil
 	}
 
@@ -205,6 +294,14 @@ func (v *Vault) Delete(id string) error {
 	// Check if file exists
 	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
 		return fmt.Errorf("note %s not found", id)
+	}
+
+	// Gitless: Just remove file
+	if v.isGitless {
+		if err := os.Remove(fullPath); err != nil {
+			return fmt.Errorf("failed to remove file: %w", err)
+		}
+		return nil
 	}
 
 	// Git Rm (removes from disk and stages deletion)
@@ -322,7 +419,6 @@ func (v *Vault) List() ([]Note, error) {
 	}
 
 	// Save Cache
-	// Save Cache
 	v.cache.Prune(seen)
 	if err := v.cache.Save(); err != nil {
 		if v.Logger != nil {
@@ -338,6 +434,14 @@ func (v *Vault) List() ([]Note, error) {
 func (v *Vault) Sync() error {
 	if v.Logger != nil {
 		v.Logger.Info("syncing vault with remote")
+	}
+
+	// Gitless: No sync possible
+	if v.isGitless {
+		if v.Logger != nil {
+			v.Logger.Warn("cannot sync in gitless mode")
+		}
+		return nil
 	}
 
 	// Lock to ensure exclusive access during sync

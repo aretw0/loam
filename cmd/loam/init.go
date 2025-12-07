@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/aretw0/loam/pkg/git"
+	"github.com/aretw0/loam/pkg/loam"
 	"github.com/spf13/cobra"
 )
 
@@ -20,11 +20,12 @@ var initCmd = &cobra.Command{
 			fatal("Failed to get CWD", err)
 		}
 
-		client := git.NewClient(cwd, slog.Default())
-
-		if err := client.Init(); err != nil {
-			fatal("Failed to init git", err)
+		// loam init -> WithAutoInit(true)
+		_, err = loam.NewVault(cwd, slog.Default(), loam.WithAutoInit(true), loam.WithGitless(gitless))
+		if err != nil {
+			fatal("Failed to initialize vault", err)
 		}
+
 		fmt.Println("Initialized empty Loam vault in", cwd)
 	},
 }

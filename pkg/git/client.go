@@ -167,3 +167,17 @@ func (c *Client) Clean(files ...string) error {
 	_, err := c.Run(args...)
 	return err
 }
+
+// IsRepo checks if the current working directory is a valid git repository.
+func (c *Client) IsRepo() bool {
+	// Check for .git directory
+	gitDir := filepath.Join(c.WorkDir, ".git")
+	info, err := os.Stat(gitDir)
+	return err == nil && info.IsDir()
+}
+
+// IsInstalled checks if git is available in the system PATH.
+func IsInstalled() bool {
+	_, err := exec.LookPath("git")
+	return err == nil
+}
