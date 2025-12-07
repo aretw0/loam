@@ -68,46 +68,42 @@ go get github.com/aretw0/loam
 package main
 
 import (
+ "context"
  "fmt"
  "log/slog"
  "os"
 
+ "github.com/aretw0/loam/pkg/core"
  "github.com/aretw0/loam/pkg/loam"
 )
 
 func main() {
- logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+ // 1. Configurar Loam
+ cfg := loam.Config{
+  Path:     "./minhas-notas",
+  AutoInit: true,
+  Logger:   slog.New(slog.NewTextHandler(os.Stdout, nil)),
+  // ForceTemp: true, // Use se quiser segurança extra em dev
+ }
 
- // 1. Conectar ao Vault
- // Usa Functional Options para configurar AutoInit (cria pasta e git init se necessário)
- vault, err := loam.NewVault("./minhas-notas", logger, loam.WithAutoInit(true))
+ // 2. Inicializar Serviço (Factory)
+ service, err := loam.New(cfg)
  if err != nil {
   panic(err)
  }
 
- // 2. Criar uma Nota
- nota := &loam.Note{
-  ID: "exemplo",
-  Metadata: loam.Metadata{
-   "title": "Minha Nota",
-   "tags":  []string{"teste", "golang"},
-  },
-  Content: "Conteúdo da nota em Markdown.",
- }
+ // 3. Salvar uma Nota (Save Note)
+ // O Context pode passar metadados para o Adapter (ex: mensagem de commit)
+ ctx := context.WithValue(context.Background(), "commit_message", "chore: cria nota de exemplo")
 
- // 3. Salvar (Save = Lock + Write + Add + Commit + Unlock)
- if err := vault.Save(nota, "chore: cria nota de exemplo"); err != nil {
+ err = service.SaveNote(ctx, "exemplo", "Conteúdo da nota em Markdown.", core.Metadata{
+  "title": "Minha Nota",
+  "tags":  []string{"teste", "golang"},
+ })
+
+ if err != nil {
   panic(err)
  }
-
- // Opcional: Para múltiplas notas, use transações
- /*
-  tx, _ := vault.Begin()
-  defer tx.Rollback()
-  tx.Write(nota1)
-  tx.Write(nota2)
-  tx.Apply("chore: batch update")
- */
 
  fmt.Println("Nota salva com sucesso!")
 }
