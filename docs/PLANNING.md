@@ -146,6 +146,19 @@ Objetivo: Garantir que a ferramenta imponha boas práticas e coesão no projeto.
   - [x] Revisão de coesão (Docs vs Code).
   - [x] Atualização de Exemplos e README para refletir a API fluente (`WithAutoInit`).
 
+## Fase 9.6: Refatoração Arquitetural (Hexagonal)
+
+**Objetivo:** Desacoplar o núcleo (`Domain`) das implementações de CLI, Filesystem e Git, conforme solicitado ("núcleo não sabe que roda no terminal ou em Markdown").
+
+- [ ] **Definição do Core (`pkg/core`)**:
+  - [ ] Criar entidade `Note` pura (sem dependências de YAML/Filesystem).
+  - [ ] Definir interfaces `Repository` e `Service`.
+- [ ] **Adapters**:
+  - [ ] **Persistence**: Migrar lógica de `pkg/loam` para `pkg/adapters/fs` (implementando `Repository`).
+  - [ ] **Git**: Isolar `pkg/git` como um mecanismo de *transaction log* por trás do adapter de persistência.
+- [ ] **Wiring**:
+  - [ ] Atualizar `cmd/loam` para instanciar os adapters e injetar no serviço.
+
 ## Fase 10: Server & Interoperability (Backlog)
 
 Objetivo: Permitir que ferramentas externas (não-Go) interajam com o Loam via rede/socket, reforçando a visão de "Driver".
