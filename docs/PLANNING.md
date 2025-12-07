@@ -159,7 +159,7 @@ Objetivo: Garantir que a ferramenta imponha boas práticas e coesão no projeto.
 - [x] **Wiring**:
   - [x] Atualizar `cmd/loam` para instanciar os adapters e injetar no serviço.
 - [x] **Refatoração de Configuração**:
-  - [x] Substituir `Config` struct por **Functional Options** (`WithGitless`, `WithLogger`).
+  - [x] Substituir `Config` struct por **Functional Options** (`WithLogger`, `WithVersioning`).
   - [x] Preparar injection points no `loam.New` para adapters customizados.
 
 ## Fase 10: Server & Interoperability (Backlog)

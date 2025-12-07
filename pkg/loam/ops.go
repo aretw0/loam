@@ -2,10 +2,8 @@ package loam
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/aretw0/loam/pkg/adapters/fs"
-	"github.com/aretw0/loam/pkg/git"
 )
 
 // Init initializes a new Loam vault based on the provided configuration.
@@ -29,9 +27,10 @@ func Init(path string, opts ...Option) (string, bool, error) {
 	}
 
 	// 2. Determine Gitless Mode (Fallback Logic)
+	// Proxy check through fs adapter to keep loam decoupled from git package.
 	isGitless := o.gitless
 	if !isGitless {
-		if !git.IsInstalled() {
+		if !fs.IsGitInstalled() {
 			isGitless = true
 			if o.logger != nil {
 				o.logger.Warn("git not found in PATH; falling back to gitless mode")
@@ -42,14 +41,9 @@ func Init(path string, opts ...Option) (string, bool, error) {
 	// 3. Configure and Initialize Repository
 	// We use the FS adapter for initialization.
 	repoConfig := fs.Config{
-		Path:     resolvedPath,
-		AutoInit: o.autoInit,
-		Gitless:  isGitless,
-		// MustExist logic mapping:
-		// If we are auto-initializing or using temp, we assume we can create directories.
-		// If NOT auto-initializing/temp, we assume it MUST exist unless implicitly allowed?
-		// Original logic: "shouldEnsureDir := o.autoInit || useTemp".
-		// If !shouldEnsureDir, we checked existence.
+		Path:      resolvedPath,
+		AutoInit:  o.autoInit,
+		Gitless:   isGitless,
 		MustExist: o.mustExist || (!o.autoInit && !useTemp),
 	}
 
@@ -62,8 +56,6 @@ func Init(path string, opts ...Option) (string, bool, error) {
 }
 
 // Sync synchronizes the vault at the given path with its configured remote.
-// This involves pulling changes from the remote and pushing local changes.
-// It returns an error if the sync fails or if the vault is in gitless mode.
 func Sync(path string, opts ...Option) error {
 	o := defaultOptions()
 	for _, opt := range opts {
@@ -74,14 +66,14 @@ func Sync(path string, opts ...Option) error {
 	useTemp := o.tempDir || IsDevRun()
 	resolvedPath := ResolveVaultPath(path, useTemp)
 
-	if o.gitless {
-		return fmt.Errorf("cannot sync in gitless mode")
-	}
+	// We use the FS adapter to perform the sync
+	// The adapter handles all git-specific logic.
+	repo := fs.NewRepository(fs.Config{
+		Path:    resolvedPath,
+		Gitless: o.gitless, // If explicitly set to gitless, Sync will fail inside adapter
+		// We don't need AutoInit or MustExist strictness here because NewRepository just sets up the struct.
+		// However, Initialize or Sync will check validity.
+	})
 
-	client := git.NewClient(resolvedPath, o.logger)
-	if !client.IsRepo() {
-		return fmt.Errorf("path is not a git repository: %s", resolvedPath)
-	}
-
-	return client.Sync()
+	return repo.Sync(context.Background())
 }

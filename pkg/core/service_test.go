@@ -48,6 +48,10 @@ func (m *MockRepository) Initialize(ctx context.Context) error {
 	return nil
 }
 
+func (m *MockRepository) Sync(ctx context.Context) error {
+	return nil
+}
+
 func TestService_SaveNote(t *testing.T) {
 	repo := NewMockRepository()
 	service := core.NewService(repo)

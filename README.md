@@ -78,7 +78,6 @@ import (
 )
 
 func main() {
-func main() {
  // 1. Inicializar Serviço (Factory) com Functional Options
  // Configuração mais limpa e extensível.
  service, err := loam.New("./minhas-notas",

@@ -37,7 +37,7 @@ Implementações concretas dos Ports definidos no Core.
 O ponto de entrada que conecta tudo.
 
 - **`loam.New(path, opts...)`**: Factory function que instancia o Adapter adequado (baseado em opções funcionais) e injeta no Service. Suporta injeção de dependência (`WithRepository`).
-- **Functional Options**: Configuração fluente (`WithGitless`, `WithLogger`, `WithRepository`) em vez de structs monolíticos.
+- **Functional Options**: Configuração fluente (`WithVersioning`, `WithLogger`, `WithRepository`) em vez de structs monolíticos.
 
 ## Decisões Arquiteturais Chave
 

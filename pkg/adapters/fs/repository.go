@@ -35,10 +35,11 @@ type Config struct {
 func NewRepository(config Config) *Repository {
 	return &Repository{
 		Path: config.Path,
-		Git:  git.NewClient(config.Path, nil), // Helper internally creates client, logger can be wired if Config has it?
+		// Helper internally creates client, logger can be wired if Config has it?
 		// Wait, git.NewClient accepts a logger. Config currently doesn't have it.
 		// We should add Logger to Config or accept it cleanly.
 		// For now, passing nil logger or we need to update Config struct.
+		Git:    git.NewClient(config.Path, nil),
 		config: config,
 		cache:  newCache(config.Path),
 	}
@@ -67,9 +68,6 @@ func (r *Repository) Initialize(ctx context.Context) error {
 			return fmt.Errorf("git is not installed")
 		}
 
-		// Re-instantiate git client if path was just created?
-		// NewClient just holds the path string, so it's fine.
-
 		if !r.Git.IsRepo() {
 			if r.config.AutoInit {
 				if err := r.Git.Init(); err != nil {
@@ -82,6 +80,19 @@ func (r *Repository) Initialize(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+// Sync synchronizes the repository with its remote.
+func (r *Repository) Sync(ctx context.Context) error {
+	if r.config.Gitless {
+		return fmt.Errorf("cannot sync in gitless mode")
+	}
+
+	if !r.Git.IsRepo() {
+		return fmt.Errorf("path is not a git repository: %s", r.Path)
+	}
+
+	return r.Git.Sync() // This method handles pull/push
 }
 
 // Save persists a note to the filesystem and commits it to Git.
@@ -137,8 +148,6 @@ func (r *Repository) Get(ctx context.Context, id string) (core.Note, error) {
 
 	f, err := os.Open(filename)
 	if err != nil {
-		// Use os.IsNotExist to return a standard core error?
-		// For now, return raw error.
 		return core.Note{}, err
 	}
 	defer f.Close()
@@ -202,9 +211,6 @@ func (r *Repository) List(ctx context.Context) ([]core.Note, error) {
 					"title": entry.Title,
 					"tags":  entry.Tags,
 				},
-				// Optimization: On cache hit, we skip reading content.
-				// This might break callers expecting full content in List?
-				// But original Loam.List behaved this way.
 			})
 			return nil
 		}
@@ -286,6 +292,12 @@ func (r *Repository) Delete(ctx context.Context, id string) error {
 	}
 
 	return nil
+}
+
+// IsGitInstalled checks if git is available in the system path.
+// This allows consumers to check prerequisite without importing pkg/git directly.
+func IsGitInstalled() bool {
+	return git.IsInstalled()
 }
 
 // --- Serialization Helpers (Private) ---
