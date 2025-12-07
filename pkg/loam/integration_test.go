@@ -16,13 +16,8 @@ func TestService_WriteCommit(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	// Init Service using loam.New
-	cfg := loam.Config{
-		Path:      tmpDir,
-		AutoInit:  true,
-		ForceTemp: true, // Enforce safety in tests
-	}
-
-	service, err := loam.New(cfg)
+	// Init Service using loam.New
+	service, err := loam.New(tmpDir, loam.WithAutoInit(true), loam.WithForceTemp(true))
 	if err != nil {
 		t.Fatalf("Failed to init service: %v", err)
 	}
@@ -76,12 +71,7 @@ func TestService_WriteCommit(t *testing.T) {
 func TestService_DeleteList(t *testing.T) {
 	// Setup
 	tmpDir := t.TempDir()
-	cfg := loam.Config{
-		Path:      tmpDir,
-		AutoInit:  true,
-		ForceTemp: true,
-	}
-	service, err := loam.New(cfg)
+	service, err := loam.New(tmpDir, loam.WithAutoInit(true), loam.WithForceTemp(true))
 	if err != nil {
 		t.Fatalf("Failed to init service: %v", err)
 	}
@@ -156,12 +146,7 @@ func TestService_DeleteList(t *testing.T) {
 func TestService_Namespaces(t *testing.T) {
 	// Setup
 	tmpDir := t.TempDir()
-	cfg := loam.Config{
-		Path:      tmpDir,
-		AutoInit:  true,
-		ForceTemp: true,
-	}
-	service, err := loam.New(cfg)
+	service, err := loam.New(tmpDir, loam.WithAutoInit(true), loam.WithForceTemp(true))
 	if err != nil {
 		t.Fatalf("Failed to init service: %v", err)
 	}
@@ -204,12 +189,7 @@ func TestService_MustExist(t *testing.T) {
 	tmpDir := t.TempDir()
 	nonExistent := filepath.Join(tmpDir, "does-not-exist")
 
-	cfg := loam.Config{
-		Path:      nonExistent,
-		MustExist: true,
-		ForceTemp: true,
-	}
-	_, err := loam.New(cfg)
+	_, err := loam.New(nonExistent, loam.WithMustExist(true), loam.WithForceTemp(true))
 	if err == nil {
 		t.Error("Expected New to fail with MustExist for non-existent path, but it succeeded")
 	}
@@ -219,17 +199,13 @@ func TestService_GitlessSync(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	// Init in Gitless Mode explicitly
-	cfg := loam.Config{
-		Path:      tmpDir,
-		AutoInit:  true,
-		IsGitless: true,
-		ForceTemp: true,
+	// Init in Gitless Mode explicitly
+	_, err := loam.New(tmpDir, loam.WithAutoInit(true), loam.WithGitless(true), loam.WithForceTemp(true))
+	if err != nil {
+		t.Fatalf("Failed to init service: %v", err)
 	}
-	// Note: 'New' doesn't return the Repo or IsGitless status directly anymore.
 	// We can't easily check "IsGitless()" on service without casting adapter.
 	// But we can check behavior (e.g. Sync not supported if we exposed Sync in service).
 	// Currently Service doesn't expose Sync.
-	_ = cfg
-	// Skip this test for now as Sync is not on Service interface yet.
 	// Re-enable when sync is added to Service.
 }

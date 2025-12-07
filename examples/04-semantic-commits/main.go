@@ -15,18 +15,17 @@ func main() {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
 	// Inicializa um vault temporário para demonstração
-	cfg := loam.Config{
-		Path:      "semantic-demo",
-		Logger:    logger,
-		ForceTemp: true,
-		AutoInit:  true,
-	}
-
+	// Inicializa um vault temporário para demonstração
 	// Cleanup
-	safePath := loam.ResolveVaultPath(cfg.Path, true)
+	vaultName := "semantic-demo"
+	safePath := loam.ResolveVaultPath(vaultName, true)
 	os.RemoveAll(safePath)
 
-	service, err := loam.New(cfg)
+	service, err := loam.New(vaultName,
+		loam.WithLogger(logger),
+		loam.WithForceTemp(true),
+		loam.WithAutoInit(true),
+	)
 	if err != nil {
 		panic(err)
 	}

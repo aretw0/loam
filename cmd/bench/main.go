@@ -50,16 +50,15 @@ func main() {
 	// Or should we include Git? The Hexagonal arch separates them. Let's bench the Core+FS Adapter.
 	// But wait, the previous bench used 'loam list' which hits the cache.
 	// We want to verify the new FS Adapter Cache.
-	cfg := loam.Config{
-		Path:      benchDir,
-		Logger:    logger,
-		AutoInit:  true,
-		IsGitless: true, // Avoid git init overhead for 10k files unless necessary
-	}
+	// We want to verify the new FS Adapter Cache.
+	service, err := loam.New(benchDir,
+		loam.WithLogger(logger),
+		loam.WithAutoInit(true),
+		loam.WithGitless(true), // Avoid git init overhead for 10k files unless necessary
+	)
 	// Note: If we want to bench Git adapter, we should enable git.
 	// Let's stick to Gitless to measure pure parsing/io speed first.
 
-	service, err := loam.New(cfg)
 	if err != nil {
 		panic(err)
 	}
@@ -82,7 +81,12 @@ func main() {
 	// To strictly test persistence, we should re-instantiate the service?
 	// Actually, the current implementation likely keeps it in memory too if the struct lives.
 	// Let's re-instantiate to simulate a new CLI command run.
-	service2, _ := loam.New(cfg)
+	// Let's re-instantiate to simulate a new CLI command run.
+	service2, _ := loam.New(benchDir,
+		loam.WithLogger(logger),
+		loam.WithAutoInit(true),
+		loam.WithGitless(true),
+	)
 
 	fmt.Println("Running List (Run 2 - Warm)...")
 	startList2 := time.Now()

@@ -14,13 +14,7 @@ func TestInit(t *testing.T) {
 		tmpDir := t.TempDir()
 		vaultPath := filepath.Join(tmpDir, "vault")
 
-		cfg := loam.Config{
-			Path:      vaultPath,
-			AutoInit:  true,
-			ForceTemp: true,
-		}
-
-		resolvedPath, isGitless, err := loam.Init(cfg)
+		resolvedPath, isGitless, err := loam.Init(vaultPath, loam.WithAutoInit(true), loam.WithForceTemp(true))
 		if err != nil {
 			t.Fatalf("Init failed: %v", err)
 		}
@@ -48,14 +42,7 @@ func TestInit(t *testing.T) {
 		tmpDir := t.TempDir()
 		vaultPath := filepath.Join(tmpDir, "missing")
 
-		cfg := loam.Config{
-			Path:      vaultPath,
-			AutoInit:  false,
-			MustExist: true, // Required to prevent implicit creation in test mode
-			ForceTemp: true,
-		}
-
-		_, _, err := loam.Init(cfg)
+		_, _, err := loam.Init(vaultPath, loam.WithAutoInit(false), loam.WithMustExist(true), loam.WithForceTemp(true))
 		if err == nil {
 			t.Error("Expected failure for missing directory when AutoInit=false")
 		}
@@ -65,14 +52,7 @@ func TestInit(t *testing.T) {
 		tmpDir := t.TempDir()
 		vaultPath := filepath.Join(tmpDir, "gitless_vault")
 
-		cfg := loam.Config{
-			Path:      vaultPath,
-			AutoInit:  true,
-			IsGitless: true,
-			ForceTemp: true,
-		}
-
-		resolvedPath, isGitless, err := loam.Init(cfg)
+		resolvedPath, isGitless, err := loam.Init(vaultPath, loam.WithAutoInit(true), loam.WithGitless(true), loam.WithForceTemp(true))
 		if err != nil {
 			t.Fatalf("Init failed: %v", err)
 		}
@@ -100,13 +80,7 @@ func TestInit(t *testing.T) {
 func TestSync(t *testing.T) {
 	t.Run("Sync Fails if Gitless", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		cfg := loam.Config{
-			Path:      tmpDir,
-			IsGitless: true,
-			ForceTemp: true,
-		}
-
-		err := loam.Sync(cfg)
+		err := loam.Sync(tmpDir, loam.WithGitless(true), loam.WithForceTemp(true))
 		if err == nil {
 			t.Error("Expected Sync to fail in gitless mode")
 		}
@@ -119,14 +93,8 @@ func TestSync(t *testing.T) {
 		_ = client.Init()
 		_ = client.Commit("initial commit") // commit so we have HEAD
 
-		cfg := loam.Config{
-			Path:      tmpDir,
-			IsGitless: false,
-			ForceTemp: true,
-		}
-
 		// This might fail due to "No such remote 'origin'" or similar
-		err := loam.Sync(cfg)
+		err := loam.Sync(tmpDir, loam.WithGitless(false), loam.WithForceTemp(true))
 		if err == nil {
 			t.Error("Expected Sync to fail without remote")
 		}

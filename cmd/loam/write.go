@@ -37,19 +37,11 @@ var writeCmd = &cobra.Command{
 		}
 
 		// Configure Loam using the new Config struct
-		cfg := loam.Config{
-			Path:      cwd,
-			IsGitless: gitless,
-			Logger:    slog.Default(),
-			// In CLI, we assume we might want auto-init behavior if we are 'init'ing, but 'write' implies usage.
-			// Existing NewVault(WithGitless) implied no AutoInit unless specified.
-			// Check if we have AutoInit flag globally?
-			// Global 'rootCmd' has no auto-init flag visible here.
-			// Default behavior of NewVault was: AutoInit false.
-			AutoInit: false,
-		}
-
-		service, err := loam.New(cfg)
+		service, err := loam.New(cwd,
+			loam.WithGitless(gitless),
+			loam.WithLogger(slog.Default()),
+			// AutoInit is false by default
+		)
 		if err != nil {
 			fatal("Failed to initialize loam", err)
 		}

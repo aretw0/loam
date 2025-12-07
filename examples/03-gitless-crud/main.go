@@ -16,15 +16,12 @@ func main() {
 	fmt.Println("--- Gitless Mode CRUD Demo ---")
 
 	// Create a safe, temporary vault in Gitless mode.
-	cfg := loam.Config{
-		Path:      "gitless-demo",
-		Logger:    logger,
-		ForceTemp: true,
-		IsGitless: true,
-		AutoInit:  true,
-	}
-
-	service, err := loam.New(cfg)
+	service, err := loam.New("gitless-demo",
+		loam.WithLogger(logger),
+		loam.WithForceTemp(true),
+		loam.WithGitless(true),
+		loam.WithAutoInit(true),
+	)
 	if err != nil {
 		panic(err)
 	}

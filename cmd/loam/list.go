@@ -28,14 +28,11 @@ var listCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		cfg := loam.Config{
-			Path:      wd,
-			IsGitless: gitless,
-			MustExist: true,
-			Logger:    slog.Default(),
-		}
-
-		service, err := loam.New(cfg)
+		service, err := loam.New(wd,
+			loam.WithGitless(gitless),
+			loam.WithMustExist(true),
+			loam.WithLogger(slog.Default()),
+		)
 		if err != nil {
 			fmt.Printf("Error initializing loam: %v\n", err)
 			os.Exit(1)

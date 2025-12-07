@@ -13,19 +13,24 @@ import (
 //
 // It returns the resolved absolute path to the vault and a boolean indicating
 // if the vault is operating in gitless mode.
-func Init(cfg Config) (string, bool, error) {
-	// 1. Safety & Path Resolution
-	useTemp := cfg.ForceTemp || IsDevRun()
-	resolvedPath := ResolveVaultPath(cfg.Path, useTemp)
+func Init(path string, opts ...Option) (string, bool, error) {
+	o := defaultOptions()
+	for _, opt := range opts {
+		opt(o)
+	}
 
-	if cfg.Logger != nil && useTemp {
-		cfg.Logger.Warn("running in SAFE MODE (Dev/Test)", "original_path", cfg.Path, "resolved_path", resolvedPath)
+	// 1. Safety & Path Resolution
+	useTemp := o.tempDir || IsDevRun()
+	resolvedPath := ResolveVaultPath(path, useTemp)
+
+	if o.logger != nil && useTemp {
+		o.logger.Warn("running in SAFE MODE (Dev/Test)", "original_path", path, "resolved_path", resolvedPath)
 	}
 
 	// 2. Directory initialization
-	shouldEnsureDir := cfg.AutoInit || useTemp
+	shouldEnsureDir := o.autoInit || useTemp
 
-	if cfg.MustExist {
+	if o.mustExist {
 		shouldEnsureDir = false
 	}
 
@@ -44,22 +49,22 @@ func Init(cfg Config) (string, bool, error) {
 	}
 
 	// 3. Git Initialization
-	gitClient := git.NewClient(resolvedPath, cfg.Logger)
+	gitClient := git.NewClient(resolvedPath, o.logger)
 
 	// If Gitless mode is NOT forced, we check environment.
-	isGitless := cfg.IsGitless
+	isGitless := o.gitless
 	if !isGitless {
 		if !git.IsInstalled() {
 			isGitless = true
-			if cfg.Logger != nil {
-				cfg.Logger.Warn("git not found in PATH; falling back to gitless mode")
+			if o.logger != nil {
+				o.logger.Warn("git not found in PATH; falling back to gitless mode")
 			}
 		} else {
 			// Git is installed. Should we init?
 			if !gitClient.IsRepo() {
-				if cfg.AutoInit {
-					if cfg.Logger != nil {
-						cfg.Logger.Info("initializing git repository", "path", resolvedPath)
+				if o.autoInit {
+					if o.logger != nil {
+						o.logger.Info("initializing git repository", "path", resolvedPath)
 					}
 					if err := gitClient.Init(); err != nil {
 						return "", false, fmt.Errorf("failed to git init: %w", err)
@@ -67,8 +72,8 @@ func Init(cfg Config) (string, bool, error) {
 				} else {
 					// Fallback to gitless if not a repo and not auto-init
 					isGitless = true
-					if cfg.Logger != nil {
-						cfg.Logger.Warn("vault is not a git repository; running in gitless mode", "path", resolvedPath)
+					if o.logger != nil {
+						o.logger.Warn("vault is not a git repository; running in gitless mode", "path", resolvedPath)
 					}
 				}
 			}
@@ -81,16 +86,21 @@ func Init(cfg Config) (string, bool, error) {
 // Sync synchronizes the vault at the given path with its configured remote.
 // This involves pulling changes from the remote and pushing local changes.
 // It returns an error if the sync fails or if the vault is in gitless mode.
-func Sync(cfg Config) error {
-	// Resolve path similar to Init
-	useTemp := cfg.ForceTemp || IsDevRun()
-	resolvedPath := ResolveVaultPath(cfg.Path, useTemp)
+func Sync(path string, opts ...Option) error {
+	o := defaultOptions()
+	for _, opt := range opts {
+		opt(o)
+	}
 
-	if cfg.IsGitless {
+	// Resolve path similar to Init
+	useTemp := o.tempDir || IsDevRun()
+	resolvedPath := ResolveVaultPath(path, useTemp)
+
+	if o.gitless {
 		return fmt.Errorf("cannot sync in gitless mode")
 	}
 
-	client := git.NewClient(resolvedPath, cfg.Logger)
+	client := git.NewClient(resolvedPath, o.logger)
 	if !client.IsRepo() {
 		return fmt.Errorf("path is not a git repository: %s", resolvedPath)
 	}

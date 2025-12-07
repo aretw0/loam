@@ -16,18 +16,17 @@ func main() {
 
 	fmt.Println("--- Demonstrate Dev Safety (WithTempDir) ---")
 	// Usage 1: Safe Playground / Test
-	safeCfg := loam.Config{
-		Path:      "my-playground",
-		Logger:    logger,
-		ForceTemp: true,
-		AutoInit:  true,
-	}
-
+	// Usage 1: Safe Playground / Test
+	vaultName := "my-playground"
 	// Cleanup previous runs to avoid stale locks/state
-	safePath := loam.ResolveVaultPath(safeCfg.Path, true)
+	safePath := loam.ResolveVaultPath(vaultName, true)
 	os.RemoveAll(safePath)
 
-	safeService, err := loam.New(safeCfg)
+	safeService, err := loam.New(vaultName,
+		loam.WithLogger(logger),
+		loam.WithForceTemp(true),
+		loam.WithAutoInit(true),
+	)
 	if err != nil {
 		panic(err)
 	}
@@ -54,14 +53,13 @@ func main() {
 	fmt.Println("\n--- Demonstrate Gitless Mode ---")
 	// Usage 2: Gitless (Standard FS mode)
 	// Useful for environments where git is not available (e.g. minimal docker containers).
-	gitlessCfg := loam.Config{
-		Path:      "./local-gitless",
-		Logger:    logger,
-		AutoInit:  true,
-		IsGitless: true,
-	}
-
-	gitlessService, err := loam.New(gitlessCfg)
+	// Usage 2: Gitless (Standard FS mode)
+	// Useful for environments where git is not available (e.g. minimal docker containers).
+	gitlessService, err := loam.New("./local-gitless",
+		loam.WithLogger(logger),
+		loam.WithAutoInit(true),
+		loam.WithGitless(true),
+	)
 	if err != nil {
 		panic(err)
 	}
