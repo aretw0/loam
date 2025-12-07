@@ -131,6 +131,7 @@ Objetivo: Tornar o uso local e efêmero do Loam mais seguro e amigável.
   - [ ] Permitir operações de leitura/escrita mesmo sem git instalado (com warnings).
   - [ ] Degradar graciosamente feature set (desabilitar history/sync).
 - [ ] **Dev Safety Guidelines**:
+  - [ ] O que o Loam pode fazer para evitar poluição do repositório quando estamos rodando projetos localmente com `go run .`? Tem como não forçar o uso de temporário só quando estamos buildados?
   - [ ] Documentar como desenvolver o Loam e com o Loam (importando no projeto) sem poluir o próprio repositório.
   - [ ] Criar guards para evitar commits acidentais no repo "host" quando rodando testes locais.
 
