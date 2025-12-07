@@ -75,13 +75,9 @@ import (
 func main() {
  logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
-// Garante que a pasta existe
- if err := os.MkdirAll("./minhas-notas", 0755); err != nil {
-  panic(err)
- }
-
-// 1. Conectar ao Vault
- vault, err := loam.NewVault("./minhas-notas", logger)
+ // 1. Conectar ao Vault
+ // Usa Functional Options para configurar AutoInit (cria pasta e git init se necessário)
+ vault, err := loam.NewVault("./minhas-notas", logger, loam.WithAutoInit(true))
  if err != nil {
   panic(err)
  }
@@ -103,11 +99,11 @@ func main() {
 
  // Opcional: Para múltiplas notas, use transações
  /*
- tx, _ := vault.Begin()
- defer tx.Rollback()
- tx.Write(nota1)
- tx.Write(nota2)
- tx.Apply("chore: batch update")
+  tx, _ := vault.Begin()
+  defer tx.Rollback()
+  tx.Write(nota1)
+  tx.Write(nota2)
+  tx.Apply("chore: batch update")
  */
 
  fmt.Println("Nota salva com sucesso!")
