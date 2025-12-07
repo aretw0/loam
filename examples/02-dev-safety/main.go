@@ -16,7 +16,6 @@ func main() {
 
 	fmt.Println("--- Demonstrate Dev Safety (WithTempDir) ---")
 	// Usage 1: Safe Playground / Test
-	// Usage 1: Safe Playground / Test
 	vaultName := "my-playground"
 	// Cleanup previous runs to avoid stale locks/state
 	safePath := loam.ResolveVaultPath(vaultName, true)
@@ -51,8 +50,6 @@ func main() {
 	fmt.Println("Note saved safely.")
 
 	fmt.Println("\n--- Demonstrate Gitless Mode ---")
-	// Usage 2: Gitless (Standard FS mode)
-	// Useful for environments where git is not available (e.g. minimal docker containers).
 	// Usage 2: Gitless (Standard FS mode)
 	// Useful for environments where git is not available (e.g. minimal docker containers).
 	gitlessService, err := loam.New("./local-gitless",

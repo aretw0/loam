@@ -1,14 +1,19 @@
 package loam
 
-import "log/slog"
+import (
+	"log/slog"
+
+	"github.com/aretw0/loam/pkg/core"
+)
 
 // options holds the internal configuration for the Loam service.
 type options struct {
-	autoInit  bool
-	gitless   bool
-	tempDir   bool
-	mustExist bool
-	logger    *slog.Logger
+	autoInit   bool
+	gitless    bool
+	tempDir    bool
+	mustExist  bool
+	repository core.Repository
+	logger     *slog.Logger
 }
 
 // Option defines a functional option for configuring Loam.
@@ -17,11 +22,12 @@ type Option func(*options)
 // defaultOptions returns the default configuration.
 func defaultOptions() *options {
 	return &options{
-		autoInit:  false,
-		gitless:   false,
-		tempDir:   false,
-		mustExist: false,
-		logger:    nil, // or slog.Default() if we prefer
+		autoInit:   false,
+		gitless:    false,
+		tempDir:    false,
+		mustExist:  false,
+		repository: nil,
+		logger:     nil, // or slog.Default() if we prefer
 	}
 }
 
@@ -57,5 +63,13 @@ func WithMustExist(must bool) Option {
 func WithLogger(logger *slog.Logger) Option {
 	return func(o *options) {
 		o.logger = logger
+	}
+}
+
+// WithRepository allows injecting a custom storage adapter (e.g. mock, s3).
+// If provided, the default filesystem adapter will be skipped.
+func WithRepository(repo core.Repository) Option {
+	return func(o *options) {
+		o.repository = repo
 	}
 }

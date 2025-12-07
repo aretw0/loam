@@ -78,21 +78,19 @@ import (
 )
 
 func main() {
- // 1. Configurar Loam
- cfg := loam.Config{
-  Path:     "./minhas-notas",
-  AutoInit: true,
-  Logger:   slog.New(slog.NewTextHandler(os.Stdout, nil)),
-  // ForceTemp: true, // Use se quiser segurança extra em dev
- }
-
- // 2. Inicializar Serviço (Factory)
- service, err := loam.New(cfg)
+func main() {
+ // 1. Inicializar Serviço (Factory) com Functional Options
+ // Configuração mais limpa e extensível.
+ service, err := loam.New("./minhas-notas",
+  loam.WithAutoInit(true),
+  loam.WithLogger(slog.New(slog.NewTextHandler(os.Stdout, nil))),
+  // loam.WithGitless(true), // Opcional: modo sem git
+ )
  if err != nil {
   panic(err)
  }
 
- // 3. Salvar uma Nota (Save Note)
+ // 2. Salvar uma Nota (Save Note)
  // O Context pode passar metadados para o Adapter (ex: mensagem de commit)
  ctx := context.WithValue(context.Background(), core.CommitMessageKey, "chore: cria nota de exemplo")
 

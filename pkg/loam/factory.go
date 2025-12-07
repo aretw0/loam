@@ -30,12 +30,16 @@ func New(path string, opts ...Option) (*core.Service, error) {
 	}
 
 	// 2. Wiring
-	gitClient := git.NewClient(resolvedPath, o.logger)
+	var repo core.Repository
 
-	// Initialize FS Adapter
-	// If the user wants to inject a different repository adapter, we might add a WithRepository option later.
-	// For now, we default to the FS adapter + Git client.
-	repo := fs.NewRepository(resolvedPath, gitClient, isGitless)
+	// If a custom repository is injected via options, use it.
+	if o.repository != nil {
+		repo = o.repository
+	} else {
+		// Default: Initialize FS Adapter with Git Client
+		gitClient := git.NewClient(resolvedPath, o.logger)
+		repo = fs.NewRepository(resolvedPath, gitClient, isGitless)
+	}
 
 	// Initialize Domain Service
 	service := core.NewService(repo)
