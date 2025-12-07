@@ -48,7 +48,6 @@ loam sync
 
 ### Outros Comandos
 
-- **Commit**: `loam commit -m "feat: adiciona nota"` ou `loam commit --type feat --scope notas -m "adiciona nota"`
 - **Ler**: `loam read -id daily/2025-12-06`
 - **Listar**: `loam list` (Usa cache para alta performance)
 - **Deletar**: `loam delete -id daily/2025-12-06`

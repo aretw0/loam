@@ -58,7 +58,6 @@ Objetivo: Criar a interface de linha de comando (`loam`) para consumo do usuári
 - [x] **Comandos**:
   - [x] `loam init`: Inicializa um repositório Git/Loam na pasta atual.
   - [x] `loam write <id> "conteúdo"`: Cria/Edita uma nota.
-  - [x] `loam commit -m "msg"`: Realiza o commit das mudanças pendentes.
   - [x] `loam read <id>`: Imprime o conteúdo JSON da nota (para pipes).
 
 ## Fase 4: Scaling & Observability (Concluído)
