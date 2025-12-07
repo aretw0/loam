@@ -76,7 +76,7 @@ func (r *Repository) Save(ctx context.Context, n core.Note) error {
 		// Context or extra field? The interface 'Save(n Note)' doesn't have it.
 		// For now, use a default or check context.
 		msg := "update " + n.ID
-		if val, ok := ctx.Value("commit_message").(string); ok && val != "" {
+		if val, ok := ctx.Value(core.CommitMessageKey).(string); ok && val != "" {
 			msg = val
 		}
 

@@ -19,3 +19,8 @@ type Repository interface {
 	// Delete removes a note by its ID.
 	Delete(ctx context.Context, id string) error
 }
+
+type contextKey string
+
+// CommitMessageKey is the context key for passing specific commit messages during Save/Delete operations.
+const CommitMessageKey contextKey = "commit_message"
