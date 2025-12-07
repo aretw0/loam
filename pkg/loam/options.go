@@ -36,4 +36,13 @@ func WithTempDir() Option {
 	}
 }
 
+// WithMustExist enforces that the vault directory must already exist.
+// It overrides AutoInit behavior.
+func WithMustExist() Option {
+	return func(v *Vault) error {
+		v.mustExist = true
+		return nil
+	}
+}
+
 // Internal validation of options could go here if needed.

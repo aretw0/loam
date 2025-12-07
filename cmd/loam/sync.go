@@ -28,6 +28,11 @@ It performs a 'git pull --rebase' to integrate remote changes, followed by a 'gi
 			fatal("Failed to open vault", err)
 		}
 
+		if vault.IsGitless() {
+			fmt.Fprintf(os.Stderr, "Error: Cannot sync in gitless mode\n")
+			os.Exit(1)
+		}
+
 		fmt.Println("Syncing...")
 		if err := vault.Sync(); err != nil {
 			// User friendly error handling

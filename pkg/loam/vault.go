@@ -18,6 +18,12 @@ type Vault struct {
 	autoInit  bool
 	isGitless bool
 	forceTemp bool
+	mustExist bool
+}
+
+// IsGitless returns true if the vault is operating in gitless mode.
+func (v *Vault) IsGitless() bool {
+	return v.isGitless
 }
 
 // NewVault creates a Vault instance rooted at the given path.
@@ -54,6 +60,11 @@ func NewVault(path string, logger *slog.Logger, opts ...Option) (*Vault, error) 
 	// Safe Mode implies we essentially own that temp dir, so we should probably ensure it exists.
 	// If AutoInit is explicitly requested, we definitely create it.
 	shouldEnsureDir := v.autoInit || useTemp
+
+	// MustExist overrides explicit creation logic
+	if v.mustExist {
+		shouldEnsureDir = false
+	}
 
 	if shouldEnsureDir {
 		if err := os.MkdirAll(resolvedPath, 0755); err != nil {
@@ -438,10 +449,7 @@ func (v *Vault) Sync() error {
 
 	// Gitless: No sync possible
 	if v.isGitless {
-		if v.Logger != nil {
-			v.Logger.Warn("cannot sync in gitless mode")
-		}
-		return nil
+		return fmt.Errorf("cannot sync in gitless mode")
 	}
 
 	// Lock to ensure exclusive access during sync

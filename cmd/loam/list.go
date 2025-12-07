@@ -26,7 +26,7 @@ var listCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		v, err := loam.NewVault(wd, slog.Default(), loam.WithGitless(gitless))
+		v, err := loam.NewVault(wd, slog.Default(), loam.WithGitless(gitless), loam.WithMustExist())
 		if err != nil {
 			fmt.Printf("Error initializing vault: %v\n", err)
 			os.Exit(1)

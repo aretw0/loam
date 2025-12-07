@@ -35,6 +35,10 @@ var commitCmd = &cobra.Command{
 			fatal("Failed to open vault", err)
 		}
 
+		if vault.IsGitless() {
+			fatal("Cannot commit in gitless mode", fmt.Errorf("git is required"))
+		}
+
 		// Access Git directly for manual commit of staged changes
 		if err := vault.Git.Commit(commitMsg); err != nil {
 			fatal("Failed to commit", err)

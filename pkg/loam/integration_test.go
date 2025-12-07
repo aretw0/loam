@@ -190,3 +190,39 @@ func TestVault_Namespaces(t *testing.T) {
 		t.Errorf("Nested note %s not found in list. Got %d notes.", noteID, len(notes))
 	}
 }
+
+func TestVault_MustExist(t *testing.T) {
+	// 1. Try to open non-existent vault with MustExist -> Should Fail
+	tmpDir := t.TempDir()
+	nonExistent := filepath.Join(tmpDir, "does-not-exist")
+
+	// Use WithTempDir to ensure we are in "Dev Mode" context where it normally WOULD create it.
+	// But MustExist should override that.
+	_, err := loam.NewVault(nonExistent, nil, loam.WithTempDir(), loam.WithMustExist())
+	if err == nil {
+		t.Error("Expected NewVault to fail with MustExist for non-existent path, but it succeeded")
+	} else {
+		t.Logf("Got expected error: %v", err)
+	}
+}
+
+func TestVault_GitlessSync(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	// Init in Gitless Mode explicitly
+	vault, err := loam.NewVault(tmpDir, nil, loam.WithGitless(true), loam.WithAutoInit(true))
+	if err != nil {
+		t.Fatalf("Failed to init gitless vault: %v", err)
+	}
+
+	if !vault.IsGitless() {
+		t.Error("Vault should be in gitless mode")
+	}
+
+	// Try Sync -> Should Fail (not silently return nil)
+	if err := vault.Sync(); err == nil {
+		t.Error("Expected Sync to fail in gitless mode, but it returned nil")
+	} else {
+		t.Logf("Got expected Sync error: %v", err)
+	}
+}

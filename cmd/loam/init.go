@@ -20,6 +20,10 @@ var initCmd = &cobra.Command{
 			fatal("Failed to get CWD", err)
 		}
 
+		if gitless {
+			fatal("Cannot initialize vault in gitless mode", fmt.Errorf("git is required for init"))
+		}
+
 		// loam init -> WithAutoInit(true)
 		_, err = loam.NewVault(cwd, slog.Default(), loam.WithAutoInit(true), loam.WithGitless(gitless))
 		if err != nil {

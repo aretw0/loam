@@ -28,7 +28,7 @@ var readCmd = &cobra.Command{
 		}
 
 		// Use slog.Default() if nil was passed before, or just clean up
-		v, err := loam.NewVault(wd, slog.Default(), loam.WithGitless(gitless))
+		v, err := loam.NewVault(wd, slog.Default(), loam.WithGitless(gitless), loam.WithMustExist())
 		if err != nil {
 			fmt.Printf("Error initializing vault: %v\n", err)
 			os.Exit(1)
