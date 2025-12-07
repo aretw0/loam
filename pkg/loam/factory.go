@@ -38,7 +38,12 @@ func New(path string, opts ...Option) (*core.Service, error) {
 	} else {
 		// Default: Initialize FS Adapter with Git Client
 		gitClient := git.NewClient(resolvedPath, o.logger)
-		repo = fs.NewRepository(resolvedPath, gitClient, isGitless)
+		repo = fs.NewRepository(fs.Config{
+			Path:      resolvedPath,
+			AutoInit:  o.autoInit,
+			Gitless:   isGitless,
+			MustExist: o.mustExist,
+		}, gitClient)
 	}
 
 	// Initialize Domain Service

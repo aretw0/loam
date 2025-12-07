@@ -17,20 +17,76 @@ import (
 
 // Repository implements core.Repository using the filesystem and Git.
 type Repository struct {
+	Path   string
+	Git    *git.Client
+	cache  *cache
+	config Config
+}
+
+// Config holds the configuration for the filesystem repository.
+type Config struct {
 	Path      string
-	Git       *git.Client
-	cache     *cache
-	IsGitless bool
+	AutoInit  bool
+	Gitless   bool
+	MustExist bool
 }
 
 // NewRepository creates a new filesystem-backed repository.
-func NewRepository(path string, gitClient *git.Client, isGitless bool) *Repository {
+func NewRepository(config Config, gitClient *git.Client) *Repository {
 	return &Repository{
-		Path:      path,
-		Git:       gitClient,
-		IsGitless: isGitless,
-		cache:     newCache(path),
+		Path:   config.Path,
+		Git:    gitClient,
+		config: config,
+		cache:  newCache(config.Path),
 	}
+}
+
+// Initialize performs the necessary setup for the repository (mkdir, git init).
+func (r *Repository) Initialize(ctx context.Context) error {
+	// 1. Directory Initialization
+	if r.config.MustExist {
+		info, err := os.Stat(r.Path)
+		if os.IsNotExist(err) {
+			return fmt.Errorf("vault path does not exist: %s", r.Path)
+		}
+		if !info.IsDir() {
+			return fmt.Errorf("vault path is not a directory: %s", r.Path)
+		}
+	} else {
+		// Auto-create directory if not MustExist (default behavior usually implied AutoInit logic for dir too)
+		// Logic from ops.go: "shouldEnsureDir := o.autoInit || useTemp"
+		// Here we simplify: if not MustExist, we ensure it exists.
+		if err := os.MkdirAll(r.Path, 0755); err != nil {
+			return fmt.Errorf("failed to create vault directory: %w", err)
+		}
+	}
+
+	// 2. Git Initialization
+	if !r.config.Gitless {
+		if !git.IsInstalled() {
+			// Fail or fallback? Core logic fell back to gitless.
+			// Ideally adapter should just fail if configured to use Git but Git is missing.
+			// But to keep parity, let's assume the caller handles the fallback decision via Config?
+			// Actually, if we are here, we are committed to the config.
+			// Let's check installed status.
+			return fmt.Errorf("git is not installed")
+		}
+
+		if !r.Git.IsRepo() {
+			if r.config.AutoInit {
+				if err := r.Git.Init(); err != nil {
+					return fmt.Errorf("failed to git init: %w", err)
+				}
+			} else {
+				// If not auto-init and not a repo, what do we do?
+				// Previously we warned and fell back to gitless.
+				// Now, if Config.Gitless is false, we expect a repo.
+				return fmt.Errorf("path is not a git repository: %s", r.Path)
+			}
+		}
+	}
+
+	return nil
 }
 
 // Save persists a note to the filesystem and commits it to Git.
@@ -61,7 +117,7 @@ func (r *Repository) Save(ctx context.Context, n core.Note) error {
 		return fmt.Errorf("failed to write file: %w", err)
 	}
 
-	if !r.IsGitless {
+	if !r.config.Gitless {
 		unlock, err := r.Git.Lock()
 		if err != nil {
 			return fmt.Errorf("failed to acquire git lock: %w", err)
@@ -221,7 +277,7 @@ func (r *Repository) Delete(ctx context.Context, id string) error {
 		return fmt.Errorf("note not found")
 	}
 
-	if r.IsGitless {
+	if r.config.Gitless {
 		if err := os.Remove(fullPath); err != nil {
 			return fmt.Errorf("failed to remove file: %w", err)
 		}

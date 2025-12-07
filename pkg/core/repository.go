@@ -18,6 +18,9 @@ type Repository interface {
 
 	// Delete removes a note by its ID.
 	Delete(ctx context.Context, id string) error
+
+	// Initialize ensures the underlying storage is ready (e.g., create directories, git init, schema migration).
+	Initialize(ctx context.Context) error
 }
 
 type contextKey string
