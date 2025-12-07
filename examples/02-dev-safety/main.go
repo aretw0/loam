@@ -1,10 +1,13 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"os"
 
+	"github.com/aretw0/loam/pkg/core"
+	"github.com/aretw0/loam/pkg/git"
 	"github.com/aretw0/loam/pkg/loam"
 )
 
@@ -13,18 +16,37 @@ func main() {
 
 	fmt.Println("--- Demonstrate Dev Safety (WithTempDir) ---")
 	// Usage 1: Safe Playground / Test
-	// Forces creation in a system temp directory, regardless of where this binary runs.
-	// Great for keeping CI/CD clean or running examples without cleanup scripts.
-	safeVault, err := loam.NewVault("my-playground", logger,
-		loam.WithTempDir(),
-		loam.WithAutoInit(true),
-	)
+	safeCfg := loam.Config{
+		Path:      "my-playground",
+		Logger:    logger,
+		ForceTemp: true,
+		AutoInit:  true,
+	}
+
+	// Cleanup previous runs to avoid stale locks/state
+	safePath := loam.ResolveVaultPath(safeCfg.Path, true)
+	os.RemoveAll(safePath)
+
+	safeService, err := loam.New(safeCfg)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("Safe Vault created at: %s\n", safeVault.Path)
 
-	if err := safeVault.Save(&loam.Note{ID: "hello", Content: "Safe World"}, "init"); err != nil {
+	// FIX: Provide git identity for temp repo (needed for CI/clean envs)
+	// safePath is already resolved
+	gitClient := git.NewClient(safePath, logger)
+	if _, err := gitClient.Run("config", "user.name", "Example Bot"); err != nil {
+		fmt.Printf("Git Config Name Error: %v\n", err)
+	}
+	if _, err := gitClient.Run("config", "user.email", "bot@example.com"); err != nil {
+		fmt.Printf("Git Config Email Error: %v\n", err)
+	}
+
+	st, _ := gitClient.Status()
+	fmt.Printf("Git Status Pre-Save:\n%s\n", st)
+
+	ctx := context.TODO()
+	if err := safeService.SaveNote(ctx, "hello", "Safe World", nil); err != nil {
 		panic(err)
 	}
 	fmt.Println("Note saved safely.")
@@ -32,17 +54,23 @@ func main() {
 	fmt.Println("\n--- Demonstrate Gitless Mode ---")
 	// Usage 2: Gitless (Standard FS mode)
 	// Useful for environments where git is not available (e.g. minimal docker containers).
-	gitlessVault, err := loam.NewVault("./local-gitless", logger,
-		loam.WithAutoInit(true), // Creates dir if missing
-		loam.WithGitless(true),  // Explicitly disable git interactions
-	)
+	gitlessCfg := loam.Config{
+		Path:      "./local-gitless",
+		Logger:    logger,
+		AutoInit:  true,
+		IsGitless: true,
+	}
+
+	gitlessService, err := loam.New(gitlessCfg)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("Gitless Vault at: %s\n", gitlessVault.Path)
-	fmt.Println("Is Gitless?", gitlessVault.IsGitless())
 
-	if err := gitlessVault.Save(&loam.Note{ID: "config", Content: "no-git-track"}, ""); err != nil {
+	// IsGitless? The service doesn't expose this state directly on the interface.
+	// You assume it's gitless because you configured it so.
+
+	// Save Note (no git commit)
+	if err := gitlessService.SaveNote(ctx, "config", "no-git-track", core.Metadata{"type": "config"}); err != nil {
 		panic(err)
 	}
 	fmt.Println("Note saved (no git commit). Check 'local-gitless/config.md'.")

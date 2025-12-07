@@ -1,10 +1,13 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"os"
 
+	"github.com/aretw0/loam/pkg/core"
+	"github.com/aretw0/loam/pkg/git"
 	"github.com/aretw0/loam/pkg/loam"
 )
 
@@ -12,23 +15,32 @@ func main() {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
 	// Inicializa um vault temporário para demonstração
-	vault, err := loam.NewVault("semantic-demo", logger,
-		loam.WithTempDir(),
-		loam.WithAutoInit(true),
-	)
+	cfg := loam.Config{
+		Path:      "semantic-demo",
+		Logger:    logger,
+		ForceTemp: true,
+		AutoInit:  true,
+	}
+
+	// Cleanup
+	safePath := loam.ResolveVaultPath(cfg.Path, true)
+	os.RemoveAll(safePath)
+
+	service, err := loam.New(cfg)
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Printf("Vault criado em: %s\n", vault.Path)
+	// Git Setup
+	gitClient := git.NewClient(safePath, logger)
+	gitClient.Run("config", "user.name", "Example Bot")
+	gitClient.Run("config", "user.email", "bot@example.com")
 
-	// 1. Criar nota
-	note := &loam.Note{
-		ID:      "design-doc",
-		Content: "# System Design\n...",
-		Metadata: loam.Metadata{
-			"status": "draft",
-		},
+	// 1. Definição da Nota
+	noteID := "design-doc"
+	content := "# System Design\n..."
+	meta := core.Metadata{
+		"status": "draft",
 	}
 
 	// 2. Formatar mensagem semântica usando o helper do Loam
@@ -43,7 +55,8 @@ func main() {
 	fmt.Printf("\nMensagem Gerada:\n---\n%s\n---\n", msg)
 
 	// 3. Salvar (Commit)
-	if err := vault.Save(note, msg); err != nil {
+	ctx := context.WithValue(context.Background(), "commit_message", msg)
+	if err := service.SaveNote(ctx, noteID, content, meta); err != nil {
 		panic(err)
 	}
 

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"os"
@@ -14,32 +15,36 @@ func main() {
 	fmt.Println("--- Gitless Mode CRUD Demo ---")
 
 	// Create a safe, temporary vault in Gitless mode.
-	// We use WithTempDir so you can run this safely anywhere.
-	// We use WithGitless to explicit disable Git features.
-	// We use WithAutoInit to ensure the directory is created.
-	vault, err := loam.NewVault("gitless-demo", logger,
-		loam.WithTempDir(),
-		loam.WithGitless(true),
-	)
+	cfg := loam.Config{
+		Path:      "gitless-demo",
+		Logger:    logger,
+		ForceTemp: true,
+		IsGitless: true,
+		AutoInit:  true,
+	}
+
+	service, err := loam.New(cfg)
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Printf("Vault initialized at: %s\n", vault.Path)
-	fmt.Printf("Is Gitless Mode? %v\n", vault.IsGitless())
+	ctx := context.TODO()
 
 	// 1. CREATE (Save)
 	fmt.Println("\n[1] Creating Notes...")
-	notes := []loam.Note{
+	notes := []struct {
+		ID      string
+		Content string
+	}{
 		{ID: "todo", Content: "- [ ] Buy milk\n- [ ] Walk the dog"},
 		{ID: "ideas/app", Content: "# App Idea\nA gitless markdown manager."},
 		{ID: "temp", Content: "This will be deleted."},
 	}
 
 	for _, n := range notes {
-		// Even in Gitless mode, we pass a 'commit message' to keep the API consistent,
-		// but it is ignored internally by the Gitless logic.
-		if err := vault.Save(&n, "ignored message"); err != nil {
+		// Even in Gitless mode, we pass a 'commit message' context to keep API consistent.
+		ctxMsg := context.WithValue(ctx, "commit_message", "ignored message")
+		if err := service.SaveNote(ctxMsg, n.ID, n.Content, nil); err != nil {
 			panic(fmt.Errorf("failed to save %s: %w", n.ID, err))
 		}
 		fmt.Printf("Saved: %s\n", n.ID)
@@ -47,7 +52,7 @@ func main() {
 
 	// 2. READ
 	fmt.Println("\n[2] Reading Note 'ideas/app'...")
-	note, err := vault.Read("ideas/app")
+	note, err := service.GetNote(ctx, "ideas/app")
 	if err != nil {
 		panic(err)
 	}
@@ -55,7 +60,7 @@ func main() {
 
 	// 3. LIST
 	fmt.Println("\n[3] Listing Notes...")
-	list, err := vault.List()
+	list, err := service.ListNotes(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -65,14 +70,14 @@ func main() {
 
 	// 4. DELETE
 	fmt.Println("\n[4] Deleting 'temp'...")
-	if err := vault.Delete("temp"); err != nil {
+	if err := service.DeleteNote(ctx, "temp"); err != nil {
 		panic(err)
 	}
 	fmt.Println("Deleted 'temp'.")
 
 	// 5. VERIFY (List again)
 	fmt.Println("\n[5] Listing Notes (Post-Delete)...")
-	list, err = vault.List()
+	list, err = service.ListNotes(ctx)
 	if err != nil {
 		panic(err)
 	}
