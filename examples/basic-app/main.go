@@ -21,17 +21,6 @@ func main() {
 	}
 
 	// 1. Connect to Vault
-	// If the vault is not initialized (no .git), Loam will detect it.
-	// However, usually 'loam init' is used. But for library usage, NewVault works
-	// as long as it's a directory. (Wait, does NewVault init git? No. usage usually implies existing one?)
-	// Let's check if NewVault inits. If not, we might need a way to Init via code or assume 'loam init' ran.
-	// But the user said "mini projetos go ... sem a pasta (como no go playground)".
-	// If Loam requires 'loam init', we might need to simulate that or expose Init in the lib.
-
-	// Checking the source code: NewVault calls git.NewClient.
-	// It doesn't seem to automatically 'git init'.
-	// Let's verify this assumption in a moment. If it doesn't init, this example might fail if not initialized.
-
 	vault, err := loam.NewVault(vaultPath, logger)
 	if err != nil {
 		panic(err)
@@ -53,11 +42,8 @@ func main() {
 	}
 
 	// 3. Save (Atomic Operation)
-	// Note: If the repo is not initialized, Save might fail depending on Git implementation.
-	// We'll see. Ideally the library should handle init or we document it.
 	fmt.Println("Saving note...")
 	if err := vault.Save(note, "chore: create example note"); err != nil {
-		// If it fails because not a git repo, we might want to handle that.
 		panic(err)
 	}
 

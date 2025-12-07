@@ -105,7 +105,7 @@ Objetivo: Garantir performance em escala (10k+ notas) com sistema de cache de me
   - [x] Provar melhoria de 10x+ no `loam list` em grandes vaults.
     - *Resultado:* Melhoria de ~22% (Cold 1.07s -> Warm 0.83s). Gargalo movido para I/O de diretório.
 
-## Fase 8: Distribuição & Sync (Atual)
+## Fase 8: Distribuição & Sync (Concluído)
 
 Objetivo: Facilitar a sincronização remota e uso distribuído.
 
@@ -119,9 +119,22 @@ Objetivo: Facilitar a sincronização remota e uso distribuído.
   - [x] **Integridade (Refatoração)**:
     - [x] Implementar Transações (`Vault.Begin`, `Transaction.Apply`).
     - [x] Tornar `Vault.Write` em `Vault.Save` (Atômico: Lock -> Write -> Add -> Commit -> Unlock).
-  - [ ] **SDK**: Gerar clients (Polyglot) para integrar Loam com outras linguagens.
 
-## Fase 9: Server & Interoperability (Backlog)
+## Fase 9: Developer Experience & Safety (Atual)
+
+Objetivo: Tornar o uso local e efêmero do Loam mais seguro e amigável.
+
+- [ ] **Zero Config / Ephemeral Mode**:
+  - [ ] `NewVault` deve oferecer opção de auto-inicializar diretório e git se não existirem (e.g. `loam.WithAutoInit()`).
+  - [ ] Melhorar suporte para vaults temporários.
+- [ ] **Gitless Mode**:
+  - [ ] Permitir operações de leitura/escrita mesmo sem git instalado (com warnings).
+  - [ ] Degradar graciosamente feature set (desabilitar history/sync).
+- [ ] **Dev Safety Guidelines**:
+  - [ ] Documentar como desenvolver o Loam e com o Loam (importando no projeto) sem poluir o próprio repositório.
+  - [ ] Criar guards para evitar commits acidentais no repo "host" quando rodando testes locais.
+
+## Fase 10: Server & Interoperability (Backlog)
 
 Objetivo: Permitir que ferramentas externas (não-Go) interajam com o Loam via rede/socket, reforçando a visão de "Driver".
 
@@ -132,7 +145,7 @@ Objetivo: Permitir que ferramentas externas (não-Go) interajam com o Loam via r
   - [ ] `loam validate`: Validar frontmatter contra um schema (JSON Schema ou struct Go).
   - [ ] Garantir tipos de dados (Datas, Arrays) para integridade.
 
-## Fase 10: Intelligence & Search (Backlog)
+## Fase 11: Intelligence & Search (Backlog)
 
 Objetivo: Transformar o Loam em um "Knowledge Engine" com busca semântica e full-text.
 
@@ -145,6 +158,7 @@ Objetivo: Transformar o Loam em um "Knowledge Engine" com busca semântica e ful
 
 ## Futuro / Blue Sky
 
+- **SDK**: Gerar clients (Polyglot) para integrar Loam com outras linguagens.
 - **Definir minima imagem**: Isolar Git e o repositório, i.e. melhor do que executar o script numa pasta que você pode mexer livremente ou até remover a necessidade de ter o repositório baixado. Claro que estamos falando do Loam ter que resolver a configuração do git para que o checkou aconteça e o posterior push, mas acredito que se seguirmos as melhores práticas de como fazer isso respeitando o acesso que nos vai ser dado para colaborar no repositório no servidor git. As perguntas: é o Loam que vai administrar essa parte de checkout e autenticação (PAT ou coisa parecida) ou vamos deixar scripts shell para fazer isso apenas na imagem do container?
 - **Multi-Tenant**: Suporte a múltiplos vaults simultâneos no servidor.
 - **Web UI**: Interface gráfica simples acoplada ao `loam serve`.
