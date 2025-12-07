@@ -32,12 +32,12 @@ var initCmd = &cobra.Command{
 			Logger:    slog.Default(),
 		}
 
-		_, err = loam.New(cfg)
+		resolvedPath, _, err := loam.Init(cfg)
 		if err != nil {
 			fatal("Failed to initialize vault", err)
 		}
 
-		fmt.Println("Initialized empty Loam vault in", cwd)
+		fmt.Println("Initialized empty Loam vault in", resolvedPath)
 	},
 }
 

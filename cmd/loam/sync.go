@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/aretw0/loam/pkg/git"
+	"github.com/aretw0/loam/pkg/loam"
 	"github.com/spf13/cobra"
 )
 
@@ -21,32 +21,18 @@ It performs a 'git pull --rebase' to integrate remote changes, followed by a 'gi
 			fatal("Failed to get CWD", err)
 		}
 
-		logger := slog.Default()
-
-		// Determine path using loam helper (ensures we get the right vault root)
-		// We can reuse ResolveVaultPath logic if exposed, or just rely on git client finding root.
-		// For consistency, let's use the Factory to "validate" the vault first?
-		// No, `sync` shouldn't require instantiating the whole service if we just want to sync.
-		// But we need to know if it's gitless.
-
-		// Check gitless flag
 		if gitless {
-			fmt.Fprintf(os.Stderr, "Error: Cannot sync in gitless mode\n")
-			os.Exit(1)
+			fatal("Cannot sync in gitless mode", fmt.Errorf("sync not supported"))
 		}
 
-		// Instantiate Git Client directly
-		// Note: We use 'cwd' but strictly we should use 'loam.ResolveVaultPath'
-		// to be consistent with other commands if user is in a subdir.
-		// However, standard git commands work from subdirs.
-		gitClient := git.NewClient(cwd, logger)
-
-		if !gitClient.IsRepo() {
-			fatal("Not a git repository", fmt.Errorf("%s is not a git repo", cwd))
+		cfg := loam.Config{
+			Path:      cwd,
+			IsGitless: gitless,
+			Logger:    slog.Default(),
 		}
 
 		fmt.Println("Syncing...")
-		if err := gitClient.Sync(); err != nil {
+		if err := loam.Sync(cfg); err != nil {
 			// User friendly error handling
 			fmt.Fprintf(os.Stderr, "Error: Sync failed: %v\n", err)
 			fmt.Println("Tip: Ensure you have a remote configured ('git remote add origin <url>') and you are online.")
