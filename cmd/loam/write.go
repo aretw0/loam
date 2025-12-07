@@ -13,6 +13,8 @@ var (
 	writeID      string
 	writeContent string
 	writeMsg     string
+	writeType    string
+	writeScope   string
 )
 
 // writeCmd represents the write command
@@ -42,11 +44,37 @@ var writeCmd = &cobra.Command{
 			Content: writeContent,
 		}
 
-		if writeMsg == "" {
-			writeMsg = fmt.Sprintf("feat: update note %s", writeID)
+		// Logic to construct message
+		var finalMsg string
+
+		// Strategy:
+		// 1. If explicit --type is given, use it + message as subject.
+		// 2. If NO --type but --message is given, use legacy mode (append footer).
+		// 3. If NO --type AND NO --message, auto-generate semantic message (default: chore or docs).
+
+		if writeType != "" {
+			if writeMsg == "" {
+				// Auto-generate subject if missing?
+				writeMsg = fmt.Sprintf("update %s", writeID)
+			}
+			finalMsg = loam.FormatCommitMessage(writeType, writeScope, writeMsg, "")
+		} else {
+			if writeMsg != "" {
+				// Legacy mode
+				finalMsg = loam.AppendFooter(writeMsg)
+			} else {
+				// Auto mode: Default to 'docs' type
+				// "docs(notes): update {id}"
+				scope := "notes"
+				if writeScope != "" {
+					scope = writeScope
+				}
+				// Default type: docs
+				finalMsg = loam.FormatCommitMessage(loam.CommitTypeDocs, scope, fmt.Sprintf("update %s", writeID), "")
+			}
 		}
 
-		if err := vault.Save(note, writeMsg); err != nil {
+		if err := vault.Save(note, finalMsg); err != nil {
 			fatal("Failed to save note", err)
 		}
 
@@ -59,5 +87,7 @@ func init() {
 	writeCmd.Flags().StringVar(&writeID, "id", "", "Note ID (filename)")
 	writeCmd.Flags().StringVar(&writeContent, "content", "", "Note content")
 	writeCmd.Flags().StringVarP(&writeMsg, "message", "m", "", "Commit message")
+	writeCmd.Flags().StringVarP(&writeType, "type", "t", "", "Commit type")
+	writeCmd.Flags().StringVarP(&writeScope, "scope", "s", "", "Commit scope")
 	writeCmd.MarkFlagRequired("id")
 }

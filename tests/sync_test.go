@@ -68,8 +68,8 @@ func TestSync(t *testing.T) {
 	run(t, originPath, "git", "push")
 
 	// 3. Make change in Local
+	// loam write already commits, so we don't need explicit commit command unless we wanted to change message
 	run(t, localPath, loamBin, "write", "--id", "local-note", "--content", "local content")
-	run(t, localPath, loamBin, "commit", "-m", "Local change")
 
 	// Debug info
 	run(t, localPath, "git", "status")
