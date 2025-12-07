@@ -21,10 +21,6 @@ It performs a 'git pull --rebase' to integrate remote changes, followed by a 'gi
 			fatal("Failed to get CWD", err)
 		}
 
-		if gitless {
-			fatal("Cannot sync in gitless mode", fmt.Errorf("sync not supported"))
-		}
-
 		fmt.Println("Syncing...")
 		if err := loam.Sync(cwd, loam.WithVersioning(!gitless), loam.WithLogger(slog.Default())); err != nil {
 			// User friendly error handling

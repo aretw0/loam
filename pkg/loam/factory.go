@@ -5,7 +5,7 @@ import (
 	"github.com/aretw0/loam/pkg/core"
 )
 
-// svc, err := loam.New("/path/to/vault", loam.WithGitless(true))
+// svc, err := loam.New("/path/to/vault", loam.WithVersioning(false))
 func New(path string, opts ...Option) (*core.Service, error) {
 	// 1. Initialize environment (Path, Git, Directories)
 	// We pass the opts down to Init, which parses them itself.

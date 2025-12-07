@@ -21,7 +21,10 @@ type Repository interface {
 
 	// Initialize ensures the underlying storage is ready (e.g., create directories, git init, schema migration).
 	Initialize(ctx context.Context) error
+}
 
+// Syncable defines an interface for repositories that support synchronization with a remote.
+type Syncable interface {
 	// Sync synchronizes the local state with a remote source (e.g. git pull/push).
 	Sync(ctx context.Context) error
 }

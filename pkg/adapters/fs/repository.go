@@ -18,7 +18,7 @@ import (
 // Repository implements core.Repository using the filesystem and Git.
 type Repository struct {
 	Path   string
-	Git    *git.Client
+	git    *git.Client
 	cache  *cache
 	config Config
 }
@@ -39,7 +39,7 @@ func NewRepository(config Config) *Repository {
 		// Wait, git.NewClient accepts a logger. Config currently doesn't have it.
 		// We should add Logger to Config or accept it cleanly.
 		// For now, passing nil logger or we need to update Config struct.
-		Git:    git.NewClient(config.Path, nil),
+		git:    git.NewClient(config.Path, nil),
 		config: config,
 		cache:  newCache(config.Path),
 	}
@@ -68,9 +68,9 @@ func (r *Repository) Initialize(ctx context.Context) error {
 			return fmt.Errorf("git is not installed")
 		}
 
-		if !r.Git.IsRepo() {
+		if !r.git.IsRepo() {
 			if r.config.AutoInit {
-				if err := r.Git.Init(); err != nil {
+				if err := r.git.Init(); err != nil {
 					return fmt.Errorf("failed to git init: %w", err)
 				}
 			} else {
@@ -88,11 +88,11 @@ func (r *Repository) Sync(ctx context.Context) error {
 		return fmt.Errorf("cannot sync in gitless mode")
 	}
 
-	if !r.Git.IsRepo() {
+	if !r.git.IsRepo() {
 		return fmt.Errorf("path is not a git repository: %s", r.Path)
 	}
 
-	return r.Git.Sync() // This method handles pull/push
+	return r.git.Sync() // This method handles pull/push
 }
 
 // Save persists a note to the filesystem and commits it to Git.
@@ -119,13 +119,13 @@ func (r *Repository) Save(ctx context.Context, n core.Note) error {
 	}
 
 	if !r.config.Gitless {
-		unlock, err := r.Git.Lock()
+		unlock, err := r.git.Lock()
 		if err != nil {
 			return fmt.Errorf("failed to acquire git lock: %w", err)
 		}
 		defer unlock()
 
-		if err := r.Git.Add(filename); err != nil {
+		if err := r.git.Add(filename); err != nil {
 			return fmt.Errorf("failed to git add: %w", err)
 		}
 
@@ -134,7 +134,7 @@ func (r *Repository) Save(ctx context.Context, n core.Note) error {
 			msg = val
 		}
 
-		if err := r.Git.Commit(msg); err != nil {
+		if err := r.git.Commit(msg); err != nil {
 			return fmt.Errorf("failed to git commit: %w", err)
 		}
 	}
@@ -277,17 +277,17 @@ func (r *Repository) Delete(ctx context.Context, id string) error {
 		return nil
 	}
 
-	unlock, err := r.Git.Lock()
+	unlock, err := r.git.Lock()
 	if err != nil {
 		return fmt.Errorf("failed to acquire git lock: %w", err)
 	}
 	defer unlock()
 
-	if err := r.Git.Rm(filename); err != nil {
+	if err := r.git.Rm(filename); err != nil {
 		return fmt.Errorf("failed to git rm: %w", err)
 	}
 
-	if err := r.Git.Commit("delete " + id); err != nil {
+	if err := r.git.Commit("delete " + id); err != nil {
 		return fmt.Errorf("failed to git commit: %w", err)
 	}
 

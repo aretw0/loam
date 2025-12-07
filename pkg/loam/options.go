@@ -38,7 +38,7 @@ func WithAutoInit(auto bool) Option {
 	}
 }
 
-// WithVersioning enables or disables git versioning.
+// WithVersioning enables or disables version control (e.g. Git).
 // By default, versioning is enabled (gitless = false).
 // Passing false will enable gitless mode (gitless = true).
 func WithVersioning(enabled bool) Option {
