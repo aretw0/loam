@@ -200,7 +200,7 @@ func TestService_GitlessSync(t *testing.T) {
 
 	// Init in Gitless Mode explicitly
 	// Init in Gitless Mode explicitly
-	_, err := loam.New(tmpDir, loam.WithAutoInit(true), loam.WithGitless(true), loam.WithForceTemp(true))
+	_, err := loam.New(tmpDir, loam.WithAutoInit(true), loam.WithVersioning(false), loam.WithForceTemp(true))
 	if err != nil {
 		t.Fatalf("Failed to init service: %v", err)
 	}

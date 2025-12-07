@@ -38,7 +38,7 @@ var writeCmd = &cobra.Command{
 
 		// Configure Loam using the new Config struct
 		service, err := loam.New(cwd,
-			loam.WithGitless(gitless),
+			loam.WithVersioning(!gitless),
 			loam.WithLogger(slog.Default()),
 			// AutoInit is false by default
 		)
@@ -67,7 +67,7 @@ var writeCmd = &cobra.Command{
 		}
 
 		// Pass commit message via context (Adapter specific requirement)
-		ctx := context.WithValue(context.Background(), core.CommitMessageKey, finalMsg)
+		ctx := context.WithValue(context.Background(), core.ChangeReasonKey, finalMsg)
 
 		if err := service.SaveNote(ctx, writeID, writeContent, nil); err != nil {
 			fatal("Failed to save note", err)

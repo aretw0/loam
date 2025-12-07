@@ -38,10 +38,12 @@ func WithAutoInit(auto bool) Option {
 	}
 }
 
-// WithGitless forces the vault to run in gitless mode.
-func WithGitless(gitless bool) Option {
+// WithVersioning enables or disables git versioning.
+// By default, versioning is enabled (gitless = false).
+// Passing false will enable gitless mode (gitless = true).
+func WithVersioning(enabled bool) Option {
 	return func(o *options) {
-		o.gitless = gitless
+		o.gitless = !enabled
 	}
 }
 

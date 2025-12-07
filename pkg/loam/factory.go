@@ -3,18 +3,9 @@ package loam
 import (
 	"github.com/aretw0/loam/pkg/adapters/fs"
 	"github.com/aretw0/loam/pkg/core"
-	"github.com/aretw0/loam/pkg/git"
 )
 
-// New initializes the Loam NoteService with the given configuration.
-// It sets up the filesystem, git repository, and wires the adapters.
-//
-// The 'path' argument specifies the root handling directory for the vault.
-// Providing functional options (e.g., WithGitless, WithLogger) allows configuration customization.
-//
-// Example:
-//
-//	svc, err := loam.New("/path/to/vault", loam.WithGitless(true))
+// svc, err := loam.New("/path/to/vault", loam.WithGitless(true))
 func New(path string, opts ...Option) (*core.Service, error) {
 	// 1. Initialize environment (Path, Git, Directories)
 	// We pass the opts down to Init, which parses them itself.
@@ -36,14 +27,14 @@ func New(path string, opts ...Option) (*core.Service, error) {
 	if o.repository != nil {
 		repo = o.repository
 	} else {
-		// Default: Initialize FS Adapter with Git Client
-		gitClient := git.NewClient(resolvedPath, o.logger)
+		// Default: Initialize FS Adapter
+		// Git Client is now encapsulated within the FS Adapter
 		repo = fs.NewRepository(fs.Config{
 			Path:      resolvedPath,
 			AutoInit:  o.autoInit,
 			Gitless:   isGitless,
 			MustExist: o.mustExist,
-		}, gitClient)
+		})
 	}
 
 	// Initialize Domain Service

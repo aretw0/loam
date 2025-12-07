@@ -19,7 +19,7 @@ func main() {
 	service, err := loam.New("gitless-demo",
 		loam.WithLogger(logger),
 		loam.WithForceTemp(true),
-		loam.WithGitless(true),
+		loam.WithVersioning(false),
 		loam.WithAutoInit(true),
 	)
 	if err != nil {
@@ -41,7 +41,7 @@ func main() {
 
 	for _, n := range notes {
 		// Even in Gitless mode, we pass a 'commit message' context to keep API consistent.
-		ctxMsg := context.WithValue(ctx, core.CommitMessageKey, "ignored message")
+		ctxMsg := context.WithValue(ctx, core.ChangeReasonKey, "ignored message")
 		if err := service.SaveNote(ctxMsg, n.ID, n.Content, nil); err != nil {
 			panic(fmt.Errorf("failed to save %s: %w", n.ID, err))
 		}

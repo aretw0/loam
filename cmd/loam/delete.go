@@ -22,7 +22,7 @@ var deleteCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		service, err := loam.New(wd, loam.WithGitless(gitless), loam.WithMustExist(true))
+		service, err := loam.New(wd, loam.WithVersioning(!gitless), loam.WithMustExist(true))
 		if err != nil {
 			fmt.Printf("Error initializing loam: %v\n", err)
 			os.Exit(1)

@@ -52,7 +52,7 @@ func TestInit(t *testing.T) {
 		tmpDir := t.TempDir()
 		vaultPath := filepath.Join(tmpDir, "gitless_vault")
 
-		resolvedPath, isGitless, err := loam.Init(vaultPath, loam.WithAutoInit(true), loam.WithGitless(true), loam.WithForceTemp(true))
+		resolvedPath, isGitless, err := loam.Init(vaultPath, loam.WithAutoInit(true), loam.WithVersioning(false), loam.WithForceTemp(true))
 		if err != nil {
 			t.Fatalf("Init failed: %v", err)
 		}
@@ -80,7 +80,7 @@ func TestInit(t *testing.T) {
 func TestSync(t *testing.T) {
 	t.Run("Sync Fails if Gitless", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		err := loam.Sync(tmpDir, loam.WithGitless(true), loam.WithForceTemp(true))
+		err := loam.Sync(tmpDir, loam.WithVersioning(false), loam.WithForceTemp(true))
 		if err == nil {
 			t.Error("Expected Sync to fail in gitless mode")
 		}
@@ -94,7 +94,7 @@ func TestSync(t *testing.T) {
 		_ = client.Commit("initial commit") // commit so we have HEAD
 
 		// This might fail due to "No such remote 'origin'" or similar
-		err := loam.Sync(tmpDir, loam.WithGitless(false), loam.WithForceTemp(true))
+		err := loam.Sync(tmpDir, loam.WithVersioning(true), loam.WithForceTemp(true))
 		if err == nil {
 			t.Error("Expected Sync to fail without remote")
 		}

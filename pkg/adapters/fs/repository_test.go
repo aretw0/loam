@@ -31,8 +31,11 @@ func setupRepo(t *testing.T, opts ...func(*fs.Config)) (*fs.Repository, string, 
 		opt(&cfg)
 	}
 
+	// Client for verification
 	client := git.NewClient(vaultPath, nil)
-	repo := fs.NewRepository(cfg, client)
+
+	// Repo creates its own client internally now
+	repo := fs.NewRepository(cfg)
 
 	return repo, vaultPath, client
 }
@@ -218,12 +221,7 @@ func TestList(t *testing.T) {
 
 	t.Run("Uses Cache on Second Call", func(t *testing.T) {
 		// This tests implicit caching behavior (mtime based)
-		// We can't easily mock inner cache, but we can verify performance or just correctness consistency
 		notes1, _ := repo.List(context.Background())
-
-		// Force mtime update to be slightly different if needed,
-		// but immediate call should hit memory cache or file cache if persisted
-		// actually list loads from cache file.
 
 		notes2, err := repo.List(context.Background())
 		if err != nil {

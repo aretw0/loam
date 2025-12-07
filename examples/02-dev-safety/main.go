@@ -55,7 +55,7 @@ func main() {
 	gitlessService, err := loam.New("./local-gitless",
 		loam.WithLogger(logger),
 		loam.WithAutoInit(true),
-		loam.WithGitless(true),
+		loam.WithVersioning(false),
 	)
 	if err != nil {
 		panic(err)

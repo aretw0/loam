@@ -32,10 +32,13 @@ type Config struct {
 }
 
 // NewRepository creates a new filesystem-backed repository.
-func NewRepository(config Config, gitClient *git.Client) *Repository {
+func NewRepository(config Config) *Repository {
 	return &Repository{
-		Path:   config.Path,
-		Git:    gitClient,
+		Path: config.Path,
+		Git:  git.NewClient(config.Path, nil), // Helper internally creates client, logger can be wired if Config has it?
+		// Wait, git.NewClient accepts a logger. Config currently doesn't have it.
+		// We should add Logger to Config or accept it cleanly.
+		// For now, passing nil logger or we need to update Config struct.
 		config: config,
 		cache:  newCache(config.Path),
 	}
@@ -53,9 +56,6 @@ func (r *Repository) Initialize(ctx context.Context) error {
 			return fmt.Errorf("vault path is not a directory: %s", r.Path)
 		}
 	} else {
-		// Auto-create directory if not MustExist (default behavior usually implied AutoInit logic for dir too)
-		// Logic from ops.go: "shouldEnsureDir := o.autoInit || useTemp"
-		// Here we simplify: if not MustExist, we ensure it exists.
 		if err := os.MkdirAll(r.Path, 0755); err != nil {
 			return fmt.Errorf("failed to create vault directory: %w", err)
 		}
@@ -64,13 +64,11 @@ func (r *Repository) Initialize(ctx context.Context) error {
 	// 2. Git Initialization
 	if !r.config.Gitless {
 		if !git.IsInstalled() {
-			// Fail or fallback? Core logic fell back to gitless.
-			// Ideally adapter should just fail if configured to use Git but Git is missing.
-			// But to keep parity, let's assume the caller handles the fallback decision via Config?
-			// Actually, if we are here, we are committed to the config.
-			// Let's check installed status.
 			return fmt.Errorf("git is not installed")
 		}
+
+		// Re-instantiate git client if path was just created?
+		// NewClient just holds the path string, so it's fine.
 
 		if !r.Git.IsRepo() {
 			if r.config.AutoInit {
@@ -78,9 +76,6 @@ func (r *Repository) Initialize(ctx context.Context) error {
 					return fmt.Errorf("failed to git init: %w", err)
 				}
 			} else {
-				// If not auto-init and not a repo, what do we do?
-				// Previously we warned and fell back to gitless.
-				// Now, if Config.Gitless is false, we expect a repo.
 				return fmt.Errorf("path is not a git repository: %s", r.Path)
 			}
 		}
@@ -90,8 +85,6 @@ func (r *Repository) Initialize(ctx context.Context) error {
 }
 
 // Save persists a note to the filesystem and commits it to Git.
-// Note: This naive implementation commits every save.
-// For transactions, we'd need a more complex interaction.
 func (r *Repository) Save(ctx context.Context, n core.Note) error {
 	if n.ID == "" {
 		return fmt.Errorf("note has no ID")
@@ -110,9 +103,6 @@ func (r *Repository) Save(ctx context.Context, n core.Note) error {
 		return fmt.Errorf("failed to serialize note: %w", err)
 	}
 
-	// Strategy: Write file -> Git Lock -> Git Add -> Git Commit.
-	// This mirrors the original atomic Save logic (simplified).
-
 	if err := os.WriteFile(fullPath, data, 0644); err != nil {
 		return fmt.Errorf("failed to write file: %w", err)
 	}
@@ -128,11 +118,8 @@ func (r *Repository) Save(ctx context.Context, n core.Note) error {
 			return fmt.Errorf("failed to git add: %w", err)
 		}
 
-		// TODO: How to get commit message?
-		// Context or extra field? The interface 'Save(n Note)' doesn't have it.
-		// For now, use a default or check context.
 		msg := "update " + n.ID
-		if val, ok := ctx.Value(core.CommitMessageKey).(string); ok && val != "" {
+		if val, ok := ctx.Value(core.ChangeReasonKey).(string); ok && val != "" {
 			msg = val
 		}
 

@@ -25,5 +25,5 @@ type Repository interface {
 
 type contextKey string
 
-// CommitMessageKey is the context key for passing specific commit messages during Save/Delete operations.
-const CommitMessageKey contextKey = "commit_message"
+// ChangeReasonKey is the context key for passing specific change reasons (commit messages) during Save/Delete operations.
+const ChangeReasonKey contextKey = "change_reason"

@@ -41,66 +41,19 @@ func Init(path string, opts ...Option) (string, bool, error) {
 
 	// 3. Configure and Initialize Repository
 	// We use the FS adapter for initialization.
-	// Note: We create a temporary client just for initialization.
-	// The repository instance here is ephemeral.
-	gitClient := git.NewClient(resolvedPath, o.logger)
-
 	repoConfig := fs.Config{
 		Path:     resolvedPath,
-		AutoInit: o.autoInit || useTemp, // Simplify: Temp implies AutoInit usually? Original logic: "shouldEnsureDir := o.autoInit || useTemp" for mkdir. But git init was strict o.autoInit.
-		// Wait, original logic for Mkdir: shouldEnsureDir := o.autoInit || useTemp.
-		// Original logic for Git Init: if !gitClient.IsRepo() { if o.autoInit { Init } }
-		// So if useTemp=true but AutoInit=false, we mkdir but DO NOT git init?
-		// Let's check original ops.go lines 65: if o.autoInit is the ONLY check for git.Init().
-		// So AutoInit in Config should strictly be o.autoInit.
-		// However, the directory creation logic in fs.Initialize uses MustExist vs else MkdirAll.
-		// in ops.go: if o.mustExist { check } else { if shouldEnsureDir { Mkdir } else { check exists } }
-		// Wait, if not MustExist and not AutoInit and not useTemp, ops.go CHECKS existence.
-		// My fs.Initialize logic currently: if MustExist { check } else { MkdirAll }.
-		// This implies ALWAYS create if not mustExist.
-		// The original ops.go was:
-		// if shouldEnsureDir (autoInit || useTemp) -> MkdirAll
-		// else -> Check Exists (fail if not).
-		// So there is a "Don't Create" mode.
-		// I need to update fs.Config to support this "Don't key create" or "Allow Create" ?
-		// Let's fix fs.Config in a separate step or just map it carefully.
-		// For now, let's assume AutoInit covers creation or I'll fix fs.Config to have 'CreateDir'.
+		AutoInit: o.autoInit,
+		Gitless:  isGitless,
+		// MustExist logic mapping:
+		// If we are auto-initializing or using temp, we assume we can create directories.
+		// If NOT auto-initializing/temp, we assume it MUST exist unless implicitly allowed?
+		// Original logic: "shouldEnsureDir := o.autoInit || useTemp".
+		// If !shouldEnsureDir, we checked existence.
+		MustExist: o.mustExist || (!o.autoInit && !useTemp),
 	}
 
-	// Let's refine the mapping logic.
-	// ops.go: shouldEnsureDir := o.autoInit || useTemp
-	// If we want to preserve exact behavior, fs.Initialize needs to know "Should I create directory?".
-	// Config.MustExist is "Fail if missing".
-	// Config.AutoInit is "Run git init".
-	// Missing: "Create directory if missing but don't git init".
-
-	// I will use 'o.autoInit || useTemp' as a proxy for "We are allowed to Initialize the directory".
-	// But honestly, 'loam init' (the command) passes AutoInit=true.
-	// 'loam open' or 'loam new' might pass AutoInit=false.
-
-	// If Config.AutoInit is passed to fs.Repository, it triggers Git Init.
-	// We might need CreateDir bool in fs.Config.
-
-	// Allow me to update fs.Config in the previous file first or proceed with a slight behavior change?
-	// Let's proceed with best effort here and maybe update fs.Config if critical.
-	// Actually, I can rely on 'MustExist' to mean "Don't Create".
-	// If MustExist is false, we create.
-	// In ops.go, if shouldEnsureDir is false, we checked existence. That is effectively MustExist=true logic.
-	// So:
-	// Any time shouldEnsureDir is false, we treat it as MustExist=true for the directory.
-
-	fsMustExist := o.mustExist
-	shouldEnsureDir := o.autoInit || useTemp
-	if !shouldEnsureDir && !fsMustExist {
-		// If we are not auto-initializing and not forced temp, we EXPECT the dir to exist.
-		fsMustExist = true
-	}
-
-	repoConfig.MustExist = fsMustExist
-	repoConfig.AutoInit = o.autoInit
-	repoConfig.Gitless = isGitless
-
-	repo := fs.NewRepository(repoConfig, gitClient)
+	repo := fs.NewRepository(repoConfig)
 	if err := repo.Initialize(context.Background()); err != nil {
 		return "", false, err
 	}

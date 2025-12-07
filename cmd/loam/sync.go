@@ -26,7 +26,7 @@ It performs a 'git pull --rebase' to integrate remote changes, followed by a 'gi
 		}
 
 		fmt.Println("Syncing...")
-		if err := loam.Sync(cwd, loam.WithGitless(gitless), loam.WithLogger(slog.Default())); err != nil {
+		if err := loam.Sync(cwd, loam.WithVersioning(!gitless), loam.WithLogger(slog.Default())); err != nil {
 			// User friendly error handling
 			fmt.Fprintf(os.Stderr, "Error: Sync failed: %v\n", err)
 			fmt.Println("Tip: Ensure you have a remote configured ('git remote add origin <url>') and you are online.")

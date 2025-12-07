@@ -54,7 +54,7 @@ func main() {
 	fmt.Printf("\nMensagem Gerada:\n---\n%s\n---\n", msg)
 
 	// 3. Salvar (Commit)
-	ctx := context.WithValue(context.Background(), core.CommitMessageKey, msg)
+	ctx := context.WithValue(context.Background(), core.ChangeReasonKey, msg)
 	if err := service.SaveNote(ctx, noteID, content, meta); err != nil {
 		panic(err)
 	}

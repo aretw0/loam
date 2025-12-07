@@ -54,7 +54,7 @@ func main() {
 	service, err := loam.New(benchDir,
 		loam.WithLogger(logger),
 		loam.WithAutoInit(true),
-		loam.WithGitless(true), // Avoid git init overhead for 10k files unless necessary
+		loam.WithVersioning(false), // Avoid git init overhead for 10k files unless necessary
 	)
 	// Note: If we want to bench Git adapter, we should enable git.
 	// Let's stick to Gitless to measure pure parsing/io speed first.
@@ -85,7 +85,7 @@ func main() {
 	service2, _ := loam.New(benchDir,
 		loam.WithLogger(logger),
 		loam.WithAutoInit(true),
-		loam.WithGitless(true),
+		loam.WithVersioning(false),
 	)
 
 	fmt.Println("Running List (Run 2 - Warm)...")
