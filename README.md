@@ -28,10 +28,14 @@ loam init
 
 ### Criar/Editar Nota
 
-Salva conteúdo e cria um commit automaticamente. (Uso atômico/Save)
+Salva conteúdo e cria um commit automaticamente. Suporta **Commits Semânticos**.
 
 ```bash
-loam write -id daily/2025-12-06 -content "Hoje foi um dia produtivo."
+# Modo Simples (apenas mensagem)
+loam write -id daily/2025-12-06 -content "Hoje foi um dia produtivo." -m "log diário"
+
+# Modo Semântico (Type, Scope, Body)
+loam write -id feature/nova-ideia -content "..." --type feat --scope ideias -m "adiciona rascunho"
 ```
 
 ### Sincronizar (Sync)
@@ -44,7 +48,7 @@ loam sync
 
 ### Outros Comandos
 
-- **Commit**: `loam commit -m "feat: adiciona nota diária"`
+- **Commit**: `loam commit -m "feat: adiciona nota"` ou `loam commit --type feat --scope notas -m "adiciona nota"`
 - **Ler**: `loam read -id daily/2025-12-06`
 - **Listar**: `loam list` (Usa cache para alta performance)
 - **Deletar**: `loam delete -id daily/2025-12-06`

@@ -136,6 +136,17 @@ Objetivo: Tornar o uso local e efêmero do Loam mais seguro e amigável.
   - [x] Documentar como desenvolver o Loam e com o Loam (importando no projeto) sem poluir o próprio repositório.
   - [x] Criar guards para evitar commits acidentais no repo "host" quando rodando testes locais.
 
+## Fase 9.5: Design Philosophy & Consistency (Concluído)
+
+Objetivo: Garantir que a ferramenta imponha boas práticas e coesão no projeto.
+
+- [x] **Smart Commits Implementation**:
+  - [x] Flags semânticas (`--type`, `--scope`, `--body`) em `loam commit` e `loam write`.
+  - [x] Footer automático `Powered-by: Loam`.
+- [x] **Project Polish**:
+  - [x] Revisão de coesão (Docs vs Code).
+  - [x] Atualização de Exemplos e README para refletir a API fluente (`WithAutoInit`).
+
 ## Fase 10: Server & Interoperability (Backlog)
 
 Objetivo: Permitir que ferramentas externas (não-Go) interajam com o Loam via rede/socket, reforçando a visão de "Driver".
@@ -164,7 +175,5 @@ Objetivo: Transformar o Loam em um "Knowledge Engine" com busca semântica e ful
 - **Definir minima imagem**: Isolar Git e o repositório, i.e. melhor do que executar o script numa pasta que você pode mexer livremente ou até remover a necessidade de ter o repositório baixado. Claro que estamos falando do Loam ter que resolver a configuração do git para que o checkou aconteça e o posterior push, mas acredito que se seguirmos as melhores práticas de como fazer isso respeitando o acesso que nos vai ser dado para colaborar no repositório no servidor git. As perguntas: é o Loam que vai administrar essa parte de checkout e autenticação (PAT ou coisa parecida) ou vamos deixar scripts shell para fazer isso apenas na imagem do container?
 - **Multi-Tenant**: Suporte a múltiplos vaults simultâneos no servidor.
 - **Web UI**: Interface gráfica simples acoplada ao `loam serve`.
-- **Smart Commits**:
-  - Implementar flag `--type` (feat, fix, chore) no `loam commit`.
-  - Garantir footer "Powered by Loam".
+
 - **Distribuição**: Publicação via Homebrew/Scoop.

@@ -10,6 +10,7 @@ O **Loam** opera como um motor NoSQL sobre arquivos de texto plano, utilizando o
 - **Transações:** O Git é tratado como o *Write-Ahead Log*.
   - O estado "real" é o diretório de trabalho + `.git`.
   - Commits agem como *checkpoints* de consistência.
+- **Padronização:** Todo commit gerado pelo Loam segue o padrão **Conventional Commits** (`type(scope): subject`) e inclui um footer `Powered-by: Loam` para rastreabilidade.
 
 ### 2. Concorrência: Single-Tenant com Lock Global
 
