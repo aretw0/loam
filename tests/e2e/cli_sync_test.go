@@ -1,4 +1,4 @@
-package tests
+package e2e
 
 import (
 	"fmt"
@@ -49,9 +49,8 @@ func TestSync(t *testing.T) {
 
 	// Build loam binary
 	loamBin := filepath.Join(tempDir, "loam.exe")
-	// When running via go test, CWD is the directory of the test file (tests/)
-	// So we need to go up one level to find cmd/loam
-	buildCmd := exec.Command("go", "build", "-o", loamBin, "../cmd/loam")
+	// Updated Path: go up two levels from tests/e2e to root, then to cmd/loam
+	buildCmd := exec.Command("go", "build", "-o", loamBin, "../../cmd/loam")
 	if out, err := buildCmd.CombinedOutput(); err != nil {
 		t.Fatalf("Failed to build loam: %v\n%s", err, string(out))
 	}
