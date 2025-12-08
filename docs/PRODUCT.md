@@ -13,10 +13,10 @@ Para desenvolvedores acostumados com bancos de dados tradicionais, lidar com arq
 
 ## Objetivos
 
-1. **Centralizar a Lógica de I/O:** Abstrair operações de leitura, escrita e *parsing* para evitar duplicação de código em diferentes ferramentas.
-2. **Garantir Integridade (ACID-ish):** Prevenir condições de corrida quando múltiplos processos tentam editar o mesmo cofre de notas simultaneamente.
-3. **Versionamento como Log:** Utilizar o Git como um *Write-Ahead Log* transparente, garantindo histórico e reversibilidade atômica.
-4. **Agnosticismo:** Funcionar independentemente do editor (Obsidian, VS Code, Vim), focando apenas na estrutura dos dados (Markdown + YAML).
+1. **Centralizar a Persistência:** Abstrair operações de armazenamento e serialização para evitar duplicação de regras em diferentes ferramentas.
+2. **Garantir Integridade (ACID-ish):** Prevenir condições de corrida quando múltiplos processos tentam editar o mesmo repositório simultaneamente.
+3. **Histórico Auditável:** Manter um log de alterações transparente e reversível (implementado via Git no adapter padrão).
+4. **Estrutura Universal:** Focar na estrutura "Conteúdo + Metadados", independente do formato de serialização final (Markdown, JSON, SQL).
 5. **Portabilidade:** Ser distribuído como uma biblioteca Go e/ou um binário *standalone*.
 
 ## Personas (Público-alvo)
@@ -33,10 +33,10 @@ Para desenvolvedores acostumados com bancos de dados tradicionais, lidar com arq
 
 ## Filosofia de Design
 
-### Commits Semânticos Abstraídos
+### Rastreabilidade Semântica
 
-O Loam deve tratar o histórico do Git como um log estruturado, não apenas texto livre.
+O Loam trata o histórico de mudanças como um log estruturado, não apenas texto livre.
 
-- **Abstração:** O usuário não escreve mensagens de commit livres (`-m "fixed stuff"`). Ele informa a *intenção* (Feat, Chore, Fix) e um título.
-- **Padronização:** O Loam gera a mensagem final seguindo Conventional Commits, garantindo que feeds de changelog sejam gerados automaticamente.
-- **Assinatura:** Commits gerados via CLI/Driver devem conter um footer `Footer: Powered by Loam`, indicando a origem da mudança.
+- **Intenção sobre Implementação:** O usuário informa a *intenção* (Feat, Chore, Fix) e a razão da mudança.
+- **Adaptação:** No adapter FS, isso se traduz em **Commits Semânticos** (Conventional Commits). Em um adapter SQL, poderia ser uma tabela de auditoria.
+- **Assinatura:** Mudanças geradas via automação devem indicar sua origem (ex: `Powered by Loam`).
