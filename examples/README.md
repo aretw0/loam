@@ -2,12 +2,35 @@
 
 Este diretório contém exemplos de uso e provas de conceito do projeto Loam.
 
-## Projetos de Exemplo
+## Estrutura
 
-- **[Basic App](./basic-app)**: Um exemplo simples e completo de como usar o pacote principal (`github.com/aretw0/loam`) para criar, salvar e ler notas em uma aplicação Go.
-  - Demonstra a inicialização do Vault.
-  - Mostra como usar a substituição de módulo (`replace` no `go.mod`) para desenvolver usando a versão local do Loam.
+- **[Demos](./demos)**: Aplicações completas demonstrando casos de uso reais.
+- **[Basics](./basics)**: Exemplos focados em funcionalidades específicas da API.
+- **[Spikes](./spikes)**: Experimentos técnicos (pode estar vazio ou conter rascunhos).
 
-## Spikes (Pesquisa)
+## Demos
 
-A pasta **[spikes](./spikes)** contém experimentos e provas de conceito (PoCs) isoladas criadas durante o design e pesquisa do Loam. Estes códigos servem como registro histórico e demonstração técnica de conceitos específicos (como lock de arquivos, concorrência git, etc), mas **não** devem ser tomados como exemplos de boas práticas ou uso da API atual.
+| Projeto | Descrição |
+| :--- | :--- |
+| **[Calendar](./demos/calendar)** | Um assistente de agenda (Calendar as Code) usando commits semânticos. |
+| **[Ledger](./demos/ledger)** | Um livro razão financeiro imutável. |
+| **[ERP](./demos/erp)** | Um mini-ERP usando links bidirecionais entre notas. |
+| **[Stress Test](./demos/stress-test)** | Demonstra a segurança de concorrência do Loam (100+ threads). |
+| **[Benchmark](./demos/benchmark)** | Compara performance de escritas individuais vs Batch Transactions. |
+
+## Basics
+
+- **[Hello World](./basics/hello-world)**: O ponto de partida.
+- **[CRUD](./basics/crud)**: Operações básicas de Create, Read, Update, Delete.
+- **[Configuration](./basics/configuration)**: Como configurar o Vault.
+- **[Semantic Commits](./basics/semantic-commits)**: Uso avançado de razões de mudança.
+
+## Como Executar
+
+Cada pasta é um módulo Go independente. Para rodar qualquer exemplo:
+
+```bash
+cd examples/demos/calendar
+go mod tidy
+go run .
+```

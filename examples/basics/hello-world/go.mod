@@ -6,7 +6,7 @@ go 1.25.4
 // To use the published version:
 // 1. Comment out or remove the 'replace' line.
 // 2. Run 'go get github.com/aretw0/loam@latest'
-replace github.com/aretw0/loam => ../../
+replace github.com/aretw0/loam => ../../../
 
 require github.com/aretw0/loam v0.0.0-00010101000000-000000000000
 

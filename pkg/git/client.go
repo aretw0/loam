@@ -41,8 +41,8 @@ func (c *Client) Lock() (func(), error) {
 			}, nil
 		}
 
-		if os.IsExist(err) {
-			// Lock exists, wait and retry
+		if os.IsExist(err) || os.IsPermission(err) {
+			// Lock exists (or access denied on Windows), wait and retry
 			// Simple spinlock with backoff.
 			// TODO: Add timeout to prevent infinite deadlocks?
 			time.Sleep(10 * time.Millisecond)

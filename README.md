@@ -112,7 +112,7 @@ func main() {
  }
  fmt.Printf("Conteúdo recuperado:\n%s\n", note.Content)
 
- // ... (veja exemplos completos em examples/basic/crud)
+ // ... (veja exemplos completos em examples/basics/crud)
 }
 ```
 

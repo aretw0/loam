@@ -2,7 +2,7 @@ module loam-ledger
 
 go 1.25.4
 
-replace github.com/aretw0/loam => ../..
+replace github.com/aretw0/loam => ../../..
 
 require github.com/aretw0/loam v0.0.0
 
