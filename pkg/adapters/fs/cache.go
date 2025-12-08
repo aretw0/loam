@@ -32,9 +32,9 @@ type cache struct {
 }
 
 // newCache initializes a cache at the given path.
-func newCache(vaultPath string) *cache {
-	// Cache lives in {vaultPath}/.loam/index.json
-	cacheDir := filepath.Join(vaultPath, ".loam")
+func newCache(vaultPath, systemDir string) *cache {
+	// Cache lives in {vaultPath}/{systemDir}/index.json
+	cacheDir := filepath.Join(vaultPath, systemDir)
 	cachePath := filepath.Join(cacheDir, "index.json")
 
 	return &cache{

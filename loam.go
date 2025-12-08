@@ -50,6 +50,11 @@ func WithAdapter(name string) Option {
 	return platform.WithAdapter(name)
 }
 
+// WithSystemDir allows specifying the hidden directory name (e.g. ".loam").
+func WithSystemDir(name string) Option {
+	return platform.WithSystemDir(name)
+}
+
 // --- Factory ---
 
 // New creates a new Loam Service.

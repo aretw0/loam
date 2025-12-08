@@ -57,7 +57,7 @@ A fachada pública que simplifica o uso da biblioteca.
 ### 2. Cache de Metadados
 
 - **Problema:** Listar milhares de arquivos lendo do disco é lento.
-- **Solução:** Index Persistente (`.loam/index.json`) mantido pelo Adapter FS.
+- **Solução:** Index Persistente (`.loam/index.json`) mantido pelo Adapter FS. O diretório (`.loam`) é configurável via `WithSystemDir`.
 - **Invalidação:** Baseada em timestamp (`mtime`).
 - **Performance:** Reduz tempo de listagem de segundos para milissegundos (ex: 6s -> 13ms para 1k notas).
 

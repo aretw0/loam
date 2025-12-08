@@ -33,15 +33,16 @@ type Config struct {
 	Gitless   bool
 	MustExist bool
 	Logger    *slog.Logger
+	SystemDir string // e.g. ".loam"
 }
 
 // NewRepository creates a new filesystem-backed repository.
 func NewRepository(config Config) *Repository {
 	return &Repository{
 		Path:   config.Path,
-		git:    git.NewClient(config.Path, ".loam.lock", config.Logger),
+		git:    git.NewClient(config.Path, config.SystemDir+".lock", config.Logger),
 		config: config,
-		cache:  newCache(config.Path),
+		cache:  newCache(config.Path, config.SystemDir),
 	}
 }
 
@@ -219,8 +220,8 @@ func (r *Repository) List(ctx context.Context) ([]core.Document, error) {
 			return err
 		}
 		if d.IsDir() {
-			// Skip .git directory
-			if d.Name() == ".git" {
+			// Skip system directories
+			if d.Name() == ".git" || d.Name() == r.config.SystemDir {
 				return filepath.SkipDir
 			}
 			return nil

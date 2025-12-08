@@ -10,7 +10,7 @@ import (
 func TestCache_Load(t *testing.T) {
 	t.Run("Starts Empty if File Missing", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		c := newCache(tmpDir)
+		c := newCache(tmpDir, ".cache")
 
 		if err := c.Load(); err != nil {
 			t.Fatalf("Load failed: %v", err)
@@ -23,7 +23,7 @@ func TestCache_Load(t *testing.T) {
 
 	t.Run("Loads Valid JSON", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		cacheDir := filepath.Join(tmpDir, ".loam")
+		cacheDir := filepath.Join(tmpDir, ".cache")
 		os.MkdirAll(cacheDir, 0755)
 
 		jsonContent := `{
@@ -37,7 +37,9 @@ func TestCache_Load(t *testing.T) {
 		}`
 		os.WriteFile(filepath.Join(cacheDir, "index.json"), []byte(jsonContent), 0644)
 
-		c := newCache(tmpDir)
+		os.WriteFile(filepath.Join(cacheDir, "index.json"), []byte(jsonContent), 0644)
+
+		c := newCache(tmpDir, ".cache")
 		if err := c.Load(); err != nil {
 			t.Fatalf("Load failed: %v", err)
 		}
@@ -53,12 +55,14 @@ func TestCache_Load(t *testing.T) {
 
 	t.Run("Resets on Corrupted JSON", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		cacheDir := filepath.Join(tmpDir, ".loam")
+		cacheDir := filepath.Join(tmpDir, ".cache")
 		os.MkdirAll(cacheDir, 0755)
 
 		os.WriteFile(filepath.Join(cacheDir, "index.json"), []byte("{ invalid json"), 0644)
 
-		c := newCache(tmpDir)
+		os.WriteFile(filepath.Join(cacheDir, "index.json"), []byte("{ invalid json"), 0644)
+
+		c := newCache(tmpDir, ".cache")
 		// Should not error, but return empty
 		if err := c.Load(); err != nil {
 			t.Fatalf("Load failed: %v", err)
@@ -73,7 +77,7 @@ func TestCache_Load(t *testing.T) {
 func TestCache_Save(t *testing.T) {
 	t.Run("Does Not Save if Not Dirty", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		c := newCache(tmpDir)
+		c := newCache(tmpDir, ".cache")
 		// c.dirty is false by default
 
 		if err := c.Save(); err != nil {
@@ -88,7 +92,7 @@ func TestCache_Save(t *testing.T) {
 
 	t.Run("Saves if Dirty", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		c := newCache(tmpDir)
+		c := newCache(tmpDir, ".cache")
 
 		c.Set("foo.md", &indexEntry{ID: "foo"})
 		// Set sets dirty=true
@@ -111,7 +115,7 @@ func TestCache_Save(t *testing.T) {
 
 func TestCache_Get_Set(t *testing.T) {
 	tmpDir := t.TempDir()
-	c := newCache(tmpDir)
+	c := newCache(tmpDir, ".loam")
 
 	now := time.Now().Truncate(time.Second) // Truncate for stability
 	entry := &indexEntry{
@@ -149,7 +153,7 @@ func TestCache_Get_Set(t *testing.T) {
 
 func TestCache_Prune(t *testing.T) {
 	tmpDir := t.TempDir()
-	c := newCache(tmpDir)
+	c := newCache(tmpDir, ".loam")
 
 	c.Set("keep.md", &indexEntry{ID: "keep"})
 	c.Set("drop.md", &indexEntry{ID: "drop"})

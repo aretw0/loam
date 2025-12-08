@@ -80,3 +80,11 @@ func WithAdapter(name string) Option {
 		o.adapter = name
 	}
 }
+
+// WithSystemDir allows specifying the hidden directory name (e.g. ".loam").
+// Defaults to ".loam" if not set (handled by adapter).
+func WithSystemDir(name string) Option {
+	return func(o *options) {
+		o.config["system_dir"] = name
+	}
+}

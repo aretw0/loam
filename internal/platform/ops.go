@@ -53,10 +53,15 @@ func initFS(path string, o *options) (core.Repository, error) {
 	gitless, _ := o.config["gitless"].(bool)
 	tempDir, _ := o.config["temp_dir"].(bool)
 	mustExist, _ := o.config["must_exist"].(bool)
+	systemDir, _ := o.config["system_dir"].(string)
 
 	// Safety & Path Resolution
 	useTemp := tempDir || IsDevRun()
 	resolvedPath := ResolveVaultPath(path, useTemp)
+
+	if systemDir == "" {
+		systemDir = ".loam"
+	}
 
 	if o.logger != nil && useTemp {
 		o.logger.Warn("running in SAFE MODE (Dev/Test)", "original_path", path, "resolved_path", resolvedPath)
@@ -68,6 +73,7 @@ func initFS(path string, o *options) (core.Repository, error) {
 		Gitless:   gitless,
 		MustExist: mustExist || (!autoInit && !useTemp),
 		Logger:    o.logger,
+		SystemDir: systemDir,
 	}
 
 	return fs.NewRepository(repoConfig), nil
