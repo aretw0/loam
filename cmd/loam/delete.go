@@ -11,8 +11,8 @@ import (
 
 var deleteCmd = &cobra.Command{
 	Use:   "delete [id]",
-	Short: "Delete a note from the vault",
-	Long:  `Delete permanently removes a note from the vault and stages the deletion in Git.`,
+	Short: "Delete a document from the vault",
+	Long:  `Delete permanently removes a document from the vault and stages the deletion in Git.`,
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		id := args[0]
@@ -29,11 +29,11 @@ var deleteCmd = &cobra.Command{
 		}
 
 		if err := service.DeleteDocument(context.Background(), id); err != nil {
-			fmt.Printf("Error deleting note: %v\n", err)
+			fmt.Printf("Error deleting document: %v\n", err)
 			os.Exit(1)
 		}
 
-		fmt.Printf("Note deleted: %s\n", id)
+		fmt.Printf("Document deleted: %s\n", id)
 	},
 }
 

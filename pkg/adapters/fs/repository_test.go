@@ -83,21 +83,21 @@ func TestInitialize(t *testing.T) {
 }
 
 func TestSave(t *testing.T) {
-	t.Run("Saves Note Content", func(t *testing.T) {
+	t.Run("Saves Document Content", func(t *testing.T) {
 		repo, path, _ := setupRepo(t)
 		repo.Initialize(context.Background())
 
-		note := core.Document{
-			ID:      "test-note",
+		doc := core.Document{
+			ID:      "test-doc",
 			Content: "Hello World",
 		}
 
-		if err := repo.Save(context.Background(), note); err != nil {
+		if err := repo.Save(context.Background(), doc); err != nil {
 			t.Fatalf("Save failed: %v", err)
 		}
 
 		// Verify file exists and content matches
-		content, err := os.ReadFile(filepath.Join(path, "test-note.md"))
+		content, err := os.ReadFile(filepath.Join(path, "test-doc.md"))
 		if err != nil {
 			t.Fatalf("failed to read file: %v", err)
 		}
@@ -106,12 +106,12 @@ func TestSave(t *testing.T) {
 		}
 	})
 
-	t.Run("Saves Note with Metadata", func(t *testing.T) {
+	t.Run("Saves Document with Metadata", func(t *testing.T) {
 		repo, path, _ := setupRepo(t)
 		repo.Initialize(context.Background())
 
-		note := core.Document{
-			ID: "meta-note",
+		doc := core.Document{
+			ID: "meta-doc",
 			Metadata: map[string]interface{}{
 				"title": "My Title",
 				"tags":  []string{"a", "b"},
@@ -119,11 +119,11 @@ func TestSave(t *testing.T) {
 			Content: "Content",
 		}
 
-		if err := repo.Save(context.Background(), note); err != nil {
+		if err := repo.Save(context.Background(), doc); err != nil {
 			t.Fatalf("Save failed: %v", err)
 		}
 
-		content, err := os.ReadFile(filepath.Join(path, "meta-note.md"))
+		content, err := os.ReadFile(filepath.Join(path, "meta-doc.md"))
 		if err != nil {
 			t.Fatalf("failed to read file: %v", err)
 		}
@@ -145,18 +145,18 @@ func TestSave(t *testing.T) {
 		})
 		repo.Initialize(context.Background())
 
-		note := core.Document{ID: "git-note", Content: "git content"}
-		if err := repo.Save(context.Background(), note); err != nil {
+		doc := core.Document{ID: "git-doc", Content: "git content"}
+		if err := repo.Save(context.Background(), doc); err != nil {
 			t.Fatalf("Save failed: %v", err)
 		}
 
 		// Verify commit
-		// We expect "update git-note" as message
+		// We expect "update git-doc" as message
 		out, err := client.Run("log", "-1", "--pretty=%B")
 		if err != nil {
 			t.Fatalf("git log failed: %v", err)
 		}
-		if out != "update git-note" {
+		if out != "update git-doc" {
 			t.Errorf("Unexpected commit message: %q", out)
 		}
 
@@ -167,27 +167,27 @@ func TestGet(t *testing.T) {
 	repo, _, _ := setupRepo(t)
 	repo.Initialize(context.Background())
 
-	// Pre-create a note
-	note := core.Document{ID: "readable", Content: "read me"}
-	repo.Save(context.Background(), note)
+	// Pre-create a document
+	doc := core.Document{ID: "readable", Content: "read me"}
+	repo.Save(context.Background(), doc)
 
-	t.Run("Retrieves Existing Note", func(t *testing.T) {
-		n, err := repo.Get(context.Background(), "readable")
+	t.Run("Retrieves Existing Document", func(t *testing.T) {
+		d, err := repo.Get(context.Background(), "readable")
 		if err != nil {
 			t.Fatalf("Get failed: %v", err)
 		}
-		if n.Content != "read me" {
-			t.Errorf("expected 'read me', got '%s'", n.Content)
+		if d.Content != "read me" {
+			t.Errorf("expected 'read me', got '%s'", d.Content)
 		}
-		if n.ID != "readable" {
-			t.Errorf("expected ID 'readable', got '%s'", n.ID)
+		if d.ID != "readable" {
+			t.Errorf("expected ID 'readable', got '%s'", d.ID)
 		}
 	})
 
-	t.Run("Returns Error for Non-Existent Note", func(t *testing.T) {
+	t.Run("Returns Error for Non-Existent Document", func(t *testing.T) {
 		_, err := repo.Get(context.Background(), "ghost")
 		if err == nil {
-			t.Error("expected error for missing note")
+			t.Error("expected error for missing document")
 		}
 	})
 }
@@ -197,37 +197,37 @@ func TestList(t *testing.T) {
 	repo.Initialize(context.Background())
 
 	t.Run("Lists Empty Repo", func(t *testing.T) {
-		notes, err := repo.List(context.Background())
+		docs, err := repo.List(context.Background())
 		if err != nil {
 			t.Fatalf("List failed: %v", err)
 		}
-		if len(notes) != 0 {
-			t.Errorf("expected 0 notes, got %d", len(notes))
+		if len(docs) != 0 {
+			t.Errorf("expected 0 docs, got %d", len(docs))
 		}
 	})
 
-	t.Run("Lists Multiple Notes", func(t *testing.T) {
-		repo.Save(context.Background(), core.Document{ID: "n1", Content: "c1"})
-		repo.Save(context.Background(), core.Document{ID: "n2", Content: "c2"})
+	t.Run("Lists Multiple Documents", func(t *testing.T) {
+		repo.Save(context.Background(), core.Document{ID: "d1", Content: "c1"})
+		repo.Save(context.Background(), core.Document{ID: "d2", Content: "c2"})
 
-		notes, err := repo.List(context.Background())
+		docs, err := repo.List(context.Background())
 		if err != nil {
 			t.Fatalf("List failed: %v", err)
 		}
-		if len(notes) != 2 {
-			t.Errorf("expected 2 notes, got %d", len(notes))
+		if len(docs) != 2 {
+			t.Errorf("expected 2 docs, got %d", len(docs))
 		}
 	})
 
 	t.Run("Uses Cache on Second Call", func(t *testing.T) {
 		// This tests implicit caching behavior (mtime based)
-		notes1, _ := repo.List(context.Background())
+		docs1, _ := repo.List(context.Background())
 
-		notes2, err := repo.List(context.Background())
+		docs2, err := repo.List(context.Background())
 		if err != nil {
 			t.Fatalf("Second List failed: %v", err)
 		}
-		if len(notes2) != len(notes1) {
+		if len(docs2) != len(docs1) {
 			t.Errorf("Cache consistency error")
 		}
 	})

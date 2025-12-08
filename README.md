@@ -22,7 +22,7 @@ O **Adapter padrão (FS)** detecta automaticamente o formato do arquivo baseado 
 - **Markdown (`.md`)**: Padrão. Conteúdo + Frontmatter YAML.
 - **JSON (`.json`)**: Serializa como objeto JSON puro. Campo `content` é opcional.
 - **YAML (`.yaml`)**: Serializa como objeto YAML puro. Campo `content` é opcional.
-- **CSV (`.csv`)**: Serializa como linha de valores. Coluna `content` é o corpo (opcional), demais são metadados.
+- **CSV (`.csv`)**: Serializa como linha de valores. Suporta coleções com múltiplos documentos.
 
 ## 🚀 Instalação
 
@@ -98,7 +98,7 @@ import (
 func main() {
  // 1. Inicializar Serviço (Factory) com Functional Options.
  // O primeiro argumento é a URI ou Path do cofre. Para o adapter FS, use o caminho do diretório.
- service, err := loam.New("./minhas-notas",
+ service, err := loam.New("./meus-docs",
   loam.WithAdapter("fs"), // Padrão
   loam.WithAutoInit(true), // Cria diretório e git init se necessário
   loam.WithLogger(slog.New(slog.NewTextHandler(os.Stdout, nil))),

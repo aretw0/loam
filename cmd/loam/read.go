@@ -17,8 +17,8 @@ var (
 
 var readCmd = &cobra.Command{
 	Use:   "read [id]",
-	Short: "Read a note",
-	Long:  `Read a note by its ID. Outputs raw markdown content by default, or JSON object with --json.`,
+	Short: "Read a document",
+	Long:  `Read a document by its ID. Outputs raw markdown content by default, or JSON object with --json.`,
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		id := args[0]
@@ -42,7 +42,7 @@ var readCmd = &cobra.Command{
 
 		note, err := service.GetDocument(context.Background(), id)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error reading note: %v\n", err)
+			fmt.Fprintf(os.Stderr, "Error reading document: %v\n", err)
 			os.Exit(1)
 		}
 

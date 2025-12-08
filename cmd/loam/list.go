@@ -19,7 +19,7 @@ var (
 
 var listCmd = &cobra.Command{
 	Use:   "list",
-	Short: "List all notes in the vault",
+	Short: "List all documents in the vault",
 	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		wd, err := os.Getwd()
@@ -39,17 +39,17 @@ var listCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		notes, err := service.ListDocuments(context.Background())
+		docs, err := service.ListDocuments(context.Background())
 		if err != nil {
-			fmt.Printf("Error listing notes: %v\n", err)
+			fmt.Printf("Error listing documents: %v\n", err)
 			os.Exit(1)
 		}
 
 		var filtered []core.Document
-		for _, note := range notes {
+		for _, doc := range docs {
 			if filterTag != "" {
 				// Check tags
-				tags, ok := note.Metadata["tags"]
+				tags, ok := doc.Metadata["tags"]
 				hasTag := false
 				if ok {
 					// Handle []interface{} (from YAML) or []string
@@ -74,7 +74,7 @@ var listCmd = &cobra.Command{
 					continue
 				}
 			}
-			filtered = append(filtered, note)
+			filtered = append(filtered, doc)
 		}
 
 		if listJSON {
@@ -87,13 +87,13 @@ var listCmd = &cobra.Command{
 			return
 		}
 
-		for _, note := range filtered {
+		for _, doc := range filtered {
 			// Basic output: ID - Title (if available)
 			title := ""
-			if t, ok := note.Metadata["title"].(string); ok {
+			if t, ok := doc.Metadata["title"].(string); ok {
 				title = fmt.Sprintf("- %s", t)
 			}
-			fmt.Printf("%s %s\n", note.ID, title)
+			fmt.Printf("%s %s\n", doc.ID, title)
 		}
 	},
 }
@@ -101,5 +101,5 @@ var listCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(listCmd)
 	listCmd.Flags().BoolVar(&listJSON, "json", false, "Output in JSON format")
-	listCmd.Flags().StringVar(&filterTag, "tag", "", "Filter notes by tag")
+	listCmd.Flags().StringVar(&filterTag, "tag", "", "Filter documents by tag")
 }

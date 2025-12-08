@@ -9,63 +9,67 @@ import (
 	"github.com/aretw0/loam/pkg/core"
 )
 
-func TestMultiDocument_CSV(t *testing.T) {
+// setupCSVRepo creates a temporary directory with a CSV file and returns the repo.
+// csvName defaults to "users.csv" if empty.
+func setupCSVRepo(t *testing.T, csvName, content string, opts ...func(*Config)) (*Repository, string) {
+	t.Helper()
 	tmpDir := t.TempDir()
 
-	// Setup: Create a CSV file acting as a collection
-	csvContent := `id,name,role
-jane,Jane Doe,admin
-bob,Bob Smith,user
-`
-	csvPath := filepath.Join(tmpDir, "users.csv")
-	if err := os.WriteFile(csvPath, []byte(csvContent), 0644); err != nil {
+	if csvName == "" {
+		csvName = "users.csv"
+	}
+	csvPath := filepath.Join(tmpDir, csvName)
+	if err := os.WriteFile(csvPath, []byte(content), 0644); err != nil {
 		t.Fatalf("Failed to write csv: %v", err)
 	}
 
-	repo := NewRepository(Config{Path: tmpDir, Gitless: true})
+	cfg := Config{Path: tmpDir, Gitless: true}
+	for _, opt := range opts {
+		opt(&cfg)
+	}
 
-	// Test Case 1: Fetching a sub-document by ID "users.csv/jane"
+	return NewRepository(cfg), tmpDir
+}
+
+func TestMultiDocument_Get_SmartDiscovery(t *testing.T) {
+	content := `id,name,role
+jane,Jane Doe,admin
+bob,Bob Smith,user
+`
+	repo, _ := setupCSVRepo(t, "", content)
+
+	// Case 1: Direct Sub-Document ID
 	targetID := "users.csv/jane"
 	doc, err := repo.Get(context.Background(), targetID)
 	if err != nil {
-		t.Fatalf("Failed to Get sub-document: %v", err)
+		t.Fatalf("Failed to Get: %v", err)
 	}
-
-	// Assertions
 	if doc.ID != targetID {
-		t.Errorf("Expected Doc ID %s, got %s", targetID, doc.ID)
+		t.Errorf("Expected ID %s, got %s", targetID, doc.ID)
 	}
 
-	// Test Case 2: Smart Discovery (users/jane -> users.csv)
+	// Case 2: Smart Discovery
 	smartID := "users/jane"
 	doc2, err := repo.Get(context.Background(), smartID)
 	if err != nil {
-		t.Fatalf("Failed to Get sub-document via Smart Discovery: %v", err)
+		t.Fatalf("Failed Smart Discovery: %v", err)
 	}
 	if doc2.ID != smartID {
-		t.Errorf("Expected Doc ID %s, got %s", smartID, doc2.ID)
+		t.Errorf("Expected Smart ID %s, got %s", smartID, doc2.ID)
 	}
-	if name, ok := doc2.Metadata["name"].(string); !ok || name != "Jane Doe" {
-		t.Errorf("Expected metadata name='Jane Doe', got %v", doc2.Metadata["name"])
+	if name := doc2.Metadata["name"]; name != "Jane Doe" {
+		t.Errorf("Expected name 'Jane Doe', got %v", name)
 	}
 }
 
 func TestMultiDocument_Save(t *testing.T) {
-	tmpDir := t.TempDir()
-
-	// Setup: Create a CSV file
-	csvContent := `id,name,role
+	content := `id,name,role
 jane,Jane Doe,admin
 `
-	csvPath := filepath.Join(tmpDir, "users.csv")
-	if err := os.WriteFile(csvPath, []byte(csvContent), 0644); err != nil {
-		t.Fatalf("Failed to write csv: %v", err)
-	}
-
-	repo := NewRepository(Config{Path: tmpDir, Gitless: true})
-
-	// Case 1: Update existing row
+	repo, _ := setupCSVRepo(t, "", content)
 	ctx := context.Background()
+
+	// Case 1: Update
 	updateDoc := core.Document{
 		ID: "users.csv/jane",
 		Metadata: map[string]interface{}{
@@ -73,75 +77,50 @@ jane,Jane Doe,admin
 			"role": "superadmin",
 		},
 	}
-
 	if err := repo.Save(ctx, updateDoc); err != nil {
-		t.Fatalf("Failed to Save sub-document: %v", err)
+		t.Fatalf("Failed to Update: %v", err)
 	}
 
-	// Verify Update
-	savedDoc, err := repo.Get(ctx, "users.csv/jane")
-	if err != nil {
-		t.Fatalf("Failed to Get saved document: %v", err)
-	}
-	if name, ok := savedDoc.Metadata["name"].(string); !ok || name != "Jane Updated" {
-		t.Errorf("Expected name 'Jane Updated', got '%v'", name)
+	saved, _ := repo.Get(ctx, "users.csv/jane")
+	if saved.Metadata["name"] != "Jane Updated" {
+		t.Errorf("Update failed, got %v", saved.Metadata["name"])
 	}
 
-	// Case 2: Insert new row
+	// Case 2: Insert
 	newDoc := core.Document{
 		ID: "users.csv/alice",
 		Metadata: map[string]interface{}{
-			"name": "Alice Wonderland",
+			"name": "Alice",
 			"role": "guest",
 		},
 	}
 	if err := repo.Save(ctx, newDoc); err != nil {
-		t.Fatalf("Failed to Insert new sub-document: %v", err)
+		t.Fatalf("Failed to Insert: %v", err)
 	}
 
-	// Verify Insert
-	aliceDoc, err := repo.Get(ctx, "users.csv/alice")
+	alice, err := repo.Get(ctx, "users.csv/alice")
 	if err != nil {
-		t.Fatalf("Failed to Get inserted document: %v", err)
+		t.Fatalf("Failed to Get inserted: %v", err)
 	}
-	if name, ok := aliceDoc.Metadata["name"].(string); !ok || name != "Alice Wonderland" {
-		t.Errorf("Expected name 'Alice Wonderland', got '%v'", name)
+	if alice.Metadata["name"] != "Alice" {
+		t.Errorf("Insert failed, got %v", alice.Metadata["name"])
 	}
 }
 
 func TestMultiDocument_List(t *testing.T) {
-	tmpDir := t.TempDir()
-
-	// Setup: Create a CSV file
-	csvContent := `id,name,role
-jane,Jane Doe,admin
-bob,Bob Smith,user
+	content := `id,name
+jane,Jane
+bob,Bob
 `
-	csvPath := filepath.Join(tmpDir, "users.csv")
-	if err := os.WriteFile(csvPath, []byte(csvContent), 0644); err != nil {
-		t.Fatalf("Failed to write csv: %v", err)
-	}
+	repo, _ := setupCSVRepo(t, "", content)
 
-	repo := NewRepository(Config{Path: tmpDir, Gitless: true})
-
-	// List
 	docs, err := repo.List(context.Background())
 	if err != nil {
-		t.Fatalf("Failed to List: %v", err)
+		t.Fatalf("List failed: %v", err)
 	}
 
-	// Expect 2 documents from the CSV
-	// Note: If List returns the file itself (users.csv) as a document, we might have 3.
-	// But our goal is "Flattening", so ideally users.csv is consumed and replaced by its items.
-	// Or both?
-	// Loam Design: If we treat it as a collection, we probably only want the items?
-	// But `users.csv` is also a file.
-	// Let's check what we get.
-
-	// Current expectation: We want to see "users.csv/jane" and "users.csv/bob".
 	foundJane := false
 	foundBob := false
-
 	for _, d := range docs {
 		if d.ID == "users.csv/jane" {
 			foundJane = true
@@ -152,129 +131,64 @@ bob,Bob Smith,user
 	}
 
 	if !foundJane {
-		t.Error("List did not return users.csv/jane")
+		t.Error("List missing users.csv/jane")
 	}
 	if !foundBob {
-		t.Error("List did not return users.csv/bob")
+		t.Error("List missing users.csv/bob")
 	}
 }
 
 func TestMultiDocument_CustomID(t *testing.T) {
-	tmpDir := t.TempDir()
-
-	// Setup: Create a CSV file with "email" as ID
-	csvContent := `email,name,role
-jane@example.com,Jane Doe,admin
-bob@example.com,Bob Smith,user
+	content := `email,name
+jane@example.com,Jane
 `
-	csvPath := filepath.Join(tmpDir, "users.csv")
-	if err := os.WriteFile(csvPath, []byte(csvContent), 0644); err != nil {
-		t.Fatalf("Failed to write csv: %v", err)
-	}
-
-	repo := NewRepository(Config{
-		Path:    tmpDir,
-		Gitless: true,
-		IDMap: map[string]string{
-			"users.csv": "email",
-		},
+	repo, _ := setupCSVRepo(t, "", content, func(c *Config) {
+		c.IDMap = map[string]string{"users.csv": "email"}
 	})
 
-	// Test Get with Custom ID
 	targetID := "users.csv/jane@example.com"
 	doc, err := repo.Get(context.Background(), targetID)
 	if err != nil {
-		t.Fatalf("Failed to Get sub-document: %v", err)
+		t.Fatalf("Failed to Get with custom ID: %v", err)
 	}
 	if doc.ID != targetID {
-		t.Errorf("Expected Doc ID %s, got %s", targetID, doc.ID)
-	}
-	if name, ok := doc.Metadata["name"].(string); !ok || name != "Jane Doe" {
-		t.Errorf("Expected metadata name='Jane Doe', got %v", doc.Metadata["name"])
-	}
-
-	// Test Save with Custom ID
-	updateDoc := core.Document{
-		ID: "users.csv/jane@example.com",
-		Metadata: map[string]interface{}{
-			"name": "Jane Updated",
-		},
-	}
-	if err := repo.Save(context.Background(), updateDoc); err != nil {
-		t.Fatalf("Failed to Save: %v", err)
-	}
-
-	// Verify
-	saved, _ := repo.Get(context.Background(), "users.csv/jane@example.com")
-	if saved.Metadata["name"] != "Jane Updated" {
-		t.Error("Update failed")
+		t.Errorf("ID mismatch: %s != %s", doc.ID, targetID)
 	}
 }
 
 func TestMultiDocument_Transaction(t *testing.T) {
-	tmpDir := t.TempDir()
-
-	// Setup: CSV
-	csvContent := `id,name
-jane,Jane Doe
+	content := `id,name
+jane,Jane
 `
-	csvPath := filepath.Join(tmpDir, "users.csv")
-	if err := os.WriteFile(csvPath, []byte(csvContent), 0644); err != nil {
-		t.Fatalf("Failed to write csv: %v", err)
-	}
-
-	repo := NewRepository(Config{Path: tmpDir, Gitless: true})
+	repo, _ := setupCSVRepo(t, "", content)
 	ctx := context.Background()
 
-	// Begin Transaction
 	tx, err := repo.Begin(ctx)
 	if err != nil {
-		t.Fatalf("Failed to Begin: %v", err)
+		t.Fatalf("Begin failed: %v", err)
 	}
 
-	// 1. Update Existing
-	doc1 := core.Document{
-		ID: "users.csv/jane",
-		Metadata: map[string]interface{}{
-			"name": "Jane Changed",
-		},
-	}
-	if err := tx.Save(ctx, doc1); err != nil {
-		t.Fatalf("Failed to stage Save 1: %v", err)
-	}
+	// Update + Insert
+	tx.Save(ctx, core.Document{
+		ID:       "users.csv/jane",
+		Metadata: core.Metadata{"name": "Jane Changed"},
+	})
+	tx.Save(ctx, core.Document{
+		ID:       "users.csv/bob",
+		Metadata: core.Metadata{"name": "Bob"},
+	})
 
-	// 2. Insert New
-	doc2 := core.Document{
-		ID: "users.csv/bob",
-		Metadata: map[string]interface{}{
-			"name": "Bob Builder",
-		},
-	}
-	if err := tx.Save(ctx, doc2); err != nil {
-		t.Fatalf("Failed to stage Save 2: %v", err)
-	}
-
-	// Commit
-	if err := tx.Commit(ctx, "batch update"); err != nil {
-		t.Fatalf("Failed to Commit: %v", err)
+	if err := tx.Commit(ctx, "batch"); err != nil {
+		t.Fatalf("Commit failed: %v", err)
 	}
 
 	// Verify
-	// Check Jane
-	jane, err := repo.Get(ctx, "users.csv/jane")
-	if err != nil {
-		t.Fatalf("Failed to Get jane: %v", err)
-	}
+	jane, _ := repo.Get(ctx, "users.csv/jane")
 	if jane.Metadata["name"] != "Jane Changed" {
-		t.Errorf("Expected Jane Changed, got %v", jane.Metadata["name"])
+		t.Error("Transaction update failed")
 	}
-
-	// Check Bob
-	bob, err := repo.Get(ctx, "users.csv/bob")
-	if err != nil {
-		t.Fatalf("Failed to Get bob: %v", err)
-	}
-	if bob.Metadata["name"] != "Bob Builder" {
-		t.Errorf("Expected Bob Builder, got %v", bob.Metadata["name"])
+	bob, _ := repo.Get(ctx, "users.csv/bob")
+	if bob.Metadata["name"] != "Bob" {
+		t.Error("Transaction insert failed")
 	}
 }

@@ -695,7 +695,7 @@ func (r *Repository) getIDColumn(filename string) string {
 	return "id"
 }
 
-// Delete removes a note.
+// Delete removes a document.
 func (r *Repository) Delete(ctx context.Context, id string) error {
 	filename := id
 	ext := filepath.Ext(id)

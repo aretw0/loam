@@ -18,7 +18,7 @@ var (
 var rootCmd = &cobra.Command{
 	Use:   "loam",
 	Short: "A Transactional Storage Engine for Markdown + Frontmatter backed by Git",
-	Long: `Loam treats your Markdown notes as a NoSQL database.
+	Long: `Loam treats your Markdown documents as a NoSQL database.
 It orchestrates filesystem writes and Git commits to ensure transactional integrity.`,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		level := slog.LevelInfo

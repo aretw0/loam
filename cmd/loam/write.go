@@ -22,8 +22,8 @@ var (
 // writeCmd represents the write command
 var writeCmd = &cobra.Command{
 	Use:   "write",
-	Short: "Write a note",
-	Long:  `Create or update a note with the given ID and content.`,
+	Short: "Write a document",
+	Long:  `Create or update a document with the given ID and content.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if writeID == "" {
 			fmt.Println("Error: --id is required")
@@ -59,7 +59,7 @@ var writeCmd = &cobra.Command{
 				// Legacy mode
 				finalMsg = loam.AppendFooter(changeReason)
 			} else {
-				scope := "notes"
+				scope := "documents"
 				if writeScope != "" {
 					scope = writeScope
 				}
@@ -71,17 +71,17 @@ var writeCmd = &cobra.Command{
 		ctx := context.WithValue(context.Background(), core.ChangeReasonKey, finalMsg)
 
 		if err := service.SaveDocument(ctx, writeID, writeContent, nil); err != nil {
-			fatal("Failed to save note", err)
+			fatal("Failed to save document", err)
 		}
 
-		fmt.Printf("Note '%s' saved and committed.\n", writeID)
+		fmt.Printf("Document '%s' saved and committed.\n", writeID)
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(writeCmd)
-	writeCmd.Flags().StringVar(&writeID, "id", "", "Note ID (filename)")
-	writeCmd.Flags().StringVar(&writeContent, "content", "", "Note content")
+	writeCmd.Flags().StringVar(&writeID, "id", "", "Document ID (filename)")
+	writeCmd.Flags().StringVar(&writeContent, "content", "", "Document content")
 	writeCmd.Flags().StringVarP(&changeReason, "message", "m", "", "Change reason (audit note)")
 	writeCmd.Flags().StringVarP(&writeType, "type", "t", "", "Change type (feat, fix, etc)")
 	writeCmd.Flags().StringVarP(&writeScope, "scope", "s", "", "Commit scope")
