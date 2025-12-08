@@ -1,20 +1,20 @@
 # Planning & Roadmap
 
-## Fase 0.7.0: Multi-Document Support (Current)
+## Fase 0.7.0: Multi-Document Support (Completed)
 
 **Objetivo:** Permitir que arquivos únicos (CSV, JSON Arrays) atuem como coleções de múltiplos documentos, acessíveis via Sub-IDs.
 
-- [ ] **Design & Architecture**:
+- [x] **Design & Architecture**:
   - [x] Definir estratégia de endereçamento (Resource ID `collection/item`).
-  - [ ] Refinar estratégia de fallback no Adapter.
+  - [x] Refinar estratégia de fallback no Adapter (Smart Discovery).
 - [x] **Developer Experience**:
   - [x] Implementar Active Record (`doc.Save()`).
 - [x] **FS Adapter Implementation**:
   - [x] Implementar leitura (`Get`) de Sub-Documentos (CSV).
   - [x] Implementar escrita (`Save`) com *Read-Modify-Write* atômico.
-  - [ ] Implementar listagem (`List`) com *Flattening* de coleções.
-  - [ ] Implementar transações multi-documento (`Batch`).
-  - [ ] Suporte a JSON Arrays.
+  - [x] Implementar listagem (`List`) com *Flattening* de coleções.
+  - [x] Implementar transações multi-documento (`Batch`).
+  - [x] Suporte a Coleções (CSV e IDs customizáveis).
 
 ## RFC 0.X.X: Library-Level Sync Strategies (Backlog)
 
