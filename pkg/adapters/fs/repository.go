@@ -3,6 +3,8 @@ package fs
 import (
 	"bytes"
 	"context"
+	"encoding/csv"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -110,13 +112,26 @@ func (r *Repository) Save(ctx context.Context, doc core.Document) error {
 		return fmt.Errorf("document has no ID")
 	}
 
-	// Simplification: Always use .md for now until Format is moved to Metadata or handled purely by ID
-	ext := ".md"
-	if strings.Contains(doc.ID, ".") {
-		ext = "" // ID already has extension
+	ext := filepath.Ext(doc.ID)
+	// Smart Extension Detection
+	if ext == "" {
+		if val, ok := doc.Metadata["ext"].(string); ok && val != "" {
+			if strings.HasPrefix(val, ".") {
+				ext = val
+			} else {
+				ext = "." + val
+			}
+		} else {
+			ext = ".md" // Default
+		}
 	}
 
-	filename := doc.ID + ext
+	// Construct filename.
+	filename := doc.ID
+	if filepath.Ext(doc.ID) != ext {
+		filename = doc.ID + ext
+	}
+
 	fullPath := filepath.Join(r.Path, filename)
 
 	// Ensure parent directory exists
@@ -124,9 +139,9 @@ func (r *Repository) Save(ctx context.Context, doc core.Document) error {
 		return fmt.Errorf("failed to create directories: %w", err)
 	}
 
-	data, err := serialize(doc)
+	data, err := serialize(doc, ext)
 	if err != nil {
-		return fmt.Errorf("failed to serialize note: %w", err)
+		return fmt.Errorf("failed to serialize document: %w", err)
 	}
 
 	if err := os.WriteFile(fullPath, data, 0644); err != nil {
@@ -159,33 +174,32 @@ func (r *Repository) Save(ctx context.Context, doc core.Document) error {
 
 // Get retrieves a document from the filesystem.
 func (r *Repository) Get(ctx context.Context, id string) (core.Document, error) {
-	// TODO: Support finding file with different extensions if format not known?
-	// For now, assume default .md or we need to pass format in Get?
-	// The interface is Get(ctx, id). It implies we might need to look up.
-	// Simplification: Try .md, then others, or rely on ID having extension?
-	// Current decision: Default to .md for backward compat.
-	// If multi-format is key, Get might need to search.
+	// Attempt to find the file.
+	// 1. Try exact match (if ID has extension)
+	// 2. Try default .md
 
-	// Quick hack: Try .md first.
-	filename := filepath.Join(r.Path, id+".md") // Default
-	// Check if exists
-	if _, err := os.Stat(filename); os.IsNotExist(err) {
-		// Try finding matches?
-		// For this iteration, let's keep strict .md defaults unless specified?
-		// Actually, let's stick to .md for Get for now to limit scope of "exact writing" requirement which was user prompt.
+	filename := id
+	ext := filepath.Ext(id)
+
+	if ext == "" {
+		ext = ".md"
+		filename = id + ext
 	}
 
-	f, err := os.Open(filename)
+	fullPath := filepath.Join(r.Path, filename)
+
+	f, err := os.Open(fullPath)
 	if err != nil {
 		return core.Document{}, err
 	}
 	defer f.Close()
 
-	doc, err := parse(f)
+	doc, err := parse(f, ext)
 	if err != nil {
 		return core.Document{}, fmt.Errorf("failed to parse document %s: %w", id, err)
 	}
 	doc.ID = id
+
 	return *doc, nil
 }
 
@@ -211,7 +225,13 @@ func (r *Repository) List(ctx context.Context) ([]core.Document, error) {
 			}
 			return nil
 		}
-		if filepath.Ext(d.Name()) != ".md" {
+
+		ext := filepath.Ext(d.Name())
+		// Filter supported extensions
+		switch ext {
+		case ".md", ".json", ".yaml", ".yml", ".csv":
+			// OK
+		default:
 			return nil
 		}
 
@@ -220,7 +240,18 @@ func (r *Repository) List(ctx context.Context) ([]core.Document, error) {
 			return err
 		}
 		relPath = filepath.ToSlash(relPath)
-		id := relPath[0 : len(relPath)-3]
+
+		// ID Strategy:
+		// If .md, strip extension (legacy behavior).
+		// If others, keep extension?
+		// For consistency with Get logic:
+		// If I List(), I want IDs that I can pass to Get().
+		// If I pass "foo.json" to Get(), it works.
+		// If I pass "foo" (for foo.md) to Get(), it works.
+		id := relPath
+		if ext == ".md" {
+			id = relPath[0 : len(relPath)-3]
+		}
 
 		// Get file info for mtime
 		info, err := d.Info()
@@ -292,11 +323,17 @@ func (r *Repository) List(ctx context.Context) ([]core.Document, error) {
 
 // Delete removes a note.
 func (r *Repository) Delete(ctx context.Context, id string) error {
-	filename := id + ".md"
+	filename := id
+	ext := filepath.Ext(id)
+	if ext == "" {
+		ext = ".md"
+		filename = id + ext
+	}
+
 	fullPath := filepath.Join(r.Path, filename)
 
 	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
-		return fmt.Errorf("note not found")
+		return fmt.Errorf("document not found")
 	}
 
 	if r.config.Gitless {
@@ -324,14 +361,13 @@ func (r *Repository) Delete(ctx context.Context, id string) error {
 }
 
 // IsGitInstalled checks if git is available in the system path.
-// This allows consumers to check prerequisite without importing pkg/git directly.
 func IsGitInstalled() bool {
 	return git.IsInstalled()
 }
 
 // --- Serialization Helpers (Private) ---
 
-func parse(r io.Reader) (*core.Document, error) {
+func parse(r io.Reader, ext string) (*core.Document, error) {
 	data, err := io.ReadAll(r)
 	if err != nil {
 		return nil, err
@@ -341,48 +377,140 @@ func parse(r io.Reader) (*core.Document, error) {
 		Metadata: make(core.Metadata),
 	}
 
-	// Logic copied from internal note handling
-	if !bytes.HasPrefix(data, []byte("---\n")) && !bytes.HasPrefix(data, []byte("---\r\n")) {
-		doc.Content = string(data)
-		return doc, nil
+	switch ext {
+	case ".json":
+		var payload map[string]interface{}
+		if err := json.Unmarshal(data, &payload); err != nil {
+			return nil, fmt.Errorf("invalid json: %w", err)
+		}
+		if c, ok := payload["content"].(string); ok {
+			doc.Content = c
+			delete(payload, "content")
+		}
+		doc.Metadata = payload
+
+	case ".yaml", ".yml":
+		var payload map[string]interface{}
+		if err := yaml.Unmarshal(data, &payload); err != nil {
+			return nil, fmt.Errorf("invalid yaml: %w", err)
+		}
+		if c, ok := payload["content"].(string); ok {
+			doc.Content = c
+			delete(payload, "content")
+		}
+		doc.Metadata = payload
+
+	case ".csv":
+		reader := csv.NewReader(bytes.NewReader(data))
+		headers, err := reader.Read()
+		if err != nil {
+			return nil, fmt.Errorf("failed to read csv header: %w", err)
+		}
+		row, err := reader.Read()
+		if err != nil {
+			return nil, fmt.Errorf("failed to read csv row: %w", err)
+		}
+
+		if len(row) != len(headers) {
+			return nil, fmt.Errorf("csv row length mismatch")
+		}
+
+		for i, h := range headers {
+			if strings.ToLower(h) == "content" {
+				doc.Content = row[i]
+			} else {
+				doc.Metadata[h] = row[i]
+			}
+		}
+
+	case ".md":
+		fallthrough
+	default:
+		if !bytes.HasPrefix(data, []byte("---\n")) && !bytes.HasPrefix(data, []byte("---\r\n")) {
+			doc.Content = string(data)
+			return doc, nil
+		}
+
+		rest := data[3:]
+		parts := bytes.SplitN(rest, []byte("---"), 2)
+		if len(parts) == 1 {
+			return nil, errors.New("frontmatter started but no closing delimiter found")
+		}
+
+		yamlData := parts[0]
+		contentData := parts[1]
+
+		if err := yaml.Unmarshal(yamlData, &doc.Metadata); err != nil {
+			return nil, fmt.Errorf("failed to parse frontmatter: %w", err)
+		}
+
+		doc.Content = strings.TrimPrefix(string(contentData), "\n")
+		doc.Content = strings.TrimPrefix(doc.Content, "\r\n")
 	}
-
-	rest := data[3:]
-	parts := bytes.SplitN(rest, []byte("---"), 2)
-	if len(parts) == 1 {
-		return nil, errors.New("frontmatter started but no closing delimiter found")
-	}
-
-	yamlData := parts[0]
-	contentData := parts[1]
-
-	if err := yaml.Unmarshal(yamlData, &doc.Metadata); err != nil {
-		return nil, fmt.Errorf("failed to parse frontmatter: %w", err)
-	}
-
-	doc.Content = strings.TrimPrefix(string(contentData), "\n")
-	doc.Content = strings.TrimPrefix(doc.Content, "\r\n")
 
 	return doc, nil
 }
 
-func serialize(doc core.Document) ([]byte, error) {
-	var buf bytes.Buffer
+func serialize(doc core.Document, ext string) ([]byte, error) {
+	switch ext {
+	case ".json":
+		payload := make(map[string]interface{})
+		for k, v := range doc.Metadata {
+			payload[k] = v
+		}
+		payload["content"] = doc.Content
+		return json.MarshalIndent(payload, "", "  ")
 
-	// If generic format (not md), just write content?
-	// For now, serialize logic is strictly for Markdown+Frontmatter.
-	// We should probably check doc.Format here.
-	if len(doc.Metadata) > 0 {
-		buf.WriteString("---\n")
-		encoder := yaml.NewEncoder(&buf)
-		encoder.SetIndent(2)
-		if err := encoder.Encode(doc.Metadata); err != nil {
+	case ".yaml", ".yml":
+		payload := make(map[string]interface{})
+		for k, v := range doc.Metadata {
+			payload[k] = v
+		}
+		payload["content"] = doc.Content
+		return yaml.Marshal(payload)
+
+	case ".csv":
+		keys := []string{"content"}
+		for k := range doc.Metadata {
+			keys = append(keys, k)
+		}
+
+		var row []string
+		row = append(row, doc.Content)
+		for _, k := range keys[1:] {
+			val := ""
+			if v := doc.Metadata[k]; v != nil {
+				val = fmt.Sprintf("%v", v)
+			}
+			row = append(row, val)
+		}
+
+		var buf bytes.Buffer
+		w := csv.NewWriter(&buf)
+		if err := w.Write(keys); err != nil {
 			return nil, err
 		}
-		encoder.Close()
-		buf.WriteString("---\n")
-	}
+		if err := w.Write(row); err != nil {
+			return nil, err
+		}
+		w.Flush()
+		return buf.Bytes(), nil
 
-	buf.WriteString(doc.Content)
-	return buf.Bytes(), nil
+	case ".md":
+		fallthrough
+	default:
+		var buf bytes.Buffer
+		if len(doc.Metadata) > 0 {
+			buf.WriteString("---\n")
+			encoder := yaml.NewEncoder(&buf)
+			encoder.SetIndent(2)
+			if err := encoder.Encode(doc.Metadata); err != nil {
+				return nil, err
+			}
+			encoder.Close()
+			buf.WriteString("---\n")
+		}
+		buf.WriteString(doc.Content)
+		return buf.Bytes(), nil
+	}
 }

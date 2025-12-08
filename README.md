@@ -15,6 +15,15 @@ Ele oferece operações de CRUD atômicas e seguras, garantindo que suas automa�
 - **Pipelines de Dados Locais** (ETL de CSV/JSON).
 - **Geradores de Sites Estáticos** (Hugo, Jekyll).
 
+## 📄 Arquivos Suportados (Smart Persistence)
+
+O **Adapter padrão (FS)** detecta automaticamente o formato do arquivo baseado na extensão do ID:
+
+- **Markdown (`.md`)**: Padrão. Conteúdo + Frontmatter YAML.
+- **JSON (`.json`)**: Serializa como objeto JSON puro.
+- **YAML (`.yaml`)**: Serializa como objeto YAML puro.
+- **CSV (`.csv`)**: Serializa como linha de valores. Coluna `content` é o corpo, demais são metadados.
+
 ## 🚀 Instalação
 
 ```bash
