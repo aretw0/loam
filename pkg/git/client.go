@@ -17,6 +17,9 @@ type Client struct {
 	lockPath string
 }
 
+// DefaultLockTimeout is the maximum time to wait for a lock before giving up.
+const DefaultLockTimeout = 30 * time.Second
+
 // NewClient creates a new git client for the given working directory.
 func NewClient(workDir string, lockFile string, logger *slog.Logger) *Client {
 	return &Client{
@@ -29,6 +32,7 @@ func NewClient(workDir string, lockFile string, logger *slog.Logger) *Client {
 // Lock acquires a file-based lock. It blocks until the lock is acquired.
 func (c *Client) Lock() (func(), error) {
 	fullLockPath := filepath.Join(c.WorkDir, c.lockPath)
+	start := time.Now()
 
 	for {
 		// Try to create lock file atomically
@@ -44,7 +48,9 @@ func (c *Client) Lock() (func(), error) {
 		if os.IsExist(err) || os.IsPermission(err) {
 			// Lock exists (or access denied on Windows), wait and retry
 			// Simple spinlock with backoff.
-			// TODO: Add timeout to prevent infinite deadlocks?
+			if time.Since(start) > DefaultLockTimeout {
+				return nil, fmt.Errorf("timeout waiting for lock %s after %v", fullLockPath, DefaultLockTimeout)
+			}
 			time.Sleep(10 * time.Millisecond)
 			continue
 		}
