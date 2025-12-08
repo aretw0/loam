@@ -146,7 +146,7 @@ Objetivo: Garantir que a ferramenta imponha boas práticas e coesão no projeto.
   - [x] Revisão de coesão (Docs vs Code).
   - [x] Atualização de Exemplos e README para refletir a API fluente (`WithAutoInit`).
 
-## Fase 12: Refatoração Arquitetural (Hexagonal) (Concluído)
+## Fase 9.6: Refatoração Arquitetural (Hexagonal) (Concluído)
 
 **Objetivo:** Desacoplar o núcleo (`Domain`) das implementações de CLI, Filesystem e Git, conforme solicitado ("núcleo não sabe que roda no terminal ou em Markdown").
 
