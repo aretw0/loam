@@ -86,14 +86,34 @@ func main() {
  // O primeiro argumento é a URI ou Path do cofre. Para o adapter FS, use o caminho do diretório.
  service, err := loam.New("./minhas-notas",
   loam.WithAdapter("fs"), // Padrão
-  loam.WithAutoInit(true),
+  loam.WithAutoInit(true), // Cria diretório e git init se necessário
   loam.WithLogger(slog.New(slog.NewTextHandler(os.Stdout, nil))),
  )
  if err != nil {
   panic(err)
  }
 
+ ctx := context.Background()
+
+ // 2. Escrever (Save)
+ // Salvamos o conteúdo com uma "razão de mudança" (Commit Message)
+ // Isso garante que toda mudança tenha um porquê.
+ ctxMsg := context.WithValue(ctx, core.ChangeReasonKey, "nota inicial")
+ err = service.SaveNote(ctxMsg, "daily/hoje", "# Dia Incrível\nComeçamos o projeto.", nil)
+ if err != nil {
+  panic(err)
+ }
+ fmt.Println("Nota salva com sucesso!")
+
+ // 3. Ler (Read)
+ note, err := service.GetNote(ctx, "daily/hoje")
+ if err != nil { // Tratamento simplificado
+  panic(err)
+ }
+ fmt.Printf("Conteúdo recuperado:\n%s\n", note.Content)
+
  // ... (veja exemplos completos em examples/basic/crud)
+}
 ```
 
 ## 📚 Documentação Técnica

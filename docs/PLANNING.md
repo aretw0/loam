@@ -23,7 +23,7 @@
 - [ ] **Monitoramento**:
   - [ ] Expor status de sync (LastSyncedAt, PendingChanges).
 
-## Fase 0.6.0: Server & Interoperability (Backlog)
+## Fase 0.X.X: Server & Interoperability (Backlog)
 
 Objetivo: Permitir que ferramentas externas (não-Go) interajam com o Loam via rede/socket, reforçando a visão de "Driver".
 
@@ -34,7 +34,7 @@ Objetivo: Permitir que ferramentas externas (não-Go) interajam com o Loam via r
   - [ ] `loam validate`: Validar frontmatter contra um schema (JSON Schema ou struct Go).
   - [ ] Garantir tipos de dados (Datas, Arrays) para integridade.
 
-## Fase 0.7.0: Intelligence & Search (Backlog)
+## Fase 0.X.X: Intelligence & Search (Backlog)
 
 Objetivo: Transformar o Loam em um "Knowledge Engine" com busca semântica e full-text.
 
@@ -48,7 +48,8 @@ Objetivo: Transformar o Loam em um "Knowledge Engine" com busca semântica e ful
 ## Futuro / Blue Sky
 
 - **SDK**: Gerar clients (Polyglot) para integrar Loam com outras linguagens.
-- **Definir minima imagem**: Containerização eficiente e segura.
+- **Definir imagem mínima**: Containerização eficiente e segura.
 - **Multi-Tenant**: Suporte a múltiplos vaults simultâneos no servidor.
+- **Terminal UI**: Interface gráfica simples acoplada ao `loam serve` (bubbletea, charm.land e etc).
 - **Web UI**: Interface gráfica simples acoplada ao `loam serve`.
 - **Distribuição**: Publicação via Homebrew/Scoop.
