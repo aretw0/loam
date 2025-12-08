@@ -13,7 +13,7 @@
 - [x] **QA**:
   - [x] Coverage Check.
 
-## Fase 10: Server & Interoperability (Backlog)
+## Fase 0.6.0: Server & Interoperability (Backlog)
 
 Objetivo: Permitir que ferramentas externas (não-Go) interajam com o Loam via rede/socket, reforçando a visão de "Driver".
 
@@ -24,7 +24,7 @@ Objetivo: Permitir que ferramentas externas (não-Go) interajam com o Loam via r
   - [ ] `loam validate`: Validar frontmatter contra um schema (JSON Schema ou struct Go).
   - [ ] Garantir tipos de dados (Datas, Arrays) para integridade.
 
-## Fase 11: Intelligence & Search (Backlog)
+## Fase 0.7.0: Intelligence & Search (Backlog)
 
 Objetivo: Transformar o Loam em um "Knowledge Engine" com busca semântica e full-text.
 
