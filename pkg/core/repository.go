@@ -33,3 +33,33 @@ type contextKey string
 
 // ChangeReasonKey is the context key for passing specific change reasons (commit messages) during Save/Delete operations.
 const ChangeReasonKey contextKey = "change_reason"
+
+// Transaction defines the contract for a unit of work.
+// Changes made within a transaction are atomic and isolated (depending on implementation).
+type Transaction interface {
+	// Save stages a note for persistence.
+	Save(ctx context.Context, n Note) error
+
+	// Get retrieves a note, preferring the staged version if it exists in the transaction.
+	Get(ctx context.Context, id string) (Note, error)
+
+	// List returns all available notes, including staged ones.
+	List(ctx context.Context) ([]Note, error)
+
+	// Delete stages a note for removal.
+	Delete(ctx context.Context, id string) error
+
+	// Commit applies all staged changes atomically.
+	Commit(ctx context.Context, changeReason string) error
+
+	// Rollback discards all staged changes.
+	Rollback(ctx context.Context) error
+}
+
+// TransactionalRepository extends Repository to support transactions.
+type TransactionalRepository interface {
+	Repository
+
+	// Begin starts a new transaction.
+	Begin(ctx context.Context) (Transaction, error)
+}

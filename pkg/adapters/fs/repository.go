@@ -43,6 +43,11 @@ func NewRepository(config Config) *Repository {
 	}
 }
 
+// Begin starts a new transaction.
+func (r *Repository) Begin(ctx context.Context) (core.Transaction, error) {
+	return NewTransaction(r), nil
+}
+
 // Initialize performs the necessary setup for the repository (mkdir, git init).
 func (r *Repository) Initialize(ctx context.Context) error {
 	// 1. Directory Initialization
