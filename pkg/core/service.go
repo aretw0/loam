@@ -60,3 +60,13 @@ func (s *Service) ListNotes(ctx context.Context) ([]Note, error) {
 func (s *Service) DeleteNote(ctx context.Context, id string) error {
 	return s.repo.Delete(ctx, id)
 }
+
+// Begin starts a new unit of work (transaction).
+// It returns an error if the underlying repository does not support transactions.
+func (s *Service) Begin(ctx context.Context) (Transaction, error) {
+	txRepo, ok := s.repo.(TransactionalRepository)
+	if !ok {
+		return nil, fmt.Errorf("repository does not support transactions")
+	}
+	return txRepo.Begin(ctx)
+}
