@@ -89,7 +89,7 @@ func TestSync(t *testing.T) {
 	t.Run("Sync Fails with No Remote", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		// Initialize a repo without remote
-		client := git.NewClient(tmpDir, nil)
+		client := git.NewClient(tmpDir, ".loam.lock", nil)
 		_ = client.Init()
 		_ = client.Commit("initial commit") // commit so we have HEAD
 

@@ -1,24 +1,41 @@
 package core
 
-import "context"
+import (
+	"context"
+	"fmt"
+	"log/slog"
+)
 
 // Service encapsulates the business logic for managing notes.
 type Service struct {
-	repo Repository
+	repo   Repository
+	logger *slog.Logger
 }
 
 // NewService creates a new Service instance.
-func NewService(r Repository) *Service {
+func NewService(r Repository, l *slog.Logger) *Service {
 	return &Service{
-		repo: r,
+		repo:   r,
+		logger: l,
 	}
 }
 
 // SaveNote creates or updates a note.
 func (s *Service) SaveNote(ctx context.Context, id string, content string, meta Metadata) error {
-	// Business Rule Examples (Future):
-	// - Validate ID format
-	// - Enforce required metadata
+	// Validation Logic
+	if id == "" {
+		return fmt.Errorf("id cannot be empty")
+	}
+
+	// Sanitize
+	// id = strings.TrimSpace(id) // Ideally we sanitize, but for now let's just valid.
+
+	// Content Warning (not error, based on user feedback)
+	if content == "" {
+		if s.logger != nil {
+			s.logger.Warn("saving note with empty content", "id", id)
+		}
+	}
 
 	n := Note{
 		ID:       id,

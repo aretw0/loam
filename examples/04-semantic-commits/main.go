@@ -31,7 +31,7 @@ func main() {
 	}
 
 	// Git Setup
-	gitClient := git.NewClient(safePath, logger)
+	gitClient := git.NewClient(safePath, ".loam.lock", logger)
 	gitClient.Run("config", "user.name", "Example Bot")
 	gitClient.Run("config", "user.email", "bot@example.com")
 

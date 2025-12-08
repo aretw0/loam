@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -29,17 +30,14 @@ type Config struct {
 	AutoInit  bool
 	Gitless   bool
 	MustExist bool
+	Logger    *slog.Logger
 }
 
 // NewRepository creates a new filesystem-backed repository.
 func NewRepository(config Config) *Repository {
 	return &Repository{
-		Path: config.Path,
-		// Helper internally creates client, logger can be wired if Config has it?
-		// Wait, git.NewClient accepts a logger. Config currently doesn't have it.
-		// We should add Logger to Config or accept it cleanly.
-		// For now, passing nil logger or we need to update Config struct.
-		git:    git.NewClient(config.Path, nil),
+		Path:   config.Path,
+		git:    git.NewClient(config.Path, ".loam.lock", config.Logger),
 		config: config,
 		cache:  newCache(config.Path),
 	}

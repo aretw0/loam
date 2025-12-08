@@ -32,7 +32,7 @@ func setupRepo(t *testing.T, opts ...func(*fs.Config)) (*fs.Repository, string, 
 	}
 
 	// Client for verification
-	client := git.NewClient(vaultPath, nil)
+	client := git.NewClient(vaultPath, ".loam.lock", nil)
 
 	// Repo creates its own client internally now
 	repo := fs.NewRepository(cfg)

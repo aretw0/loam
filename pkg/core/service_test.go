@@ -54,7 +54,7 @@ func (m *MockRepository) Sync(ctx context.Context) error {
 
 func TestService_SaveNote(t *testing.T) {
 	repo := NewMockRepository()
-	service := core.NewService(repo)
+	service := core.NewService(repo, nil)
 	ctx := context.TODO()
 
 	// Test Case 1: Create a valid note
@@ -72,11 +72,19 @@ func TestService_SaveNote(t *testing.T) {
 	if repo.Notes["test-id"].Content != "Content" {
 		t.Errorf("expected content 'Content', got '%s'", repo.Notes["test-id"].Content)
 	}
+
+	// Test Case 2: Empty ID Validation
+	err = service.SaveNote(ctx, "", "Content", nil)
+	if err == nil {
+		t.Error("expected error for empty ID")
+	} else if err.Error() != "id cannot be empty" {
+		t.Errorf("expected 'id cannot be empty', got '%v'", err)
+	}
 }
 
 func TestService_DeleteNote(t *testing.T) {
 	repo := NewMockRepository()
-	service := core.NewService(repo)
+	service := core.NewService(repo, nil)
 	ctx := context.TODO()
 
 	// Seed

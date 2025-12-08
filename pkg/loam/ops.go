@@ -35,6 +35,7 @@ func Init(path string, opts ...Option) (string, bool, error) {
 		AutoInit:  o.autoInit,
 		Gitless:   o.gitless,
 		MustExist: o.mustExist || (!o.autoInit && !useTemp),
+		Logger:    o.logger,
 	}
 
 	repo := fs.NewRepository(repoConfig)
@@ -64,6 +65,7 @@ func Sync(path string, opts ...Option) error {
 		repo = fs.NewRepository(fs.Config{
 			Path:    resolvedPath,
 			Gitless: o.gitless,
+			Logger:  o.logger,
 		})
 	}
 

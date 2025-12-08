@@ -34,11 +34,12 @@ func New(path string, opts ...Option) (*core.Service, error) {
 			AutoInit:  o.autoInit,
 			Gitless:   isGitless,
 			MustExist: o.mustExist,
+			Logger:    o.logger,
 		})
 	}
 
 	// Initialize Domain Service
-	service := core.NewService(repo)
+	service := core.NewService(repo, o.logger)
 
 	return service, nil
 }

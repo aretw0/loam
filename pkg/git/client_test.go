@@ -8,7 +8,7 @@ import (
 
 func TestClient_Lock(t *testing.T) {
 	tmpDir := t.TempDir()
-	client := NewClient(tmpDir, nil)
+	client := NewClient(tmpDir, ".loam.lock", nil)
 
 	// Test 1: Acquire Lock
 	unlock, err := client.Lock()
@@ -38,7 +38,7 @@ func TestClient_Lock(t *testing.T) {
 
 func TestClient_Init(t *testing.T) {
 	tmpDir := t.TempDir()
-	client := NewClient(tmpDir, nil)
+	client := NewClient(tmpDir, ".loam.lock", nil)
 
 	if err := client.Init(); err != nil {
 		t.Fatalf("Failed to init: %v", err)

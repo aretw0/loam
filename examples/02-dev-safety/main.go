@@ -32,7 +32,7 @@ func main() {
 
 	// FIX: Provide git identity for temp repo (needed for CI/clean envs)
 	// safePath is already resolved
-	gitClient := git.NewClient(safePath, logger)
+	gitClient := git.NewClient(safePath, ".loam.lock", logger)
 	if _, err := gitClient.Run("config", "user.name", "Example Bot"); err != nil {
 		fmt.Printf("Git Config Name Error: %v\n", err)
 	}

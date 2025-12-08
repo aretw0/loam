@@ -18,11 +18,11 @@ type Client struct {
 }
 
 // NewClient creates a new git client for the given working directory.
-func NewClient(workDir string, logger *slog.Logger) *Client {
+func NewClient(workDir string, lockFile string, logger *slog.Logger) *Client {
 	return &Client{
 		WorkDir:  workDir,
 		Logger:   logger,
-		lockPath: ".loam.lock", // Lock file name
+		lockPath: lockFile,
 	}
 }
 

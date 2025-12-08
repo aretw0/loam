@@ -41,7 +41,7 @@ func TestService_WriteCommit(t *testing.T) {
 
 	// Verify Git Status (Requires accessing Git Client directly to verify side effects)
 	// Since Service hides Git, we need to inspect the Repo manually or create a Git Client for verification.
-	gitClient := git.NewClient(tmpDir, nil)
+	gitClient := git.NewClient(tmpDir, ".loam.lock", nil)
 	status, err := gitClient.Status()
 	if err != nil {
 		t.Fatalf("Git Status failed: %v", err)
@@ -122,7 +122,7 @@ func TestService_DeleteList(t *testing.T) {
 	}
 
 	// Manual Git Check for Deletion Commit
-	gitClient := git.NewClient(tmpDir, nil)
+	gitClient := git.NewClient(tmpDir, ".loam.lock", nil)
 
 	// Fix: The new cache in hex arch creates .loam/. This dirties the repo.
 	// We need to ignore it for the test to pass "cleanliness" check.
