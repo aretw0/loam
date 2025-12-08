@@ -101,8 +101,49 @@ func (t *Transaction) Commit(ctx context.Context, changeReason string) error {
 	var filesToAdd []string
 	var filesToRm []string
 
-	// Process Writes
+	// Grouping Phase
+	collectionBatches := make(map[string]map[string]core.Document) // collectionPath -> map[key]Doc
+	collectionExts := make(map[string]string)                      // collectionPath -> ext
+	fileWrites := make(map[string]core.Document)                   // id -> Doc
+
 	for id, n := range t.staged {
+		if collectionPath, colExt, key, found := t.repo.findCollection(id); found {
+			if _, ok := collectionBatches[collectionPath]; !ok {
+				collectionBatches[collectionPath] = make(map[string]core.Document)
+				collectionExts[collectionPath] = colExt
+			}
+			collectionBatches[collectionPath][key] = n
+			// Git add the collection file eventually?
+			// We handle collection Git add below.
+		} else {
+			fileWrites[id] = n
+		}
+	}
+
+	// Execution Phase (Collections)
+	for colPath, batch := range collectionBatches {
+		ext := collectionExts[colPath]
+		if err := t.repo.saveBatchToCollection(ctx, colPath, ext, batch); err != nil {
+			return fmt.Errorf("failed to save batch for collection %s: %w", colPath, err)
+		}
+
+		relPath, err := filepath.Rel(t.repo.Path, colPath)
+		if err == nil {
+			filesToAdd = append(filesToAdd, relPath)
+		}
+
+		// Cache Invalidation for collection?
+		// Currently Cache maps file -> indexEntry.
+		// If we modify Collection, we should update cache for the Collection File.
+		// Ideally we update access time.
+		t.repo.cache.Set(filepath.Base(colPath), &indexEntry{
+			ID:           filepath.ToSlash(relPath), // ID of the collection file
+			LastModified: time.Now(),
+		})
+	}
+
+	// Execution Phase (Files)
+	for id, n := range fileWrites {
 		// Simplification: Always use .md for now
 		filename := id + ".md"
 		if len(filepath.Ext(id)) > 0 {

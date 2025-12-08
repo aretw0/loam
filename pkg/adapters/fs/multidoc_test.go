@@ -158,3 +158,123 @@ bob,Bob Smith,user
 		t.Error("List did not return users.csv/bob")
 	}
 }
+
+func TestMultiDocument_CustomID(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	// Setup: Create a CSV file with "email" as ID
+	csvContent := `email,name,role
+jane@example.com,Jane Doe,admin
+bob@example.com,Bob Smith,user
+`
+	csvPath := filepath.Join(tmpDir, "users.csv")
+	if err := os.WriteFile(csvPath, []byte(csvContent), 0644); err != nil {
+		t.Fatalf("Failed to write csv: %v", err)
+	}
+
+	repo := NewRepository(Config{
+		Path:    tmpDir,
+		Gitless: true,
+		IDMap: map[string]string{
+			"users.csv": "email",
+		},
+	})
+
+	// Test Get with Custom ID
+	targetID := "users.csv/jane@example.com"
+	doc, err := repo.Get(context.Background(), targetID)
+	if err != nil {
+		t.Fatalf("Failed to Get sub-document: %v", err)
+	}
+	if doc.ID != targetID {
+		t.Errorf("Expected Doc ID %s, got %s", targetID, doc.ID)
+	}
+	if name, ok := doc.Metadata["name"].(string); !ok || name != "Jane Doe" {
+		t.Errorf("Expected metadata name='Jane Doe', got %v", doc.Metadata["name"])
+	}
+
+	// Test Save with Custom ID
+	updateDoc := core.Document{
+		ID: "users.csv/jane@example.com",
+		Metadata: map[string]interface{}{
+			"name": "Jane Updated",
+		},
+	}
+	if err := repo.Save(context.Background(), updateDoc); err != nil {
+		t.Fatalf("Failed to Save: %v", err)
+	}
+
+	// Verify
+	saved, _ := repo.Get(context.Background(), "users.csv/jane@example.com")
+	if saved.Metadata["name"] != "Jane Updated" {
+		t.Error("Update failed")
+	}
+}
+
+func TestMultiDocument_Transaction(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	// Setup: CSV
+	csvContent := `id,name
+jane,Jane Doe
+`
+	csvPath := filepath.Join(tmpDir, "users.csv")
+	if err := os.WriteFile(csvPath, []byte(csvContent), 0644); err != nil {
+		t.Fatalf("Failed to write csv: %v", err)
+	}
+
+	repo := NewRepository(Config{Path: tmpDir, Gitless: true})
+	ctx := context.Background()
+
+	// Begin Transaction
+	tx, err := repo.Begin(ctx)
+	if err != nil {
+		t.Fatalf("Failed to Begin: %v", err)
+	}
+
+	// 1. Update Existing
+	doc1 := core.Document{
+		ID: "users.csv/jane",
+		Metadata: map[string]interface{}{
+			"name": "Jane Changed",
+		},
+	}
+	if err := tx.Save(ctx, doc1); err != nil {
+		t.Fatalf("Failed to stage Save 1: %v", err)
+	}
+
+	// 2. Insert New
+	doc2 := core.Document{
+		ID: "users.csv/bob",
+		Metadata: map[string]interface{}{
+			"name": "Bob Builder",
+		},
+	}
+	if err := tx.Save(ctx, doc2); err != nil {
+		t.Fatalf("Failed to stage Save 2: %v", err)
+	}
+
+	// Commit
+	if err := tx.Commit(ctx, "batch update"); err != nil {
+		t.Fatalf("Failed to Commit: %v", err)
+	}
+
+	// Verify
+	// Check Jane
+	jane, err := repo.Get(ctx, "users.csv/jane")
+	if err != nil {
+		t.Fatalf("Failed to Get jane: %v", err)
+	}
+	if jane.Metadata["name"] != "Jane Changed" {
+		t.Errorf("Expected Jane Changed, got %v", jane.Metadata["name"])
+	}
+
+	// Check Bob
+	bob, err := repo.Get(ctx, "users.csv/bob")
+	if err != nil {
+		t.Fatalf("Failed to Get bob: %v", err)
+	}
+	if bob.Metadata["name"] != "Bob Builder" {
+		t.Errorf("Expected Bob Builder, got %v", bob.Metadata["name"])
+	}
+}

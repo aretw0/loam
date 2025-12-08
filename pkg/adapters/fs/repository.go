@@ -33,7 +33,8 @@ type Config struct {
 	Gitless   bool
 	MustExist bool
 	Logger    *slog.Logger
-	SystemDir string // e.g. ".loam"
+	SystemDir string            // e.g. ".loam"
+	IDMap     map[string]string // Map filename -> ID column name (e.g. "users.csv": "email"). User must ensure uniqueness of values in this column.
 }
 
 // NewRepository creates a new filesystem-backed repository.
@@ -257,16 +258,17 @@ func (r *Repository) getFromCollection(ctx context.Context, id string) (core.Doc
 			return core.Document{}, err
 		}
 
-		// Find "id" column index
+		// Determine ID column
+		idColName := r.getIDColumn(filepath.Base(collectionPath))
 		idCol := -1
 		for i, h := range headers {
-			if strings.ToLower(h) == "id" {
+			if strings.EqualFold(h, idColName) {
 				idCol = i
 				break
 			}
 		}
 		if idCol == -1 {
-			return core.Document{}, fmt.Errorf("csv collection missing 'id' column")
+			return core.Document{}, fmt.Errorf("csv collection missing '%s' column", idColName)
 		}
 
 		// Scan rows
@@ -324,15 +326,16 @@ func (r *Repository) saveToCollection(ctx context.Context, doc core.Document, co
 		}
 
 		headers := allRecords[0]
+		idColName := r.getIDColumn(filepath.Base(collectionPath))
 		idCol := -1
 		for i, h := range headers {
-			if strings.ToLower(h) == "id" {
+			if strings.EqualFold(h, idColName) {
 				idCol = i
 				break
 			}
 		}
 		if idCol == -1 {
-			return fmt.Errorf("csv collection missing 'id' column")
+			return fmt.Errorf("csv collection missing '%s' column", idColName)
 		}
 
 		foundIndex := -1
@@ -448,11 +451,9 @@ func (r *Repository) List(ctx context.Context) ([]core.Document, error) {
 
 		// Check if it's a collection and flatten it
 		if colDocs, err := r.flattenCollection(ctx, path, relPath); err == nil {
-			for _, d := range colDocs {
-				// We don't verify cache for sub-docs yet (TODO)
-				// Directly append for prototype
-				docs = append(docs, d)
-			}
+			// We don't verify cache for sub-docs yet (TODO)
+			// Directly append for prototype
+			docs = append(docs, colDocs...)
 			// If it was a collection, do we still return the file itself?
 			// Maybe yes, maybe no. For now, let's skip the file if it was successfully flattened?
 			// Or keep both. Keep both is safer.
@@ -555,15 +556,18 @@ func (r *Repository) flattenCollection(ctx context.Context, fullPath, relPath st
 		return nil, err
 	}
 
+	idColName := r.getIDColumn(filepath.Base(fullPath))
 	idCol := -1
 	for i, h := range headers {
-		if strings.ToLower(h) == "id" {
+		if strings.EqualFold(h, idColName) {
 			idCol = i
 			break
 		}
 	}
 	if idCol == -1 {
-		return nil, fmt.Errorf("missing id column")
+		// Valid CSV but missing the configured ID column.
+		// Return error? Or empty list? Error is better to signal misconfiguration.
+		return nil, fmt.Errorf("missing '%s' column in %s", idColName, filepath.Base(fullPath))
 	}
 
 	var docs []core.Document
@@ -601,6 +605,94 @@ func (r *Repository) flattenCollection(ctx context.Context, fullPath, relPath st
 		docs = append(docs, doc)
 	}
 	return docs, nil
+}
+
+func (r *Repository) saveBatchToCollection(ctx context.Context, collectionPath, collectionExt string, batch map[string]core.Document) error {
+	data, err := os.ReadFile(collectionPath)
+	if err != nil {
+		return err
+	}
+
+	if collectionExt == ".csv" {
+		reader := csv.NewReader(bytes.NewReader(data))
+		allRecords, err := reader.ReadAll()
+		if err != nil {
+			return err
+		}
+
+		if len(allRecords) == 0 {
+			return fmt.Errorf("empty csv collection")
+		}
+
+		headers := allRecords[0]
+		idColName := r.getIDColumn(filepath.Base(collectionPath))
+		idCol := -1
+		for i, h := range headers {
+			if strings.EqualFold(h, idColName) {
+				idCol = i
+				break
+			}
+		}
+		if idCol == -1 {
+			return fmt.Errorf("csv collection missing '%s' column", idColName)
+		}
+
+		// Update rows in place
+		existingIndices := make(map[string]int)
+		for i := 1; i < len(allRecords); i++ {
+			row := allRecords[i]
+			if len(row) > idCol {
+				existingIndices[row[idCol]] = i
+			}
+		}
+
+		for key, doc := range batch {
+			// Prepare row data
+			newRow := make([]string, len(headers))
+			newRow[idCol] = key
+
+			for i, h := range headers {
+				if i == idCol {
+					continue
+				}
+				if strings.EqualFold(h, "content") {
+					newRow[i] = doc.Content
+					continue
+				}
+				if val, ok := doc.Metadata[h]; ok {
+					newRow[i] = fmt.Sprintf("%v", val)
+				} else {
+					newRow[i] = "" // Replace with empty if missing
+				}
+			}
+
+			if idx, ok := existingIndices[key]; ok {
+				allRecords[idx] = newRow
+			} else {
+				allRecords = append(allRecords, newRow)
+			}
+		}
+
+		// Serialize back
+		var buf bytes.Buffer
+		w := csv.NewWriter(&buf)
+		if err := w.WriteAll(allRecords); err != nil {
+			return err
+		}
+		w.Flush()
+
+		// Atomic Write
+		return writeFileAtomic(collectionPath, buf.Bytes(), 0644)
+	}
+
+	return fmt.Errorf("unsupported collection type for save")
+}
+
+func (r *Repository) getIDColumn(filename string) string {
+	if col, ok := r.config.IDMap[filename]; ok {
+		return col
+	}
+	return "id"
 }
 
 // Delete removes a note.
