@@ -1,20 +1,5 @@
 # Planning & Roadmap
 
-## Fase 0.6.0: Generalization & Multi-Format (Concluída)
-
-**Objetivo:** Generalizar a entidade `Note` para `Document` e suportar múltiplos formatos (JSON, CSV, YAML) no Adapter FS, alinhando com a visão de "Headless CMS" universal.
-
-- [x] **Core Refactoring**:
-  - [x] Renomear `Note` para `Document` em `pkg/core`.
-  - [x] Adicionar suporte a `Format/Extension` na entidade. (Decidido: Delegar para Metadata/Adapter)
-- [x] **FS Adapter Upgrade**:
-  - [x] Suporte a escrita de arquivos crus (`.json`, `.csv`) baseado no ID/Metadata.
-  - [x] Manter retrocompatibilidade com Markdown/Frontmatter.
-  - [x] **Configurable System Directory**: `.loam` desacoplado via `WithSystemDir`.
-  - [x] **Robustness**: Implementação de Transações Atômicas de arquivo (`atomic.go`).
-- [x] **Developer Experience**:
-  - [x] Typed Retrieval: Suporte a Generics (`loam.NewTyped[T]`) para acesso tipado a documentos.
-
 ## Fase 0.7.0: Multi-Document Support (Current)
 
 **Objetivo:** Permitir que arquivos únicos (CSV, JSON Arrays) atuem como coleções de múltiplos documentos, acessíveis via Sub-IDs.
@@ -22,9 +7,13 @@
 - [ ] **Design & Architecture**:
   - [x] Definir estratégia de endereçamento (Resource ID `collection/item`).
   - [ ] Refinar estratégia de fallback no Adapter.
-- [ ] **FS Adapter Implementation**:
-  - [ ] Implementar leitura (`Get`) de Sub-Documentos (CSV).
-  - [ ] Implementar escrita (`Save`) com *Read-Modify-Write* atômico.
+- [x] **Developer Experience**:
+  - [x] Implementar Active Record (`doc.Save()`).
+- [x] **FS Adapter Implementation**:
+  - [x] Implementar leitura (`Get`) de Sub-Documentos (CSV).
+  - [x] Implementar escrita (`Save`) com *Read-Modify-Write* atômico.
+  - [ ] Implementar listagem (`List`) com *Flattening* de coleções.
+  - [ ] Implementar transações multi-documento (`Batch`).
   - [ ] Suporte a JSON Arrays.
 
 ## RFC 0.X.X: Library-Level Sync Strategies (Backlog)

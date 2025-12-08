@@ -9,7 +9,7 @@ import (
 )
 
 // DocumentModel wraps the raw core.Document with a typed Metadata field.
-// It is the generic equivalent of core.Document.
+// It acts as an Active Record, allowing direct Save() calls.
 type DocumentModel[T any] struct {
 	ID      string
 	Content string

@@ -108,6 +108,7 @@ func (r *Repository) Sync(ctx context.Context) error {
 }
 
 // Save persists a document to the filesystem and commits it to Git.
+// If the document belongs to a collection (e.g. CSV), it updates the specific row.
 func (r *Repository) Save(ctx context.Context, doc core.Document) error {
 	if doc.ID == "" {
 		return fmt.Errorf("document has no ID")

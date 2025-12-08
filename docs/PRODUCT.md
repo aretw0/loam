@@ -7,8 +7,8 @@ O objetivo principal é fornecer uma **camada de persistência transacional** ag
 
 Para desenvolvedores acostumados com bancos de dados tradicionais, lidar com arquivos locais pode parecer arcaico e inseguro. O Loam traz a robustez de um banco de dados para o mundo dos arquivos de texto.
 
-- **SQLite para Documentos:** Assim como o SQLite é o padrão para dados relacionais locais, o Loam quer ser o padrão para conteúdo não-estruturado e semi-estruturado (Markdown, Configs, Logs). Não use `fs.WriteFile`, use `loam.SaveDocument`.
-- **Automação Segura:** Seus scripts Python/Bash que editam notas podem corromper o repositório se rodarem concorrentemente. O Loam implementa *file locking* e transações para evitar isso.
+- **SQLite para Documentos:** Assim como o SQLite é o padrão para dados relacionais locais, o Loam quer ser o padrão para conteúdo não-estruturado (Markdown) e estruturado (CSV, JSON). Oferece suporte nativo a **Multi-Documentos** (coleções em um único arquivo) e um padrão **Active Record** para DX superior.
+- **Automação Segura:** Seus scripts Python/Bash que editam notes podem corromper o repositório se rodarem concorrentemente. O Loam implementa *file locking* e transações para evitar isso.
 - **CI/CD de Conteúdo:** Garanta integridade de dados (tags, datas, links) no momento da escrita, validando *frontmatter* antes do commit.
 
 ## Objetivos
