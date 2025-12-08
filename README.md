@@ -1,6 +1,6 @@
 # Loam 🌱
 
-> A Transactional Storage Engine for Markdown + Frontmatter.
+> A Transactional Storage Engine for Content & Metadata.
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/aretw0/loam)](https://goreportcard.com/report/github.com/aretw0/loam)
 [![Go Doc](https://godoc.org/github.com/aretw0/loam?status.svg)](https://godoc.org/github.com/aretw0/loam/pkg/loam)
