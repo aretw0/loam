@@ -140,11 +140,69 @@ func main() {
 	// 4. Verification
 	list(repo, "After Conversion")
 
-	// Verify file existence on disk (just to prove it's not magic)
-	if _, err := os.Stat(filepath.Join(tmpDir, "users", "1.json")); err == nil {
-		fmt.Println("\nVERIFIED: 'users/1.json' exists on disk.")
-	} else {
-		fmt.Printf("\nERROR: 'users/1.json' missing: %v\n", err)
+	// --- Part 2: Mixed Formats & DX Utilities ---
+	fmt.Println("\n--- Part 2: Mixed Formats & DX Experiment ---")
+	// Scenario: We have a product catalog in CSV, but we want to start adding new products as JSON.
+	// We also migrate ONE product to JSON to see how they coexist.
+
+	// Seed Products (CSV)
+	products := []core.Document{
+		{ID: "products.csv/p1", Content: "Laptop", Metadata: core.Metadata{"price": 1000}},
+		{ID: "products.csv/p2", Content: "Mouse", Metadata: core.Metadata{"price": 50}},
+		{ID: "products.csv/p3", Content: "Keyboard", Metadata: core.Metadata{"price": 150}},
+	}
+	seedTx2, _ := repo.Begin(context.Background())
+	for _, p := range products {
+		seedTx2.Save(context.Background(), p)
+	}
+	seedTx2.Commit(context.Background(), "seed products")
+
+	// The "DX" Helper: A reusable function to Move (Convert) documents safely
+	MoveDocument := func(repo *fs.Repository, srcID, destID string) error {
+		// 1. Get Full Content
+		doc, err := repo.Get(context.Background(), srcID)
+		if err != nil {
+			return fmt.Errorf("read failed: %w", err)
+		}
+
+		// 2. Prepare Transaction (Atomic Move)
+		tx, err := repo.Begin(context.Background())
+		if err != nil {
+			return err
+		}
+
+		// 3. Save as New
+		newDoc := doc
+		newDoc.ID = destID
+		if err := tx.Save(context.Background(), newDoc); err != nil {
+			return err
+		}
+
+		// 4. Delete Old
+		if err := tx.Delete(context.Background(), srcID); err != nil {
+			return err
+		}
+
+		return tx.Commit(context.Background(), fmt.Sprintf("move %s to %s", srcID, destID))
+	}
+
+	// EXECUTE: Migrate only 'p1' to JSON, leaving 'p2' and 'p3' in CSV
+	fmt.Println("Action: Rotating 'p1' from CSV to JSON...")
+	if err := MoveDocument(repo, "products.csv/p1", "products/p1.json"); err != nil {
+		panic(err)
+	}
+
+	// Verify: What do we get when we List?
+	// We expect mixed IDs.
+	list(repo, "Mixed Namespace State (products)")
+
+	// Check if we can "blindly" iterate them
+	allDocs, _ = repo.List(context.Background())
+	fmt.Println("\n[Analysis] IDs in the wild:")
+	for _, d := range allDocs {
+		if strings.Contains(d.ID, "products") || strings.Contains(d.ID, "p.") { // filter for products
+			fmt.Printf(" - ID: %-20s | Content: %s | Source: %s\n", d.ID, d.Content, filepath.Ext(d.ID))
+		}
 	}
 }
 
