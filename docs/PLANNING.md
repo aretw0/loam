@@ -1,19 +1,21 @@
 # Planning & Roadmap
 
-## Fase 0.6.0: Generalization & Multi-Format (Current)
+## Fase 0.6.0: Generalization & Multi-Format (Concluída)
 
 **Objetivo:** Generalizar a entidade `Note` para `Document` e suportar múltiplos formatos (JSON, CSV, YAML) no Adapter FS, alinhando com a visão de "Headless CMS" universal.
 
 - [x] **Core Refactoring**:
   - [x] Renomear `Note` para `Document` em `pkg/core`.
-  - [ ] Adicionar suporte a `Format/Extension` na entidade. (Decidido: Delegar para Metadata/Adapter)
+  - [x] Adicionar suporte a `Format/Extension` na entidade. (Decidido: Delegar para Metadata/Adapter)
 - [x] **FS Adapter Upgrade**:
   - [x] Suporte a escrita de arquivos crus (`.json`, `.csv`) baseado no ID/Metadata.
   - [x] Manter retrocompatibilidade com Markdown/Frontmatter.
+  - [x] **Configurable System Directory**: `.loam` desacoplado via `WithSystemDir`.
+  - [x] **Robustness**: Implementação de Transações Atômicas de arquivo (`atomic.go`).
 - [x] **Developer Experience**:
   - [x] Typed Retrieval: Suporte a Generics (`loam.NewTyped[T]`) para acesso tipado a documentos.
 
-## RFC: Library-Level Sync Strategies (0.x.x)
+## RFC 0.X.X: Library-Level Sync Strategies (Backlog)
 
 **Objetivo:** Permitir que toolmakers definam estratégias de sincronização não-bloqueantes ou customizadas, crucial para adapters distribuídos (S3, SQL) ou clientes "Offline-First".
 
