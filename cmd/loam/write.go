@@ -14,7 +14,7 @@ import (
 var (
 	writeID      string
 	writeContent string
-	writeMsg     string
+	changeReason string
 	writeType    string
 	writeScope   string
 )
@@ -49,20 +49,20 @@ var writeCmd = &cobra.Command{
 		// Logic to construct message
 		var finalMsg string
 		if writeType != "" {
-			if writeMsg == "" {
-				writeMsg = fmt.Sprintf("update %s", writeID)
+			if changeReason == "" {
+				changeReason = fmt.Sprintf("update %s", writeID)
 			}
-			finalMsg = loam.FormatCommitMessage(writeType, writeScope, writeMsg, "")
+			finalMsg = loam.FormatChangeReason(writeType, writeScope, changeReason, "")
 		} else {
-			if writeMsg != "" {
+			if changeReason != "" {
 				// Legacy mode
-				finalMsg = loam.AppendFooter(writeMsg)
+				finalMsg = loam.AppendFooter(changeReason)
 			} else {
 				scope := "notes"
 				if writeScope != "" {
 					scope = writeScope
 				}
-				finalMsg = loam.FormatCommitMessage(loam.CommitTypeDocs, scope, fmt.Sprintf("update %s", writeID), "")
+				finalMsg = loam.FormatChangeReason(loam.CommitTypeDocs, scope, fmt.Sprintf("update %s", writeID), "")
 			}
 		}
 
@@ -81,8 +81,8 @@ func init() {
 	rootCmd.AddCommand(writeCmd)
 	writeCmd.Flags().StringVar(&writeID, "id", "", "Note ID (filename)")
 	writeCmd.Flags().StringVar(&writeContent, "content", "", "Note content")
-	writeCmd.Flags().StringVarP(&writeMsg, "message", "m", "", "Commit message")
-	writeCmd.Flags().StringVarP(&writeType, "type", "t", "", "Commit type")
+	writeCmd.Flags().StringVarP(&changeReason, "message", "m", "", "Change reason (audit note)")
+	writeCmd.Flags().StringVarP(&writeType, "type", "t", "", "Change type (feat, fix, etc)")
 	writeCmd.Flags().StringVarP(&writeScope, "scope", "s", "", "Commit scope")
 	writeCmd.MarkFlagRequired("id")
 }

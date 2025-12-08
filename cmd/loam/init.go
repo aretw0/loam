@@ -25,12 +25,14 @@ var initCmd = &cobra.Command{
 		}
 
 		// loam init -> AutoInit=true
-		resolvedPath, _, err := loam.Init(cwd, loam.WithAutoInit(true), loam.WithVersioning(!gitless), loam.WithLogger(slog.Default()))
+		_, err = loam.Init(cwd, loam.WithAutoInit(true), loam.WithVersioning(!gitless), loam.WithLogger(slog.Default()))
 		if err != nil {
 			fatal("Failed to initialize vault", err)
 		}
 
-		fmt.Println("Initialized empty Loam vault in", resolvedPath)
+		// Since we removed resolvedPath return, we assume it's CWD or has been handled.
+		// For CLI UX just print CWD.
+		fmt.Printf("Initialized empty Loam vault in %s\n", cwd)
 	},
 }
 

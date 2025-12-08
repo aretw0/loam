@@ -16,7 +16,7 @@ const (
 	CommitTypeChore    = "chore"
 )
 
-// FormatCommitMessage builds a Conventional Commit message.
+// FormatChangeReason builds a Conventional Commit message (used as Change Reason).
 // logic:
 //
 //	<type>(<scope>): <subject>
@@ -24,7 +24,7 @@ const (
 //	<body>
 //
 //	Powered-by: Loam
-func FormatCommitMessage(ctype, scope, subject, body string) string {
+func FormatChangeReason(ctype, scope, subject, body string) string {
 	var sb strings.Builder
 
 	// Header

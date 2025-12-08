@@ -2,7 +2,7 @@ package loam
 
 import "testing"
 
-func TestFormatCommitMessage(t *testing.T) {
+func TestFormatChangeReason(t *testing.T) {
 	tests := []struct {
 		name    string
 		ctype   string
@@ -39,9 +39,9 @@ func TestFormatCommitMessage(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := FormatCommitMessage(tt.ctype, tt.scope, tt.subject, tt.body)
+			got := FormatChangeReason(tt.ctype, tt.scope, tt.subject, tt.body)
 			if got != tt.want {
-				t.Errorf("FormatCommitMessage() = %q, want %q", got, tt.want)
+				t.Errorf("FormatChangeReason() = %q, want %q", got, tt.want)
 			}
 		})
 	}

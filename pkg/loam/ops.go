@@ -14,7 +14,12 @@ import (
 //
 // It returns the resolved absolute path to the vault and a boolean indicating
 // if the vault is operating in gitless mode.
-func Init(path string, opts ...Option) (string, bool, error) {
+// Init initializes a new Loam vault based on the provided configuration.
+// It resolves the vault path, ensures the directory exists, and initializes a git repository
+// (unless running in gitless mode).
+//
+// It returns the configured core.Repository.
+func Init(path string, opts ...Option) (core.Repository, error) {
 	o := defaultOptions()
 	for _, opt := range opts {
 		opt(o)
@@ -29,6 +34,11 @@ func Init(path string, opts ...Option) (string, bool, error) {
 	}
 
 	// 2. Configure and Initialize Repository
+	// If a custom repository is injected via options, use it.
+	if o.repository != nil {
+		return o.repository, nil
+	}
+
 	// We use the FS adapter for initialization.
 	repoConfig := fs.Config{
 		Path:      resolvedPath,
@@ -40,10 +50,10 @@ func Init(path string, opts ...Option) (string, bool, error) {
 
 	repo := fs.NewRepository(repoConfig)
 	if err := repo.Initialize(context.Background()); err != nil {
-		return "", false, err
+		return nil, err
 	}
 
-	return resolvedPath, o.gitless, nil
+	return repo, nil
 }
 
 // Sync synchronizes the vault at the given path with its configured remote.

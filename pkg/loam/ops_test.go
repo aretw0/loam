@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/aretw0/loam/pkg/adapters/fs"
 	"github.com/aretw0/loam/pkg/git"
 	"github.com/aretw0/loam/pkg/loam"
 )
@@ -14,17 +15,18 @@ func TestInit(t *testing.T) {
 		tmpDir := t.TempDir()
 		vaultPath := filepath.Join(tmpDir, "vault")
 
-		resolvedPath, isGitless, err := loam.Init(vaultPath, loam.WithAutoInit(true), loam.WithForceTemp(true))
+		repo, err := loam.Init(vaultPath, loam.WithAutoInit(true), loam.WithForceTemp(true))
 		if err != nil {
 			t.Fatalf("Init failed: %v", err)
 		}
 
-		if resolvedPath != vaultPath {
-			t.Errorf("Expected path %s, got %s", vaultPath, resolvedPath)
+		fsRepo, ok := repo.(*fs.Repository)
+		if !ok {
+			t.Fatalf("Expected fs repository")
 		}
 
-		if isGitless {
-			t.Error("Expected git mode, got gitless")
+		if fsRepo.Path != vaultPath {
+			t.Errorf("Expected path %s, got %s", vaultPath, fsRepo.Path)
 		}
 
 		// Check directory exists
@@ -42,7 +44,7 @@ func TestInit(t *testing.T) {
 		tmpDir := t.TempDir()
 		vaultPath := filepath.Join(tmpDir, "missing")
 
-		_, _, err := loam.Init(vaultPath, loam.WithAutoInit(false), loam.WithMustExist(true), loam.WithForceTemp(true))
+		_, err := loam.Init(vaultPath, loam.WithAutoInit(false), loam.WithMustExist(true), loam.WithForceTemp(true))
 		if err == nil {
 			t.Error("Expected failure for missing directory when AutoInit=false")
 		}
@@ -52,17 +54,18 @@ func TestInit(t *testing.T) {
 		tmpDir := t.TempDir()
 		vaultPath := filepath.Join(tmpDir, "gitless_vault")
 
-		resolvedPath, isGitless, err := loam.Init(vaultPath, loam.WithAutoInit(true), loam.WithVersioning(false), loam.WithForceTemp(true))
+		repo, err := loam.Init(vaultPath, loam.WithAutoInit(true), loam.WithVersioning(false), loam.WithForceTemp(true))
 		if err != nil {
 			t.Fatalf("Init failed: %v", err)
 		}
 
-		if resolvedPath != vaultPath {
-			t.Errorf("Expected path %s, got %s", vaultPath, resolvedPath)
+		fsRepo, ok := repo.(*fs.Repository)
+		if !ok {
+			t.Fatalf("Expected fs repository")
 		}
 
-		if !isGitless {
-			t.Error("Expected gitless mode, got git")
+		if fsRepo.Path != vaultPath {
+			t.Errorf("Expected path %s, got %s", vaultPath, fsRepo.Path)
 		}
 
 		// Check directory exists

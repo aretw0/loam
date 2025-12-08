@@ -15,7 +15,6 @@ func main() {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
 	// Inicializa um vault temporário para demonstração
-	// Inicializa um vault temporário para demonstração
 	// Cleanup
 	vaultName := "semantic-demo"
 	safePath := loam.ResolveVaultPath(vaultName, true)
@@ -44,7 +43,8 @@ func main() {
 
 	// 2. Formatar mensagem semântica usando o helper do Loam
 	// Isso garante que o commit siga o padrão Conventional Commits + Footer
-	msg := loam.FormatCommitMessage(
+	// UPDATED: FormatCommitMessage -> FormatChangeReason
+	msg := loam.FormatChangeReason(
 		loam.CommitTypeDocs,         // type: docs
 		"arch",                      // scope: arch
 		"create initial design doc", // subject

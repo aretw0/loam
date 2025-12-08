@@ -1,7 +1,6 @@
 package loam
 
 import (
-	"github.com/aretw0/loam/pkg/adapters/fs"
 	"github.com/aretw0/loam/pkg/core"
 )
 
@@ -9,7 +8,7 @@ import (
 func New(path string, opts ...Option) (*core.Service, error) {
 	// 1. Initialize environment (Path, Git, Directories)
 	// We pass the opts down to Init, which parses them itself.
-	resolvedPath, isGitless, err := Init(path, opts...)
+	repo, err := Init(path, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -18,24 +17,6 @@ func New(path string, opts ...Option) (*core.Service, error) {
 	o := defaultOptions()
 	for _, opt := range opts {
 		opt(o)
-	}
-
-	// 2. Wiring
-	var repo core.Repository
-
-	// If a custom repository is injected via options, use it.
-	if o.repository != nil {
-		repo = o.repository
-	} else {
-		// Default: Initialize FS Adapter
-		// Git Client is now encapsulated within the FS Adapter
-		repo = fs.NewRepository(fs.Config{
-			Path:      resolvedPath,
-			AutoInit:  o.autoInit,
-			Gitless:   isGitless,
-			MustExist: o.mustExist,
-			Logger:    o.logger,
-		})
 	}
 
 	// Initialize Domain Service
