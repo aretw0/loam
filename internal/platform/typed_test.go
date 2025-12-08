@@ -2,7 +2,6 @@ package platform_test
 
 import (
 	"context"
-	"os"
 	"path/filepath"
 	"testing"
 
@@ -19,10 +18,7 @@ type UserProfile struct {
 
 func setupRepo(t *testing.T) (core.Repository, string) {
 	t.Helper()
-	tmpDir, err := os.MkdirTemp("", "loam-typed-test")
-	if err != nil {
-		t.Fatal(err)
-	}
+	tmpDir := t.TempDir()
 
 	fsConfig := fs.Config{
 		Path:    filepath.Join(tmpDir, "vault"),
@@ -30,15 +26,13 @@ func setupRepo(t *testing.T) (core.Repository, string) {
 	}
 	repo := fs.NewRepository(fsConfig)
 	if err := repo.Initialize(context.Background()); err != nil {
-		os.RemoveAll(tmpDir)
 		t.Fatalf("failed to init repo: %v", err)
 	}
 	return repo, tmpDir
 }
 
 func TestTypedRepository(t *testing.T) {
-	repo, tmpDir := setupRepo(t)
-	defer os.RemoveAll(tmpDir)
+	repo, _ := setupRepo(t)
 
 	ctx := context.Background()
 

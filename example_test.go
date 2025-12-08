@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 
 	"github.com/aretw0/loam"
 	"github.com/aretw0/loam/pkg/core"
@@ -46,4 +47,53 @@ func Example_basic() {
 	fmt.Printf("Found document: %s\n", doc.ID)
 	// Output:
 	// Found document: hello-world
+}
+
+// Example_typed demonstrates how to use the Generic Typed Wrapper for type safety.
+func ExampleNewTyped() {
+	// Setup: Temporary repository
+	tmpDir, err := os.MkdirTemp("", "loam-typed-example-*")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// Use loam.Init to get the Repository directly
+	repo, err := loam.Init(filepath.Join(tmpDir, "vault"), loam.WithAutoInit(true))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Define your Domain Model
+	type User struct {
+		Name  string `json:"name"`
+		Email string `json:"email"`
+	}
+
+	// Wrap the repository
+	userRepo := loam.NewTyped[User](repo)
+	ctx := context.Background()
+
+	// Save a typed document
+	err = userRepo.Save(ctx, &loam.DocumentModel[User]{
+		ID:      "users/alice",
+		Content: "Alice's Profile",
+		Data: User{
+			Name:  "Alice",
+			Email: "alice@example.com",
+		},
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Retrieve it back
+	doc, err := userRepo.Get(ctx, "users/alice")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Printf("User Name: %s\n", doc.Data.Name)
+	// Output:
+	// User Name: Alice
 }
