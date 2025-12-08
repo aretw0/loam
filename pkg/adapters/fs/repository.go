@@ -145,7 +145,7 @@ func (r *Repository) Save(ctx context.Context, doc core.Document) error {
 		return fmt.Errorf("failed to serialize document: %w", err)
 	}
 
-	if err := os.WriteFile(fullPath, data, 0644); err != nil {
+	if err := writeFileAtomic(fullPath, data, 0644); err != nil {
 		return fmt.Errorf("failed to write file: %w", err)
 	}
 

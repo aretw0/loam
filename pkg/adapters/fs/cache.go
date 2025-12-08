@@ -94,8 +94,8 @@ func (c *cache) Save() error {
 		return err
 	}
 
-	// Write atomically (temp file + rename) ideally, but for now direct write.
-	if err := os.WriteFile(c.Path, data, 0644); err != nil {
+	// Write atomically (temp file + rename).
+	if err := writeFileAtomic(c.Path, data, 0644); err != nil {
 		return err
 	}
 

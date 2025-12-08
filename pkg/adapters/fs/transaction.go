@@ -124,7 +124,7 @@ func (t *Transaction) Commit(ctx context.Context, changeReason string) error {
 		}
 		buf = append(buf, []byte(n.Content)...)
 
-		if err := os.WriteFile(fullPath, buf, 0644); err != nil {
+		if err := writeFileAtomic(fullPath, buf, 0644); err != nil {
 			return fmt.Errorf("failed to write file %s: %w", id, err)
 		}
 
