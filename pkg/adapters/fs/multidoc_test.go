@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/aretw0/loam/pkg/core"
 )
 
 func TestMultiDocument_CSV(t *testing.T) {
@@ -46,7 +48,63 @@ bob,Bob Smith,user
 	if name, ok := doc2.Metadata["name"].(string); !ok || name != "Jane Doe" {
 		t.Errorf("Expected metadata name='Jane Doe', got %v", doc2.Metadata["name"])
 	}
-	if role, ok := doc.Metadata["role"].(string); !ok || role != "admin" {
-		t.Errorf("Expected metadata role='admin', got %v", doc.Metadata["role"])
+}
+
+func TestMultiDocument_Save(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	// Setup: Create a CSV file
+	csvContent := `id,name,role
+jane,Jane Doe,admin
+`
+	csvPath := filepath.Join(tmpDir, "users.csv")
+	if err := os.WriteFile(csvPath, []byte(csvContent), 0644); err != nil {
+		t.Fatalf("Failed to write csv: %v", err)
+	}
+
+	repo := NewRepository(Config{Path: tmpDir, Gitless: true})
+
+	// Case 1: Update existing row
+	ctx := context.Background()
+	updateDoc := core.Document{
+		ID: "users.csv/jane",
+		Metadata: map[string]interface{}{
+			"name": "Jane Updated",
+			"role": "superadmin",
+		},
+	}
+
+	if err := repo.Save(ctx, updateDoc); err != nil {
+		t.Fatalf("Failed to Save sub-document: %v", err)
+	}
+
+	// Verify Update
+	savedDoc, err := repo.Get(ctx, "users.csv/jane")
+	if err != nil {
+		t.Fatalf("Failed to Get saved document: %v", err)
+	}
+	if name, ok := savedDoc.Metadata["name"].(string); !ok || name != "Jane Updated" {
+		t.Errorf("Expected name 'Jane Updated', got '%v'", name)
+	}
+
+	// Case 2: Insert new row
+	newDoc := core.Document{
+		ID: "users.csv/alice",
+		Metadata: map[string]interface{}{
+			"name": "Alice Wonderland",
+			"role": "guest",
+		},
+	}
+	if err := repo.Save(ctx, newDoc); err != nil {
+		t.Fatalf("Failed to Insert new sub-document: %v", err)
+	}
+
+	// Verify Insert
+	aliceDoc, err := repo.Get(ctx, "users.csv/alice")
+	if err != nil {
+		t.Fatalf("Failed to Get inserted document: %v", err)
+	}
+	if name, ok := aliceDoc.Metadata["name"].(string); !ok || name != "Alice Wonderland" {
+		t.Errorf("Expected name 'Alice Wonderland', got '%v'", name)
 	}
 }

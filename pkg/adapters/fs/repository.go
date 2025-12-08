@@ -136,6 +136,11 @@ func (r *Repository) Save(ctx context.Context, doc core.Document) error {
 	fullPath := filepath.Join(r.Path, filename)
 
 	// Ensure parent directory exists
+	// But first, check if we should intercept for Multi-Doc (Collection)
+	if collectionPath, colExt, key, found := r.findCollection(doc.ID); found {
+		return r.saveToCollection(ctx, doc, collectionPath, colExt, key)
+	}
+
 	if err := os.MkdirAll(filepath.Dir(fullPath), 0755); err != nil {
 		return fmt.Errorf("failed to create directories: %w", err)
 	}
@@ -211,40 +216,29 @@ func (r *Repository) Get(ctx context.Context, id string) (core.Document, error) 
 	return *doc, nil
 }
 
-func (r *Repository) getFromCollection(ctx context.Context, id string) (core.Document, error) {
-	// Simple heuristic: Split by slash, look for parent file.
-	// ID: users.csv/jane -> Parent: users.csv, Key: jane
-
+func (r *Repository) findCollection(id string) (collectionPath, collectionExt, key string, found bool) {
 	dir := filepath.Dir(id)
-	key := filepath.Base(id)
-
-	// Normalize separators
+	key = filepath.Base(id)
 	dir = filepath.ToSlash(dir)
 
-	var collectionPath string
-	var collectionExt string
-
-	// Candidates:
-	// 1. Exact match (e.g. users.csv from users.csv/jane)
-	// 2. Extensions (e.g. users.csv from users/jane)
 	candidates := []string{dir}
-	extensions := []string{".csv", ".json"} // Add supported extensions here
+	extensions := []string{".csv", ".json"}
 	for _, ext := range extensions {
 		candidates = append(candidates, dir+ext)
 	}
 
-	found := false
 	for _, c := range candidates {
 		path := filepath.Join(r.Path, c)
 		info, err := os.Stat(path)
 		if err == nil && !info.IsDir() {
-			collectionPath = path
-			collectionExt = filepath.Ext(path)
-			found = true
-			break
+			return path, filepath.Ext(path), key, true
 		}
 	}
+	return "", "", "", false
+}
 
+func (r *Repository) getFromCollection(ctx context.Context, id string) (core.Document, error) {
+	collectionPath, collectionExt, key, found := r.findCollection(id)
 	if !found {
 		return core.Document{}, fmt.Errorf("collection not found")
 	}
@@ -305,6 +299,112 @@ func (r *Repository) getFromCollection(ctx context.Context, id string) (core.Doc
 	}
 
 	return core.Document{}, fmt.Errorf("document not found in collection")
+}
+
+func (r *Repository) saveToCollection(ctx context.Context, doc core.Document, collectionPath, collectionExt, key string) error {
+	// Read-Modify-Write
+	// Lock? Ideally yes. atomic.go helps with write, but race condition on read-mod possible.
+	// For now, relies on atomic.go file swap.
+
+	data, err := os.ReadFile(collectionPath)
+	if err != nil {
+		return err
+	}
+
+	if collectionExt == ".csv" {
+		reader := csv.NewReader(bytes.NewReader(data))
+		allRecords, err := reader.ReadAll()
+		if err != nil {
+			return err
+		}
+
+		if len(allRecords) == 0 {
+			return fmt.Errorf("empty csv collection")
+		}
+
+		headers := allRecords[0]
+		idCol := -1
+		for i, h := range headers {
+			if strings.ToLower(h) == "id" {
+				idCol = i
+				break
+			}
+		}
+		if idCol == -1 {
+			return fmt.Errorf("csv collection missing 'id' column")
+		}
+
+		foundIndex := -1
+		for i := 1; i < len(allRecords); i++ {
+			row := allRecords[i]
+			if len(row) > idCol && row[idCol] == key {
+				foundIndex = i
+				break
+			}
+		}
+
+		// Prepare row data
+		newRow := make([]string, len(headers))
+		// Pre-fill with existing data if found?
+		// Or doc overwrites entirely?
+		// Repository.Save usually means "replace".
+		// But for a sub-document, we probably only have the fields provided in Metadata?
+		// If I provide partial metadata, do I lose other columns?
+		// Standard Loam Save replaces the document.
+		// So we should probably preserve ID and fill others from Doc.
+
+		// Fill ID
+		newRow[idCol] = key
+
+		// Fill from Doc
+		for i, h := range headers {
+			if i == idCol {
+				continue
+			}
+			if strings.ToLower(h) == "content" {
+				newRow[i] = doc.Content
+				continue
+			}
+			if val, ok := doc.Metadata[h]; ok {
+				newRow[i] = fmt.Sprintf("%v", val)
+			} else {
+				// If not in metadata...
+				// Logic A: Clear it (Replace semantics).
+				// Logic B: Keep existing (Patch semantics).
+				// Loam Save is Replace. But strictly, if I Get() -> Modify -> Save(), I have all fields.
+				// If I construct new Doc -> Save(), I expect only my fields.
+				// For CSV, "missing" usually means empty string.
+				newRow[i] = ""
+
+				// Optional: Copy existing if found?
+				// if foundIndex != -1 && len(allRecords[foundIndex]) > i {
+				// 	newRow[i] = allRecords[foundIndex][i]
+				// }
+				// Let's stick to Replace (Empty if missing) for now to be consistent.
+			}
+		}
+
+		if foundIndex != -1 {
+			// Update
+			allRecords[foundIndex] = newRow
+		} else {
+			// Append
+			allRecords = append(allRecords, newRow)
+		}
+
+		// Serialize back
+		var buf bytes.Buffer
+		w := csv.NewWriter(&buf)
+		if err := w.WriteAll(allRecords); err != nil {
+			return err
+		}
+		w.Flush()
+
+		// Atomic Write
+		return writeFileAtomic(collectionPath, buf.Bytes(), 0644)
+	}
+
+	return fmt.Errorf("unsupported collection type for save")
 }
 
 // List scans the directory for all documents.

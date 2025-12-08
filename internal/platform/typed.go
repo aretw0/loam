@@ -13,7 +13,16 @@ import (
 type DocumentModel[T any] struct {
 	ID      string
 	Content string
-	Data    T // The typed metadata/entities
+	Data    T                   // The typed metadata/entities
+	repo    *TypedRepository[T] // Active Record reference
+}
+
+// Save persists the document using the attached repository.
+func (d *DocumentModel[T]) Save(ctx context.Context) error {
+	if d.repo == nil {
+		return fmt.Errorf("document is detached from repository (use repo.Save instead)")
+	}
+	return d.repo.Save(ctx, d)
 }
 
 // TypedRepository wraps a core.Repository to provide type-safe access.
@@ -50,6 +59,11 @@ func (r *TypedRepository[T]) Save(ctx context.Context, doc *DocumentModel[T]) er
 		Metadata: metadata,
 	}
 
+	// Attach repository to the model (Active Record)
+	if doc.repo == nil {
+		doc.repo = r
+	}
+
 	// 4. Delegate to underlying repository
 	return r.repo.Save(ctx, coreDoc)
 }
@@ -79,6 +93,7 @@ func (r *TypedRepository[T]) Get(ctx context.Context, id string) (*DocumentModel
 		ID:      coreDoc.ID,
 		Content: coreDoc.Content,
 		Data:    data,
+		repo:    r,
 	}, nil
 }
 
@@ -109,6 +124,7 @@ func (r *TypedRepository[T]) List(ctx context.Context) ([]*DocumentModel[T], err
 			ID:      d.ID,
 			Content: d.Content,
 			Data:    data,
+			repo:    r,
 		})
 	}
 

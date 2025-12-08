@@ -69,9 +69,9 @@ func main() {
 	fmt.Printf("Loaded: %+v\n", loadedUser.Data)
 	fmt.Printf("Content: %s\n", loadedUser.Content)
 
-	// Modify
+	// Modify (Active Record Style)
 	loadedUser.Data.Level++
-	if err := userRepo.Save(ctx, loadedUser); err != nil {
+	if err := loadedUser.Save(ctx); err != nil {
 		log.Fatal(err)
 	}
 	fmt.Println("User updated successfully!")
