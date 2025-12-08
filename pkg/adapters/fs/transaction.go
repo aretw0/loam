@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/aretw0/loam/pkg/core"
-	"gopkg.in/yaml.v3"
 )
 
 // Transaction implements core.Transaction for the filesystem.
@@ -156,14 +155,11 @@ func (t *Transaction) Commit(ctx context.Context, changeReason string) error {
 			return fmt.Errorf("failed to create directories for %s: %w", id, err)
 		}
 
-		// Re-using same serialize logic (simpler version here)
-		var buf []byte
-		if len(n.Metadata) > 0 {
-			metaBytes, _ := yaml.Marshal(n.Metadata)
-			buf = append([]byte("---\n"), metaBytes...)
-			buf = append(buf, []byte("---\n")...)
+		// Use shared serialization logic
+		buf, err := serialize(n, filepath.Ext(filename))
+		if err != nil {
+			return fmt.Errorf("failed to serialize %s: %w", id, err)
 		}
-		buf = append(buf, []byte(n.Content)...)
 
 		if err := writeFileAtomic(fullPath, buf, 0644); err != nil {
 			return fmt.Errorf("failed to write file %s: %w", id, err)
