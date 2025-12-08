@@ -8,7 +8,7 @@ import (
 )
 
 // Version exposes the version of the library.
-// var Version = platform.Version (Removed to avoid conflict with version.go)
+// See version.go for the implementation using go:embed.
 
 // --- Configuration ---
 
