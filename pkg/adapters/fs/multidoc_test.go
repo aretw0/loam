@@ -108,3 +108,53 @@ jane,Jane Doe,admin
 		t.Errorf("Expected name 'Alice Wonderland', got '%v'", name)
 	}
 }
+
+func TestMultiDocument_List(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	// Setup: Create a CSV file
+	csvContent := `id,name,role
+jane,Jane Doe,admin
+bob,Bob Smith,user
+`
+	csvPath := filepath.Join(tmpDir, "users.csv")
+	if err := os.WriteFile(csvPath, []byte(csvContent), 0644); err != nil {
+		t.Fatalf("Failed to write csv: %v", err)
+	}
+
+	repo := NewRepository(Config{Path: tmpDir, Gitless: true})
+
+	// List
+	docs, err := repo.List(context.Background())
+	if err != nil {
+		t.Fatalf("Failed to List: %v", err)
+	}
+
+	// Expect 2 documents from the CSV
+	// Note: If List returns the file itself (users.csv) as a document, we might have 3.
+	// But our goal is "Flattening", so ideally users.csv is consumed and replaced by its items.
+	// Or both?
+	// Loam Design: If we treat it as a collection, we probably only want the items?
+	// But `users.csv` is also a file.
+	// Let's check what we get.
+
+	// Current expectation: We want to see "users.csv/jane" and "users.csv/bob".
+	foundJane := false
+	foundBob := false
+
+	for _, d := range docs {
+		if d.ID == "users.csv/jane" {
+			foundJane = true
+		}
+		if d.ID == "users.csv/bob" {
+			foundBob = true
+		}
+	}
+
+	if !foundJane {
+		t.Error("List did not return users.csv/jane")
+	}
+	if !foundBob {
+		t.Error("List did not return users.csv/bob")
+	}
+}

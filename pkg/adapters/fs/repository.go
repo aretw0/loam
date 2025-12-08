@@ -446,6 +446,18 @@ func (r *Repository) List(ctx context.Context) ([]core.Document, error) {
 		}
 		relPath = filepath.ToSlash(relPath)
 
+		// Check if it's a collection and flatten it
+		if colDocs, err := r.flattenCollection(ctx, path, relPath); err == nil {
+			for _, d := range colDocs {
+				// We don't verify cache for sub-docs yet (TODO)
+				// Directly append for prototype
+				docs = append(docs, d)
+			}
+			// If it was a collection, do we still return the file itself?
+			// Maybe yes, maybe no. For now, let's skip the file if it was successfully flattened?
+			// Or keep both. Keep both is safer.
+		}
+
 		// ID Strategy:
 		// If .md, strip extension (legacy behavior).
 		// If others, keep extension?
@@ -524,6 +536,71 @@ func (r *Repository) List(ctx context.Context) ([]core.Document, error) {
 
 	return docs, nil
 
+}
+
+func (r *Repository) flattenCollection(ctx context.Context, fullPath, relPath string) ([]core.Document, error) {
+	ext := filepath.Ext(fullPath)
+	if ext != ".csv" { // Only CSV implemented for now
+		return nil, fmt.Errorf("unsupported collection format")
+	}
+
+	data, err := os.ReadFile(fullPath)
+	if err != nil {
+		return nil, err
+	}
+
+	reader := csv.NewReader(bytes.NewReader(data))
+	headers, err := reader.Read()
+	if err != nil {
+		return nil, err
+	}
+
+	idCol := -1
+	for i, h := range headers {
+		if strings.ToLower(h) == "id" {
+			idCol = i
+			break
+		}
+	}
+	if idCol == -1 {
+		return nil, fmt.Errorf("missing id column")
+	}
+
+	var docs []core.Document
+	for {
+		row, err := reader.Read()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+
+		if len(row) <= idCol {
+			continue
+		}
+
+		id := row[idCol]
+		// Construct ID: relPath + "/" + id
+		// e.g. "users.csv/jane"
+		fullID := relPath + "/" + id
+
+		doc := core.Document{
+			ID:       fullID,
+			Metadata: make(core.Metadata),
+		}
+
+		for i, h := range headers {
+			val := row[i]
+			if strings.ToLower(h) == "content" {
+				doc.Content = val
+			} else {
+				doc.Metadata[h] = val
+			}
+		}
+		docs = append(docs, doc)
+	}
+	return docs, nil
 }
 
 // Delete removes a note.
