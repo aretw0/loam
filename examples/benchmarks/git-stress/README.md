@@ -12,7 +12,7 @@ Este "Kitchen Sink" demonstra a prova de conceito inicial que validou a arquitet
 ## Como Executar
 
 ```bash
-go run examples/00-spike-git-concurrency/main.go
+go run examples/benchmarks/git-stress/main.go
 ```
 
 O script irá:

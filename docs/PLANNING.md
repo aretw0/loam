@@ -162,6 +162,19 @@ Objetivo: Garantir que a ferramenta imponha boas práticas e coesão no projeto.
   - [x] Substituir `Config` struct por **Functional Options** (`WithLogger`, `WithVersioning`).
   - [x] Preparar injection points no `loam.New` para adapters customizados.
 
+## Fase 9.7: Polimento (Em Andamento)
+
+**Objetivo:** Preparar o repositório para toolmakers.
+
+- [ ] **Limpeza e Organização**:
+  - [ ] Remover código legado (`examples/spikes`).
+  - [ ] Organizar exemplos em `basic`, `advanced`, `benchmarks`.
+- [ ] **Documentação**:
+  - [ ] Adicionar Godoc Examples (`pkg/loam`).
+  - [ ] Revisar `doc.go` (Philosophy).
+- [ ] **QA**:
+  - [ ] Coverage Check.
+
 ## Fase 10: Server & Interoperability (Backlog)
 
 Objetivo: Permitir que ferramentas externas (não-Go) interajam com o Loam via rede/socket, reforçando a visão de "Driver".
