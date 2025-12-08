@@ -20,9 +20,9 @@ Ele oferece operações de CRUD atômicas e seguras, garantindo que suas automa�
 O **Adapter padrão (FS)** detecta automaticamente o formato do arquivo baseado na extensão do ID:
 
 - **Markdown (`.md`)**: Padrão. Conteúdo + Frontmatter YAML.
-- **JSON (`.json`)**: Serializa como objeto JSON puro.
-- **YAML (`.yaml`)**: Serializa como objeto YAML puro.
-- **CSV (`.csv`)**: Serializa como linha de valores. Coluna `content` é o corpo, demais são metadados.
+- **JSON (`.json`)**: Serializa como objeto JSON puro. Campo `content` é opcional.
+- **YAML (`.yaml`)**: Serializa como objeto YAML puro. Campo `content` é opcional.
+- **CSV (`.csv`)**: Serializa como linha de valores. Coluna `content` é o corpo (opcional), demais são metadados.
 
 ## 🚀 Instalação
 
