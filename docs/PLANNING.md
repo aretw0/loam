@@ -10,6 +10,8 @@
 - [x] **FS Adapter Upgrade**:
   - [x] Suporte a escrita de arquivos crus (`.json`, `.csv`) baseado no ID/Metadata.
   - [x] Manter retrocompatibilidade com Markdown/Frontmatter.
+- [x] **Developer Experience**:
+  - [x] Typed Retrieval: Suporte a Generics (`loam.NewTyped[T]`) para acesso tipado a documentos.
 
 ## RFC: Library-Level Sync Strategies (0.x.x)
 

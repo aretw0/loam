@@ -1,4 +1,4 @@
-package loam_test
+package platform_test
 
 import (
 	"context"
@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/aretw0/loam/internal/platform"
 	"github.com/aretw0/loam/pkg/adapters/fs"
-	"github.com/aretw0/loam/pkg/loam"
 )
 
 type UserProfile struct {
@@ -37,10 +37,10 @@ func TestTypedRepository(t *testing.T) {
 	}
 
 	// Create Typed Wrapper
-	userRepo := loam.NewTyped[UserProfile](repo)
+	userRepo := platform.NewTyped[UserProfile](repo)
 
 	// 1. Test Save
-	user := &loam.DocumentModel[UserProfile]{
+	user := &platform.DocumentModel[UserProfile]{
 		ID:      "users/alice",
 		Content: "Bio: generic profile",
 		Data: UserProfile{
@@ -69,7 +69,7 @@ func TestTypedRepository(t *testing.T) {
 
 	// 3. Test List
 	// Add another user
-	bob := &loam.DocumentModel[UserProfile]{
+	bob := &platform.DocumentModel[UserProfile]{
 		ID: "users/bob",
 		Data: UserProfile{
 			Name: "Bob",

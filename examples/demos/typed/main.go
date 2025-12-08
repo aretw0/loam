@@ -7,9 +7,8 @@ import (
 	"os"
 	"path/filepath"
 
-	root "github.com/aretw0/loam"
+	"github.com/aretw0/loam"
 	"github.com/aretw0/loam/pkg/adapters/fs"
-	"github.com/aretw0/loam/pkg/loam"
 )
 
 // User represents our domain object.
@@ -25,7 +24,7 @@ func main() {
 	wd, _ := os.Getwd()
 
 	// Use Loam's Dev Safety: Force temp directory for this demo to ensure no local files are touched.
-	repoPath := root.ResolveVaultPath(filepath.Join(wd, "data"), true)
+	repoPath := loam.ResolveVaultPath(filepath.Join(wd, "data"), true)
 	fmt.Printf("Repository Path: %s\n", repoPath)
 
 	// Create a standard FS repository
