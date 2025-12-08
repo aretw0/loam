@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/aretw0/loam/pkg/core"
-	"github.com/aretw0/loam/pkg/loam"
+	"github.com/aretw0/loam"
 )
 
 func main() {

@@ -1,4 +1,4 @@
-package loam
+package platform
 
 import (
 	"os"

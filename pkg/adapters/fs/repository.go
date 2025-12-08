@@ -321,7 +321,7 @@ func parse(r io.Reader) (*core.Note, error) {
 		Metadata: make(core.Metadata),
 	}
 
-	// Logic copied from pkg/loam/note.go
+	// Logic copied from internal note handling
 	if !bytes.HasPrefix(data, []byte("---\n")) && !bytes.HasPrefix(data, []byte("---\r\n")) {
 		n.Content = string(data)
 		return n, nil

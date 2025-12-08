@@ -1,11 +1,11 @@
-package loam_test
+package platform_test
 
 import (
 	"os"
 	"path/filepath"
 	"testing"
 
-	"github.com/aretw0/loam/pkg/loam"
+	"github.com/aretw0/loam"
 )
 
 func TestResolveVaultPath(t *testing.T) {

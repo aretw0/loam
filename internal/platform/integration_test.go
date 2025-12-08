@@ -1,4 +1,4 @@
-package loam_test
+package platform_test
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 
 	"github.com/aretw0/loam/pkg/core"
 	"github.com/aretw0/loam/pkg/git"
-	"github.com/aretw0/loam/pkg/loam"
+	"github.com/aretw0/loam"
 )
 
 func TestService_WriteCommit(t *testing.T) {

@@ -32,12 +32,19 @@ Implementações concretas dos Ports definidos no Core.
   - Utiliza `pkg/git` para controle de versão.
   - Mantém um **Cache (.loam/index.json)** para listagens rápidas (Otimização).
 
-### 3. Composition Root (`pkg/loam`)
+### 3. Internal Platform (`internal/platform`)
 
-O ponto de entrada que conecta tudo.
+O "chão de fábrica" do sistema. Contém a implementação concreta do bootstrap e segurança.
 
-- **`loam.New(path, opts...)`**: Factory function que instancia o Adapter adequado (baseado em opções funcionais) e injeta no Service. Suporta injeção de dependência (`WithRepository`).
-- **Functional Options**: Configuração fluente (`WithVersioning`, `WithLogger`, `WithRepository`) em vez de structs monolíticos.
+- **Responsabilidade**: Factory method, Configuração de Opções, Sanitização de Paths (`ResolveVaultPath`) e utilitários de Dev (`IsDevRun`).
+- **Visibilidade**: Privado para a biblioteca, não importável externamente.
+
+### 4. Public Facade (`github.com/aretw0/loam`)
+
+A fachada pública que simplifica o uso da biblioteca.
+
+- **`loam.go`**: Expõe aliases para as funções do `internal/platform` (`New`, `Init`, `Sync`, `Option`).
+- **Objetivo**: Manter a raiz do projeto limpa e fornecer uma API estável enquanto a implementação evolui internamente.
 
 ## Decisões Arquiteturais Chave
 
@@ -65,7 +72,7 @@ O ponto de entrada que conecta tudo.
 
 Testam regras de negócio usando Mocks em memória. Execução instantânea.
 
-### 2. Integração (`pkg/loam`)
+### 2. Integração (Integration Tests)
 
 Testam o fluxo completo (Service + FS Adapter + Git) em diretórios temporários reais. Garantem que o contrato de persistência é cumprido.
 

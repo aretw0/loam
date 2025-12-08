@@ -4,7 +4,7 @@ Este diretório contém exemplos de uso e provas de conceito do projeto Loam.
 
 ## Projetos de Exemplo
 
-- **[Basic App](./basic-app)**: Um exemplo simples e completo de como usar o pacote `pkg/loam` para criar, salvar e ler notas em uma aplicação Go.
+- **[Basic App](./basic-app)**: Um exemplo simples e completo de como usar o pacote principal (`github.com/aretw0/loam`) para criar, salvar e ler notas em uma aplicação Go.
   - Demonstra a inicialização do Vault.
   - Mostra como usar a substituição de módulo (`replace` no `go.mod`) para desenvolver usando a versão local do Loam.
 

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/aretw0/loam/pkg/loam"
+	"github.com/aretw0/loam"
 	"github.com/spf13/cobra"
 )
 

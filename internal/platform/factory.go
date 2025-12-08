@@ -1,4 +1,4 @@
-package loam
+package platform
 
 import (
 	"github.com/aretw0/loam/pkg/core"

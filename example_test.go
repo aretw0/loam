@@ -6,8 +6,8 @@ import (
 	"log"
 	"os"
 
+	"github.com/aretw0/loam"
 	"github.com/aretw0/loam/pkg/core"
-	"github.com/aretw0/loam/pkg/loam"
 )
 
 // Example_basic demonstrates how to initialize a Vault, save a note, and read it back.

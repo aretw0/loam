@@ -1,18 +1,5 @@
 # Planning & Roadmap
 
-## Fase 0.5.0: Polimento (Em Andamento)
-
-**Objetivo:** Preparar o repositório para toolmakers (v0.5.0).
-
-- [x] **Limpeza e Organização**:
-  - [x] Remover código legado (`examples/spikes`).
-  - [x] Organizar exemplos em `basic`, `advanced`, `benchmarks`.
-- [x] **Documentação**:
-  - [x] Adicionar Godoc Examples (`pkg/loam`).
-  - [x] Revisar `doc.go` (Philosophy).
-- [x] **QA**:
-  - [x] Coverage Check.
-
 ## RFC: Library-Level Sync Strategies (0.x.x)
 
 **Objetivo:** Permitir que toolmakers definam estratégias de sincronização não-bloqueantes ou customizadas, crucial para adapters distribuídos (S3, SQL) ou clientes "Offline-First".

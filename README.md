@@ -3,7 +3,7 @@
 > A Transactional Storage Engine for Content & Metadata.
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/aretw0/loam)](https://goreportcard.com/report/github.com/aretw0/loam)
-[![Go Doc](https://godoc.org/github.com/aretw0/loam?status.svg)](https://godoc.org/github.com/aretw0/loam/pkg/loam)
+[![Go Doc](https://godoc.org/github.com/aretw0/loam?status.svg)](https://godoc.org/github.com/aretw0/loam)
 
 **Loam** é uma engine de armazenamento transacional de notas (Headless CMS), focada em conteúdo textual e metadados.
 Embora a implementação padrão utilize **Markdown + Frontmatter sobre Git** (FS Adapter), a arquitetura é agnóstica e permite outros backends (S3, SQL, etc).
@@ -78,7 +78,7 @@ import (
  "os"
 
  "github.com/aretw0/loam/pkg/core"
- "github.com/aretw0/loam/pkg/loam"
+ "github.com/aretw0/loam"
 )
 
 func main() {
