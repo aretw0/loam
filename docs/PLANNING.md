@@ -1,5 +1,16 @@
 # Planning & Roadmap
 
+## Fase 0.6.0: Generalization & Multi-Format (Current)
+
+**Objetivo:** Generalizar a entidade `Note` para `Document` e suportar múltiplos formatos (JSON, CSV, YAML) no Adapter FS, alinhando com a visão de "Headless CMS" universal.
+
+- [ ] **Core Refactoring**:
+  - [ ] Renomear `Note` para `Document` em `pkg/core`.
+  - [ ] Adicionar suporte a `Format/Extension` na entidade.
+- [ ] **FS Adapter Upgrade**:
+  - [ ] Suporte a escrita de arquivos crus (`.json`, `.csv`) baseado no formato do Documento.
+  - [ ] Manter retrocompatibilidade com Markdown/Frontmatter.
+
 ## RFC: Library-Level Sync Strategies (0.x.x)
 
 **Objetivo:** Permitir que toolmakers definam estratégias de sincronização não-bloqueantes ou customizadas, crucial para adapters distribuídos (S3, SQL) ou clientes "Offline-First".

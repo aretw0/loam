@@ -21,7 +21,7 @@ func New(uri string, opts ...Option) (*core.Service, error) {
 	}
 
 	// Initialize Domain Service
-	service := core.NewService(repo, o.logger)
+	service := core.NewService(repo)
 
 	return service, nil
 }

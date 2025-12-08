@@ -87,7 +87,7 @@ func TestSave(t *testing.T) {
 		repo, path, _ := setupRepo(t)
 		repo.Initialize(context.Background())
 
-		note := core.Note{
+		note := core.Document{
 			ID:      "test-note",
 			Content: "Hello World",
 		}
@@ -110,7 +110,7 @@ func TestSave(t *testing.T) {
 		repo, path, _ := setupRepo(t)
 		repo.Initialize(context.Background())
 
-		note := core.Note{
+		note := core.Document{
 			ID: "meta-note",
 			Metadata: map[string]interface{}{
 				"title": "My Title",
@@ -145,7 +145,7 @@ func TestSave(t *testing.T) {
 		})
 		repo.Initialize(context.Background())
 
-		note := core.Note{ID: "git-note", Content: "git content"}
+		note := core.Document{ID: "git-note", Content: "git content"}
 		if err := repo.Save(context.Background(), note); err != nil {
 			t.Fatalf("Save failed: %v", err)
 		}
@@ -168,7 +168,7 @@ func TestGet(t *testing.T) {
 	repo.Initialize(context.Background())
 
 	// Pre-create a note
-	note := core.Note{ID: "readable", Content: "read me"}
+	note := core.Document{ID: "readable", Content: "read me"}
 	repo.Save(context.Background(), note)
 
 	t.Run("Retrieves Existing Note", func(t *testing.T) {
@@ -207,8 +207,8 @@ func TestList(t *testing.T) {
 	})
 
 	t.Run("Lists Multiple Notes", func(t *testing.T) {
-		repo.Save(context.Background(), core.Note{ID: "n1", Content: "c1"})
-		repo.Save(context.Background(), core.Note{ID: "n2", Content: "c2"})
+		repo.Save(context.Background(), core.Document{ID: "n1", Content: "c1"})
+		repo.Save(context.Background(), core.Document{ID: "n2", Content: "c2"})
 
 		notes, err := repo.List(context.Background())
 		if err != nil {
@@ -237,7 +237,7 @@ func TestDelete(t *testing.T) {
 	t.Run("Deletes File in Gitless Mode", func(t *testing.T) {
 		repo, path, _ := setupRepo(t)
 		repo.Initialize(context.Background())
-		repo.Save(context.Background(), core.Note{ID: "del-me", Content: "bye"})
+		repo.Save(context.Background(), core.Document{ID: "del-me", Content: "bye"})
 
 		if err := repo.Delete(context.Background(), "del-me"); err != nil {
 			t.Fatalf("Delete failed: %v", err)
@@ -256,7 +256,7 @@ func TestDelete(t *testing.T) {
 			c.Gitless = false
 		})
 		repo.Initialize(context.Background())
-		repo.Save(context.Background(), core.Note{ID: "git-del", Content: "bye"})
+		repo.Save(context.Background(), core.Document{ID: "git-del", Content: "bye"})
 
 		if err := repo.Delete(context.Background(), "git-del"); err != nil {
 			t.Fatalf("Delete failed: %v", err)

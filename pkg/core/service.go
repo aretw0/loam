@@ -2,71 +2,90 @@ package core
 
 import (
 	"context"
-	"fmt"
-	"log/slog"
+	"errors" // Added errors import
 )
 
-// Service encapsulates the business logic for managing notes.
+// Service handles the business logic for documents.
 type Service struct {
-	repo   Repository
-	logger *slog.Logger
+	repo Repository
 }
 
-// NewService creates a new Service instance.
-func NewService(r Repository, l *slog.Logger) *Service {
-	return &Service{
-		repo:   r,
-		logger: l,
-	}
+// NewService creates a new Service.
+func NewService(repo Repository) *Service {
+	return &Service{repo: repo}
 }
 
-// SaveNote creates or updates a note.
-func (s *Service) SaveNote(ctx context.Context, id string, content string, meta Metadata) error {
-	// Validation Logic
+// SaveDocument saves a document with business validation.
+func (s *Service) SaveDocument(ctx context.Context, id string, content string, metadata Metadata) error {
 	if id == "" {
-		return fmt.Errorf("id cannot be empty")
+		return errors.New("document ID cannot be empty")
 	}
 
-	// Sanitize
-	// id = strings.TrimSpace(id) // Ideally we sanitize, but for now let's just valid.
+	// Example Policy: Warn on empty content (but allow it as a draft/stub)
+	// Real-world logic might differ.
 
-	// Content Warning (not error, based on user feedback)
-	if content == "" {
-		if s.logger != nil {
-			s.logger.Warn("saving note with empty content", "id", id)
-		}
-	}
-
-	n := Note{
+	doc := Document{
 		ID:       id,
 		Content:  content,
-		Metadata: meta,
+		Metadata: metadata,
 	}
 
-	return s.repo.Save(ctx, n)
+	return s.repo.Save(ctx, doc)
 }
 
-// GetNote retrieves a note by ID.
-func (s *Service) GetNote(ctx context.Context, id string) (Note, error) {
+// GetDocument retrieves a document.
+func (s *Service) GetDocument(ctx context.Context, id string) (Document, error) {
+	if id == "" {
+		return Document{}, errors.New("document ID cannot be empty")
+	}
 	return s.repo.Get(ctx, id)
 }
 
-// ListNotes lists all notes.
-func (s *Service) ListNotes(ctx context.Context) ([]Note, error) {
+// ListDocuments retrieves all documents.
+func (s *Service) ListDocuments(ctx context.Context) ([]Document, error) {
 	return s.repo.List(ctx)
 }
 
-// DeleteNote deletes a note by ID.
-func (s *Service) DeleteNote(ctx context.Context, id string) error {
+// DeleteDocument removes a document.
+func (s *Service) DeleteDocument(ctx context.Context, id string) error {
+	if id == "" {
+		return errors.New("document ID cannot be empty")
+	}
 	return s.repo.Delete(ctx, id)
 }
 
-// Begin starts a new unit of work (transaction).
-// It returns an error if the underlying repository does not support transactions.
-func (s *Service) Begin(ctx context.Context) (Transaction, error) {
-	txRepo, ok := s.repo.(TransactionalRepository)
+// WithTransaction executes a function within a transaction.
+func (s *Service) WithTransaction(ctx context.Context, fn func(tx Transaction) error) error {
+	tr, ok := s.repo.(Transactional)
 	if !ok {
-		return nil, fmt.Errorf("repository does not support transactions")
+		return errors.New("repository does not support transactions")
 	}
-	return txRepo.Begin(ctx)
+
+	tx, err := tr.Begin(ctx)
+	if err != nil {
+		return err
+	}
+
+	if err := fn(tx); err != nil {
+		tx.Rollback(ctx)
+		return err
+	}
+
+	// Commit message handling would go here or be passed via fn/context
+	// For now, simple commit.
+	msg := "batch transaction"
+	if val, ok := ctx.Value(ChangeReasonKey).(string); ok && val != "" {
+		msg = val
+	}
+	return tx.Commit(ctx, msg)
+}
+
+// Begin initiates a transaction manually.
+// Exposed for power users or custom workflows.
+func (s *Service) Begin(ctx context.Context) (Transaction, error) {
+	tr, ok := s.repo.(Transactional)
+	if !ok {
+		return nil, errors.New("repository does not support transactions")
+	}
+	return tr.Begin(ctx)
 }

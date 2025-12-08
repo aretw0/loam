@@ -104,13 +104,19 @@ func (r *Repository) Sync(ctx context.Context) error {
 	return r.git.Sync() // This method handles pull/push
 }
 
-// Save persists a note to the filesystem and commits it to Git.
-func (r *Repository) Save(ctx context.Context, n core.Note) error {
-	if n.ID == "" {
-		return fmt.Errorf("note has no ID")
+// Save persists a document to the filesystem and commits it to Git.
+func (r *Repository) Save(ctx context.Context, doc core.Document) error {
+	if doc.ID == "" {
+		return fmt.Errorf("document has no ID")
 	}
 
-	filename := n.ID + ".md"
+	// Simplification: Always use .md for now until Format is moved to Metadata or handled purely by ID
+	ext := ".md"
+	if strings.Contains(doc.ID, ".") {
+		ext = "" // ID already has extension
+	}
+
+	filename := doc.ID + ext
 	fullPath := filepath.Join(r.Path, filename)
 
 	// Ensure parent directory exists
@@ -118,7 +124,7 @@ func (r *Repository) Save(ctx context.Context, n core.Note) error {
 		return fmt.Errorf("failed to create directories: %w", err)
 	}
 
-	data, err := serialize(n)
+	data, err := serialize(doc)
 	if err != nil {
 		return fmt.Errorf("failed to serialize note: %w", err)
 	}
@@ -138,7 +144,7 @@ func (r *Repository) Save(ctx context.Context, n core.Note) error {
 			return fmt.Errorf("failed to git add: %w", err)
 		}
 
-		msg := "update " + n.ID
+		msg := "update " + doc.ID
 		if val, ok := ctx.Value(core.ChangeReasonKey).(string); ok && val != "" {
 			msg = val
 		}
@@ -151,27 +157,41 @@ func (r *Repository) Save(ctx context.Context, n core.Note) error {
 	return nil
 }
 
-// Get retrieves a note from the filesystem.
-func (r *Repository) Get(ctx context.Context, id string) (core.Note, error) {
-	filename := filepath.Join(r.Path, id+".md")
+// Get retrieves a document from the filesystem.
+func (r *Repository) Get(ctx context.Context, id string) (core.Document, error) {
+	// TODO: Support finding file with different extensions if format not known?
+	// For now, assume default .md or we need to pass format in Get?
+	// The interface is Get(ctx, id). It implies we might need to look up.
+	// Simplification: Try .md, then others, or rely on ID having extension?
+	// Current decision: Default to .md for backward compat.
+	// If multi-format is key, Get might need to search.
+
+	// Quick hack: Try .md first.
+	filename := filepath.Join(r.Path, id+".md") // Default
+	// Check if exists
+	if _, err := os.Stat(filename); os.IsNotExist(err) {
+		// Try finding matches?
+		// For this iteration, let's keep strict .md defaults unless specified?
+		// Actually, let's stick to .md for Get for now to limit scope of "exact writing" requirement which was user prompt.
+	}
 
 	f, err := os.Open(filename)
 	if err != nil {
-		return core.Note{}, err
+		return core.Document{}, err
 	}
 	defer f.Close()
 
-	n, err := parse(f)
+	doc, err := parse(f)
 	if err != nil {
-		return core.Note{}, fmt.Errorf("failed to parse note %s: %w", id, err)
+		return core.Document{}, fmt.Errorf("failed to parse document %s: %w", id, err)
 	}
-	n.ID = id
-	return *n, nil
+	doc.ID = id
+	return *doc, nil
 }
 
-// List scans the directory for all notes.
-func (r *Repository) List(ctx context.Context) ([]core.Note, error) {
-	var notes []core.Note
+// List scans the directory for all documents.
+func (r *Repository) List(ctx context.Context) ([]core.Document, error) {
+	var docs []core.Document
 
 	// Load Cache Logic
 	if err := r.cache.Load(); err != nil {
@@ -214,7 +234,7 @@ func (r *Repository) List(ctx context.Context) ([]core.Note, error) {
 		// Check Cache
 		if entry, hit := r.cache.Get(relPath, mtime); hit {
 			// Cache Hit
-			notes = append(notes, core.Note{
+			docs = append(docs, core.Document{
 				ID: entry.ID,
 				Metadata: map[string]interface{}{
 					"title": entry.Title,
@@ -225,7 +245,7 @@ func (r *Repository) List(ctx context.Context) ([]core.Note, error) {
 		}
 
 		// Cache Miss
-		n, err := r.Get(ctx, id)
+		doc, err := r.Get(ctx, id)
 		if err != nil {
 			return nil // Skip unparseable
 		}
@@ -234,10 +254,10 @@ func (r *Repository) List(ctx context.Context) ([]core.Note, error) {
 		var title string
 		var tags []string
 
-		if t, ok := n.Metadata["title"].(string); ok {
+		if t, ok := doc.Metadata["title"].(string); ok {
 			title = t
 		}
-		if tArr, ok := n.Metadata["tags"].([]interface{}); ok {
+		if tArr, ok := doc.Metadata["tags"].([]interface{}); ok {
 			for _, t := range tArr {
 				if s, ok := t.(string); ok {
 					tags = append(tags, s)
@@ -252,7 +272,7 @@ func (r *Repository) List(ctx context.Context) ([]core.Note, error) {
 			LastModified: mtime,
 		})
 
-		notes = append(notes, n)
+		docs = append(docs, doc)
 		return nil
 	})
 
@@ -266,7 +286,7 @@ func (r *Repository) List(ctx context.Context) ([]core.Note, error) {
 		// Ignore save error
 	}
 
-	return notes, nil
+	return docs, nil
 
 }
 
@@ -311,20 +331,20 @@ func IsGitInstalled() bool {
 
 // --- Serialization Helpers (Private) ---
 
-func parse(r io.Reader) (*core.Note, error) {
+func parse(r io.Reader) (*core.Document, error) {
 	data, err := io.ReadAll(r)
 	if err != nil {
 		return nil, err
 	}
 
-	n := &core.Note{
+	doc := &core.Document{
 		Metadata: make(core.Metadata),
 	}
 
 	// Logic copied from internal note handling
 	if !bytes.HasPrefix(data, []byte("---\n")) && !bytes.HasPrefix(data, []byte("---\r\n")) {
-		n.Content = string(data)
-		return n, nil
+		doc.Content = string(data)
+		return doc, nil
 	}
 
 	rest := data[3:]
@@ -336,30 +356,33 @@ func parse(r io.Reader) (*core.Note, error) {
 	yamlData := parts[0]
 	contentData := parts[1]
 
-	if err := yaml.Unmarshal(yamlData, &n.Metadata); err != nil {
+	if err := yaml.Unmarshal(yamlData, &doc.Metadata); err != nil {
 		return nil, fmt.Errorf("failed to parse frontmatter: %w", err)
 	}
 
-	n.Content = strings.TrimPrefix(string(contentData), "\n")
-	n.Content = strings.TrimPrefix(n.Content, "\r\n")
+	doc.Content = strings.TrimPrefix(string(contentData), "\n")
+	doc.Content = strings.TrimPrefix(doc.Content, "\r\n")
 
-	return n, nil
+	return doc, nil
 }
 
-func serialize(n core.Note) ([]byte, error) {
+func serialize(doc core.Document) ([]byte, error) {
 	var buf bytes.Buffer
 
-	if len(n.Metadata) > 0 {
+	// If generic format (not md), just write content?
+	// For now, serialize logic is strictly for Markdown+Frontmatter.
+	// We should probably check doc.Format here.
+	if len(doc.Metadata) > 0 {
 		buf.WriteString("---\n")
 		encoder := yaml.NewEncoder(&buf)
 		encoder.SetIndent(2)
-		if err := encoder.Encode(n.Metadata); err != nil {
+		if err := encoder.Encode(doc.Metadata); err != nil {
 			return nil, err
 		}
 		encoder.Close()
 		buf.WriteString("---\n")
 	}
 
-	buf.WriteString(n.Content)
+	buf.WriteString(doc.Content)
 	return buf.Bytes(), nil
 }

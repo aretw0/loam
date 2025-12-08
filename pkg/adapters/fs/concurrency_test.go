@@ -109,7 +109,7 @@ func TestConcurrentCommits(t *testing.T) {
 				return
 			}
 
-			note := core.Note{ID: "note-" + string(rune('a'+id)), Content: "concurrent"}
+			note := core.Document{ID: "note-" + string(rune('a'+id)), Content: "concurrent"}
 			if err := tx.Save(ctx, note); err != nil {
 				t.Errorf("routine %d: failed to save: %v", id, err)
 				return
@@ -151,7 +151,7 @@ func TestCommitBlocksOnSync(t *testing.T) {
 
 	// 2. Try to commit immediately
 	tx, _ := repo.Begin(ctx)
-	tx.Save(ctx, core.Note{ID: "blocked-note", Content: "should wait"})
+	tx.Save(ctx, core.Document{ID: "blocked-note", Content: "should wait"})
 
 	start := time.Now()
 	if err := tx.Commit(ctx, "blocked commit"); err != nil {

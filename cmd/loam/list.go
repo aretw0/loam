@@ -7,8 +7,8 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/aretw0/loam/pkg/core"
 	"github.com/aretw0/loam"
+	"github.com/aretw0/loam/pkg/core"
 	"github.com/spf13/cobra"
 )
 
@@ -39,14 +39,13 @@ var listCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		notes, err := service.ListNotes(context.Background())
+		notes, err := service.ListDocuments(context.Background())
 		if err != nil {
 			fmt.Printf("Error listing notes: %v\n", err)
 			os.Exit(1)
 		}
 
-		// Filter
-		var filtered []core.Note
+		var filtered []core.Document
 		for _, note := range notes {
 			if filterTag != "" {
 				// Check tags

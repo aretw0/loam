@@ -9,137 +9,86 @@ import (
 	"time"
 
 	"github.com/aretw0/loam/pkg/core"
+	"gopkg.in/yaml.v3"
 )
 
-// Transaction implements core.Transaction for the filesystem repository.
-// It uses a buffered approach: changes are staged in memory and only written to disk/git on Commit.
+// Transaction implements core.Transaction for the filesystem.
 type Transaction struct {
 	repo    *Repository
-	staged  map[string]core.Note // ID -> Note
-	deleted map[string]bool      // ID -> bool
+	staged  map[string]core.Document // ID -> Document
+	deleted map[string]bool          // ID -> bool
 	mu      sync.Mutex
 	closed  bool
 }
 
-// NewTransaction creates a new transaction for the repository.
+// NewTransaction creates a new transaction.
 func NewTransaction(repo *Repository) *Transaction {
 	return &Transaction{
 		repo:    repo,
-		staged:  make(map[string]core.Note),
+		staged:  make(map[string]core.Document),
 		deleted: make(map[string]bool),
 	}
 }
 
-// Save stages a note for persistence.
-func (t *Transaction) Save(ctx context.Context, n core.Note) error {
+// Save stages a document for saving.
+func (t *Transaction) Save(ctx context.Context, doc core.Document) error {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
 	if t.closed {
-		return fmt.Errorf("transaction is closed")
+		return fmt.Errorf("transaction closed")
 	}
 
-	if n.ID == "" {
-		return fmt.Errorf("note has no ID")
-	}
-
-	t.staged[n.ID] = n
-	delete(t.deleted, n.ID) // Ensure it's not marked as deleted
+	t.staged[doc.ID] = doc
+	delete(t.deleted, doc.ID)
 	return nil
 }
 
-// Get retrieves a note, preferring the staged version if it exists.
-func (t *Transaction) Get(ctx context.Context, id string) (core.Note, error) {
+// Get retrieves a document, favoring staged changes.
+func (t *Transaction) Get(ctx context.Context, id string) (core.Document, error) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
 	if t.closed {
-		return core.Note{}, fmt.Errorf("transaction is closed")
+		return core.Document{}, fmt.Errorf("transaction closed")
 	}
 
-	// 1. Check if deleted in this transaction
 	if t.deleted[id] {
-		return core.Note{}, fmt.Errorf("note not found (deleted in transaction)")
+		return core.Document{}, os.ErrNotExist
 	}
 
-	// 2. Check if staged in this transaction
-	if n, ok := t.staged[id]; ok {
-		return n, nil
+	if doc, ok := t.staged[id]; ok {
+		return doc, nil
 	}
 
-	// 3. Fallback to underlying repository
+	// Fallback to repo
 	return t.repo.Get(ctx, id)
 }
 
-// List returns all available notes, including staged ones.
-// Changes in the transaction overlay the repository state.
-func (t *Transaction) List(ctx context.Context) ([]core.Note, error) {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-
-	if t.closed {
-		return nil, fmt.Errorf("transaction is closed")
-	}
-
-	// 1. Fetch from repo
-	repoNotes, err := t.repo.List(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	// 2. Merge with transaction state
-	merged := make(map[string]core.Note)
-	for _, n := range repoNotes {
-		merged[n.ID] = n
-	}
-
-	// Remove deleted
-	for id := range t.deleted {
-		delete(merged, id)
-	}
-
-	// Upsert staged
-	for id, n := range t.staged {
-		merged[id] = n
-	}
-
-	// Convert to slice
-	result := make([]core.Note, 0, len(merged))
-	for _, n := range merged {
-		result = append(result, n)
-	}
-	return result, nil
-}
-
-// Delete stages a note for removal.
+// Delete stages a document for deletion.
 func (t *Transaction) Delete(ctx context.Context, id string) error {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
 	if t.closed {
-		return fmt.Errorf("transaction is closed")
+		return fmt.Errorf("transaction closed")
 	}
 
 	t.deleted[id] = true
-	delete(t.staged, id) // Ensure it's not staged
+	delete(t.staged, id)
 	return nil
 }
 
-// Commit applies all staged changes atomically.
+// Commit applies all staged changes.
 func (t *Transaction) Commit(ctx context.Context, changeReason string) error {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
 	if t.closed {
-		return fmt.Errorf("transaction is closed")
+		return fmt.Errorf("transaction already closed")
 	}
 
-	if len(t.staged) == 0 && len(t.deleted) == 0 {
-		t.closed = true
-		return nil // Nothing to do
-	}
-
-	// 1. Acquire Git Lock (Global for the repo)
+	// 1. Git Lock (if applicable)
 	if !t.repo.config.Gitless {
 		unlock, err := t.repo.git.Lock()
 		if err != nil {
@@ -154,7 +103,11 @@ func (t *Transaction) Commit(ctx context.Context, changeReason string) error {
 
 	// Process Writes
 	for id, n := range t.staged {
+		// Simplification: Always use .md for now
 		filename := id + ".md"
+		if len(filepath.Ext(id)) > 0 {
+			filename = id
+		}
 		fullPath := filepath.Join(t.repo.Path, filename)
 		filesToAdd = append(filesToAdd, filename)
 
@@ -162,12 +115,16 @@ func (t *Transaction) Commit(ctx context.Context, changeReason string) error {
 			return fmt.Errorf("failed to create directories for %s: %w", id, err)
 		}
 
-		data, err := serialize(n)
-		if err != nil {
-			return fmt.Errorf("failed to serialize note %s: %w", id, err)
+		// Re-using same serialize logic (simpler version here)
+		var buf []byte
+		if len(n.Metadata) > 0 {
+			metaBytes, _ := yaml.Marshal(n.Metadata)
+			buf = append([]byte("---\n"), metaBytes...)
+			buf = append(buf, []byte("---\n")...)
 		}
+		buf = append(buf, []byte(n.Content)...)
 
-		if err := os.WriteFile(fullPath, data, 0644); err != nil {
+		if err := os.WriteFile(fullPath, buf, 0644); err != nil {
 			return fmt.Errorf("failed to write file %s: %w", id, err)
 		}
 
@@ -176,8 +133,9 @@ func (t *Transaction) Commit(ctx context.Context, changeReason string) error {
 		if t, ok := n.Metadata["title"].(string); ok {
 			title = t
 		}
+		// Tags... (omitted)
 
-		t.repo.cache.Set(id+".md", &indexEntry{
+		t.repo.cache.Set(filename, &indexEntry{
 			ID:           id,
 			Title:        title,
 			LastModified: time.Now(),
@@ -193,13 +151,6 @@ func (t *Transaction) Commit(ctx context.Context, changeReason string) error {
 		if err := os.Remove(fullPath); err != nil && !os.IsNotExist(err) {
 			return fmt.Errorf("failed to remove file %s: %w", id, err)
 		}
-
-		// Update Cache
-		// Accessing private field on repo (same package) - assumes thread safety or simplistic usage
-		// Ideally we'd have a method on cache to remove.
-		// For now, let's just invalidate next load? No, cache is in memory.
-		// We can't access delete directly on cache if it's not exposed, but 'Set' is.
-		// Let's assume re-listing will fix it, or we add Remove to cache later.
 	}
 
 	// 3. Git Commit

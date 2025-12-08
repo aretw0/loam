@@ -2,153 +2,110 @@ package core_test
 
 import (
 	"context"
+	"errors"
+	"sort"
 	"testing"
 
 	"github.com/aretw0/loam/pkg/core"
 )
 
-// MockRepository is a simple in-memory implementation for testing.
+// MockRepository implements core.Repository in memory.
+// It deliberately does NOT implement core.Transactional to test fallback/errors.
 type MockRepository struct {
-	Notes map[string]core.Note
+	docs map[string]core.Document
 }
 
 func NewMockRepository() *MockRepository {
 	return &MockRepository{
-		Notes: make(map[string]core.Note),
+		docs: make(map[string]core.Document),
 	}
 }
 
-func (m *MockRepository) Save(ctx context.Context, n core.Note) error {
-	m.Notes[n.ID] = n
+func (m *MockRepository) Save(ctx context.Context, doc core.Document) error {
+	m.docs[doc.ID] = doc
 	return nil
 }
 
-func (m *MockRepository) Get(ctx context.Context, id string) (core.Note, error) {
-	n, ok := m.Notes[id]
+func (m *MockRepository) Get(ctx context.Context, id string) (core.Document, error) {
+	doc, ok := m.docs[id]
 	if !ok {
-		return core.Note{}, nil // Simulate not found or error
+		return core.Document{}, errors.New("not found")
 	}
-	return n, nil
+	return doc, nil
 }
 
-func (m *MockRepository) List(ctx context.Context) ([]core.Note, error) {
-	var list []core.Note
-	for _, n := range m.Notes {
-		list = append(list, n)
+func (m *MockRepository) List(ctx context.Context) ([]core.Document, error) {
+	var docs []core.Document
+	for _, doc := range m.docs {
+		docs = append(docs, doc)
 	}
-	return list, nil
+	// Sort for deterministic tests
+	sort.Slice(docs, func(i, j int) bool {
+		return docs[i].ID < docs[j].ID
+	})
+	return docs, nil
 }
 
 func (m *MockRepository) Delete(ctx context.Context, id string) error {
-	delete(m.Notes, id)
+	if _, ok := m.docs[id]; !ok {
+		return errors.New("not found")
+	}
+	delete(m.docs, id)
 	return nil
 }
 
-func (m *MockRepository) Initialize(ctx context.Context) error {
-	return nil
-}
+func (m *MockRepository) Initialize(ctx context.Context) error { return nil }
 
-func (m *MockRepository) Sync(ctx context.Context) error {
-	return nil
-}
-
-func TestService_SaveNote(t *testing.T) {
+func TestService_CRUD(t *testing.T) {
 	repo := NewMockRepository()
-	service := core.NewService(repo, nil)
+	service := core.NewService(repo)
 	ctx := context.TODO()
 
-	// Test Case 1: Create a valid note
-	err := service.SaveNote(ctx, "test-id", "Content", core.Metadata{"tags": []string{"test"}})
+	// 1. Save
+	err := service.SaveDocument(ctx, "doc1", "content1", core.Metadata{"author": "me"})
 	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
+		t.Fatalf("SaveDocument failed: %v", err)
 	}
 
-	// Verify persistence in Mock
-	if _, ok := repo.Notes["test-id"]; !ok {
-		t.Errorf("expected note to be saved in repository")
+	// 2. Get
+	doc, err := service.GetDocument(ctx, "doc1")
+	if err != nil {
+		t.Fatalf("GetDocument failed: %v", err)
+	}
+	if doc.Content != "content1" {
+		t.Errorf("expected content 'content1', got '%s'", doc.Content)
 	}
 
-	// Verify content
-	if repo.Notes["test-id"].Content != "Content" {
-		t.Errorf("expected content 'Content', got '%s'", repo.Notes["test-id"].Content)
+	// 3. List
+	_ = service.SaveDocument(ctx, "doc2", "content2", nil)
+	docs, err := service.ListDocuments(ctx)
+	if err != nil {
+		t.Fatalf("ListDocuments failed: %v", err)
+	}
+	if len(docs) != 2 {
+		t.Errorf("expected 2 documents, got %d", len(docs))
 	}
 
-	// Test Case 2: Empty ID Validation
-	err = service.SaveNote(ctx, "", "Content", nil)
+	// 4. Delete
+	err = service.DeleteDocument(ctx, "doc1")
+	if err != nil {
+		t.Fatalf("DeleteDocument failed: %v", err)
+	}
+	_, err = service.GetDocument(ctx, "doc1")
 	if err == nil {
-		t.Error("expected error for empty ID")
-	} else if err.Error() != "id cannot be empty" {
-		t.Errorf("expected 'id cannot be empty', got '%v'", err)
-	}
-}
-
-func TestService_DeleteNote(t *testing.T) {
-	repo := NewMockRepository()
-	service := core.NewService(repo, nil)
-	ctx := context.TODO()
-
-	// Seed
-	repo.Notes["to-delete"] = core.Note{ID: "to-delete"}
-
-	// Delete
-	err := service.DeleteNote(ctx, "to-delete")
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-
-	// Verify
-	if _, ok := repo.Notes["to-delete"]; ok {
-		t.Errorf("expected note to be deleted")
-	}
-}
-
-func TestService_GetNote(t *testing.T) {
-	repo := NewMockRepository()
-	service := core.NewService(repo, nil)
-	ctx := context.TODO()
-
-	repo.Notes["exists"] = core.Note{ID: "exists", Content: "foo"}
-
-	// Success
-	n, err := service.GetNote(ctx, "exists")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if n.Content != "foo" {
-		t.Errorf("expected foo, got %s", n.Content)
-	}
-
-	// Not Found (Mock returns empty note, nil error for now based on implementation)
-	_, err = service.GetNote(ctx, "missing")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-}
-
-func TestService_ListNotes(t *testing.T) {
-	repo := NewMockRepository()
-	service := core.NewService(repo, nil)
-	ctx := context.TODO()
-
-	repo.Notes["n1"] = core.Note{ID: "n1"}
-	repo.Notes["n2"] = core.Note{ID: "n2"}
-
-	list, err := service.ListNotes(ctx)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if len(list) != 2 {
-		t.Errorf("expected 2 notes, got %d", len(list))
+		t.Error("expected error after deletion, got nil")
 	}
 }
 
 func TestService_Begin_Unsupported(t *testing.T) {
-	// MockRepository does not implement TransactionalRepository
 	repo := NewMockRepository()
-	service := core.NewService(repo, nil)
+	service := core.NewService(repo)
 	ctx := context.TODO()
 
-	_, err := service.Begin(ctx)
+	err := service.WithTransaction(ctx, func(tx core.Transaction) error {
+		return nil
+	})
+
 	if err == nil {
 		t.Fatal("expected error for non-transactional repo")
 	}

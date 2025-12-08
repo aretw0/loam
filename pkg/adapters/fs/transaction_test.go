@@ -49,7 +49,7 @@ func TestTransaction(t *testing.T) {
 		}
 
 		// Save within TX
-		note := core.Note{ID: "tx-note-1", Content: "Buffered content"}
+		note := core.Document{ID: "tx-note-1", Content: "Buffered content"}
 		if err := tx.Save(ctx, note); err != nil {
 			t.Fatalf("failed to save in tx: %v", err)
 		}
@@ -95,7 +95,7 @@ func TestTransaction(t *testing.T) {
 			t.Fatalf("failed to begin tx: %v", err)
 		}
 
-		note := core.Note{ID: "rollback-note", Content: "To be discarded"}
+		note := core.Document{ID: "rollback-note", Content: "To be discarded"}
 		if err := tx.Save(ctx, note); err != nil {
 			t.Fatalf("failed to save in tx: %v", err)
 		}
@@ -115,7 +115,7 @@ func TestTransaction(t *testing.T) {
 
 	t.Run("Delete Isolation", func(t *testing.T) {
 		// Pre-create a note
-		repo.Save(ctx, core.Note{ID: "to-delete", Content: "Original"})
+		repo.Save(ctx, core.Document{ID: "to-delete", Content: "Original"})
 		assertFileExists("to-delete", true)
 
 		tx, _ := repo.Begin(ctx)
@@ -159,7 +159,7 @@ func TestTransaction(t *testing.T) {
 		}
 
 		tx, _ := gitRepo.Begin(ctx)
-		tx.Save(ctx, core.Note{ID: "git-note", Content: "Tracked"})
+		tx.Save(ctx, core.Document{ID: "git-note", Content: "Tracked"})
 		if err := tx.Commit(ctx, "feat: tracked note"); err != nil {
 			t.Fatalf("git commit failed: %v", err)
 		}
@@ -170,7 +170,7 @@ func TestTransaction(t *testing.T) {
 		}
 
 		// Ensure git lock is released by trying another op
-		if err := gitRepo.Save(ctx, core.Note{ID: "post-tx", Content: "Should work"}); err != nil {
+		if err := gitRepo.Save(ctx, core.Document{ID: "post-tx", Content: "Should work"}); err != nil {
 			t.Errorf("failed to save after transaction (lock stuck?): %v", err)
 		}
 	})

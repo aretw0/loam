@@ -6,9 +6,9 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/aretw0/loam"
 	"github.com/aretw0/loam/pkg/core"
 	"github.com/aretw0/loam/pkg/git"
-	"github.com/aretw0/loam"
 )
 
 func TestService_WriteCommit(t *testing.T) {
@@ -25,7 +25,7 @@ func TestService_WriteCommit(t *testing.T) {
 	ctx := context.TODO()
 
 	// Create a Note
-	err = service.SaveNote(ctx, "test_note", "# Hello Loam\nThis note is versioned.", core.Metadata{
+	err = service.SaveDocument(ctx, "test_note", "# Hello Loam\nThis note is versioned.", core.Metadata{
 		"title": "Integration Test",
 		"tags":  []string{"ci", "test"},
 	})
@@ -54,9 +54,9 @@ func TestService_WriteCommit(t *testing.T) {
 	}
 
 	// Read Back (Round-trip verification)
-	readNote, err := service.GetNote(ctx, "test_note")
+	readNote, err := service.GetDocument(ctx, "test_note")
 	if err != nil {
-		t.Fatalf("Service.GetNote failed: %v", err)
+		t.Fatalf("Service.GetDocument failed: %v", err)
 	}
 
 	if readNote.Content != "# Hello Loam\nThis note is versioned." {
@@ -88,13 +88,13 @@ func TestService_DeleteList(t *testing.T) {
 	}
 
 	for _, n := range notes {
-		if err := service.SaveNote(ctx, n.ID, n.Content, nil); err != nil {
+		if err := service.SaveDocument(ctx, n.ID, n.Content, nil); err != nil {
 			t.Fatalf("Failed to save %s: %v", n.ID, err)
 		}
 	}
 
 	// List - Should have 3
-	list, err := service.ListNotes(ctx)
+	list, err := service.ListDocuments(ctx)
 	if err != nil {
 		t.Fatalf("Failed to list: %v", err)
 	}
@@ -103,7 +103,7 @@ func TestService_DeleteList(t *testing.T) {
 	}
 
 	// Delete note2
-	if err := service.DeleteNote(ctx, "note2"); err != nil {
+	if err := service.DeleteDocument(ctx, "note2"); err != nil {
 		t.Fatalf("Failed to delete note2: %v", err)
 	}
 
@@ -113,7 +113,7 @@ func TestService_DeleteList(t *testing.T) {
 	}
 
 	// List - Should have 2
-	list, err = service.ListNotes(ctx)
+	list, err = service.ListDocuments(ctx)
 	if err != nil {
 		t.Fatalf("Failed to list post-delete: %v", err)
 	}
@@ -154,7 +154,7 @@ func TestService_Namespaces(t *testing.T) {
 
 	// Create Note in Subdirectory
 	noteID := "deep/nested/note"
-	err = service.SaveNote(ctx, noteID, "Content in a folder", core.Metadata{"title": "Deep Note"})
+	err = service.SaveDocument(ctx, noteID, "Content in a folder", core.Metadata{"title": "Deep Note"})
 	if err != nil {
 		t.Fatalf("Failed to write nested note: %v", err)
 	}
@@ -166,7 +166,7 @@ func TestService_Namespaces(t *testing.T) {
 	}
 
 	// Verify List finds it
-	notes, err := service.ListNotes(ctx)
+	notes, err := service.ListDocuments(ctx)
 	if err != nil {
 		t.Fatalf("Failed to list: %v", err)
 	}

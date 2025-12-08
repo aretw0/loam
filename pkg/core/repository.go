@@ -6,21 +6,27 @@ import "context"
 // Adhering to this interface allows the core to be independent of the
 // underlying storage mechanism (Filesystem, Git, SQL, S3, etc).
 type Repository interface {
-	// Save persists a note. It creates if not exists, or updates if it does.
-	Save(ctx context.Context, n Note) error
+	// Save persists a document. It creates if not exists, or updates if it does.
+	Save(ctx context.Context, doc Document) error
 
-	// Get retrieves a note by its ID.
-	Get(ctx context.Context, id string) (Note, error)
+	// Get retrieves a document by its ID.
+	Get(ctx context.Context, id string) (Document, error)
 
-	// List returns all available notes.
+	// List returns all available documents.
 	// TODO: Add pagination or filtering options in the future.
-	List(ctx context.Context) ([]Note, error)
+	List(ctx context.Context) ([]Document, error)
 
-	// Delete removes a note by its ID.
+	// Delete removes a document by its ID.
 	Delete(ctx context.Context, id string) error
 
 	// Initialize ensures the underlying storage is ready (e.g., create directories, git init, schema migration).
 	Initialize(ctx context.Context) error
+}
+
+// Transactional indicates that a repository supports atomic transactions.
+type Transactional interface {
+	// Begin starts a new transaction.
+	Begin(ctx context.Context) (Transaction, error)
 }
 
 // Syncable defines an interface for repositories that support synchronization with a remote.
@@ -29,37 +35,16 @@ type Syncable interface {
 	Sync(ctx context.Context) error
 }
 
-type contextKey string
-
-// ChangeReasonKey is the context key for passing specific change reasons (commit messages) during Save/Delete operations.
-const ChangeReasonKey contextKey = "change_reason"
-
-// Transaction defines the contract for a unit of work.
-// Changes made within a transaction are atomic and isolated (depending on implementation).
+// Transaction represents a unit of work (batch of operations).
 type Transaction interface {
-	// Save stages a note for persistence.
-	Save(ctx context.Context, n Note) error
-
-	// Get retrieves a note, preferring the staged version if it exists in the transaction.
-	Get(ctx context.Context, id string) (Note, error)
-
-	// List returns all available notes, including staged ones.
-	List(ctx context.Context) ([]Note, error)
-
-	// Delete stages a note for removal.
+	// Save stages a document for saving.
+	Save(ctx context.Context, doc Document) error
+	// Get retrieves a document (including staged changes).
+	Get(ctx context.Context, id string) (Document, error)
+	// Delete stages a document for deletion.
 	Delete(ctx context.Context, id string) error
-
-	// Commit applies all staged changes atomically.
-	Commit(ctx context.Context, changeReason string) error
-
-	// Rollback discards all staged changes.
+	// Commit applies the changes.
+	Commit(ctx context.Context, msg string) error
+	// Rollback discards the changes.
 	Rollback(ctx context.Context) error
-}
-
-// TransactionalRepository extends Repository to support transactions.
-type TransactionalRepository interface {
-	Repository
-
-	// Begin starts a new transaction.
-	Begin(ctx context.Context) (Transaction, error)
 }

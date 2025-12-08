@@ -28,7 +28,7 @@ var deleteCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		if err := service.DeleteNote(context.Background(), id); err != nil {
+		if err := service.DeleteDocument(context.Background(), id); err != nil {
 			fmt.Printf("Error deleting note: %v\n", err)
 			os.Exit(1)
 		}

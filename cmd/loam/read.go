@@ -40,7 +40,7 @@ var readCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		note, err := service.GetNote(context.Background(), id)
+		note, err := service.GetDocument(context.Background(), id)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error reading note: %v\n", err)
 			os.Exit(1)
