@@ -196,13 +196,43 @@ func main() {
 	// We expect mixed IDs.
 	list(repo, "Mixed Namespace State (products)")
 
-	// Check if we can "blindly" iterate them
-	allDocs, _ = repo.List(context.Background())
-	fmt.Println("\n[Analysis] IDs in the wild:")
-	for _, d := range allDocs {
-		if strings.Contains(d.ID, "products") || strings.Contains(d.ID, "p.") { // filter for products
-			fmt.Printf(" - ID: %-20s | Content: %s | Source: %s\n", d.ID, d.Content, filepath.Ext(d.ID))
-		}
+	// --- Part 3: Advanced Migration (CSV -> Markdown) ---
+	fmt.Println("\n--- Part 3: Utility Driven Migration (CSV -> Markdown) ---")
+	// Scenario: Convert remaining products (p2, p3) in CSV to shiny new Markdown files.
+	// We use a generic 'Migrate' utility that could be part of Loam's future "Extra" package.
+
+	count, err = Migrate(context.Background(), repo, "products.csv", func(doc core.Document) (core.Document, error) {
+		// Logic:
+		// 1. Check if it's already converted? (Our filterPrefix handles source selection mostly)
+		// 2. Create new ID: products/NAME.md
+
+		parts := strings.Split(doc.ID, "/")
+		name := parts[1] // "p2" or "p3"
+
+		newDoc := doc
+		newDoc.ID = fmt.Sprintf("products/%s.md", name)
+
+		// Markdown is text-heavy. Let's say "Content" stays as body.
+		// Metadata (price) will automatically become Frontmatter by the Adapter.
+
+		return newDoc, nil
+	})
+
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("Batch Migrated %d documents to Markdown.\n", count)
+
+	// Verify Final State
+	list(repo, "Final Polyglot State")
+
+	// Show physical file content for p2.md to prove Frontmatter
+	p2Path := filepath.Join(tmpDir, "products", "p2.md")
+	if content, err := os.ReadFile(p2Path); err == nil {
+		fmt.Println("\n[Verification] Content of products/p2.md on disk:")
+		fmt.Println(string(content))
+	} else {
+		fmt.Printf("Error reading p2.md: %v\n", err)
 	}
 }
 
@@ -214,6 +244,85 @@ func list(repo *fs.Repository, title string) {
 	}
 	fmt.Printf("\n[%s] Repository Count: %d\n", title, len(docs))
 	for _, d := range docs {
-		fmt.Printf(" - %s (%s)\n", d.ID, d.Content)
+		content := d.Content
+		// DX: Explain caching behavior.
+		// If content is empty but we expected something, it might be a cache hit (metadata only).
+		// We explicitly fetch it for the demo.
+		if content == "" {
+			if full, err := repo.Get(context.Background(), d.ID); err == nil {
+				content = fmt.Sprintf("%s [fetched]", full.Content)
+			} else {
+				content = "[cached-only]"
+			}
+		}
+		fmt.Printf(" - ID: %-25s | Content: %s\n", d.ID, content)
 	}
+}
+
+// --- Proposed Utility for Loam Toolkit ---
+
+// TransformFunc defines how a document should be modified during migration.
+// Return empty ID to skip/filter out a document during the process.
+type TransformFunc func(doc core.Document) (core.Document, error)
+
+// Migrate is a generic helper that safely moves documents from one format/ID to another.
+// It handles the transactional complexity (Read -> Transform -> Save -> Delete).
+func Migrate(ctx context.Context, repo *fs.Repository, filterPrefix string, transform TransformFunc) (int, error) {
+	// 1. Discovery
+	allDocs, err := repo.List(ctx)
+	if err != nil {
+		return 0, err
+	}
+
+	// 2. Transaction
+	tx, err := repo.Begin(ctx)
+	if err != nil {
+		return 0, err
+	}
+
+	count := 0
+	for _, summary := range allDocs {
+		// Filter
+		if filterPrefix != "" && !strings.HasPrefix(summary.ID, filterPrefix) {
+			continue
+		}
+
+		// Hydrate (Get Full Content)
+		doc, err := repo.Get(ctx, summary.ID)
+		if err != nil {
+			// Log error? Skip? For now, abort to be safe.
+			return count, fmt.Errorf("failed to read %s: %w", summary.ID, err)
+		}
+
+		// Transform
+		newDoc, err := transform(doc)
+		if err != nil {
+			return count, err
+		}
+
+		// Skip if ID empty (Transform decided to filter it)
+		if newDoc.ID == "" {
+			continue
+		}
+
+		// Save New
+		if err := tx.Save(ctx, newDoc); err != nil {
+			return count, err
+		}
+
+		// Delete Old (only if ID changed)
+		if newDoc.ID != doc.ID {
+			if err := tx.Delete(ctx, doc.ID); err != nil {
+				return count, err
+			}
+		}
+		count++
+		fmt.Printf(" [Migrate] Scheduled: %s -> %s\n", doc.ID, newDoc.ID)
+	}
+
+	// 3. Commit
+	if count > 0 {
+		return count, tx.Commit(ctx, "migration batch")
+	}
+	return 0, nil
 }
