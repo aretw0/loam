@@ -8,6 +8,7 @@ import (
 
 	"github.com/aretw0/loam/internal/platform"
 	"github.com/aretw0/loam/pkg/adapters/fs"
+	"github.com/aretw0/loam/pkg/core"
 )
 
 type UserProfile struct {
@@ -16,25 +17,30 @@ type UserProfile struct {
 	Age   int    `json:"age"`
 }
 
-func TestTypedRepository(t *testing.T) {
-	// Setup temporary directory for repository
+func setupRepo(t *testing.T) (core.Repository, string) {
+	t.Helper()
 	tmpDir, err := os.MkdirTemp("", "loam-typed-test")
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.RemoveAll(tmpDir)
 
-	// Initialize standard FS repository
-	// We use "gitless" for speed in tests
 	fsConfig := fs.Config{
 		Path:    filepath.Join(tmpDir, "vault"),
 		Gitless: true,
 	}
 	repo := fs.NewRepository(fsConfig)
-	ctx := context.Background()
-	if err := repo.Initialize(ctx); err != nil {
+	if err := repo.Initialize(context.Background()); err != nil {
+		os.RemoveAll(tmpDir)
 		t.Fatalf("failed to init repo: %v", err)
 	}
+	return repo, tmpDir
+}
+
+func TestTypedRepository(t *testing.T) {
+	repo, tmpDir := setupRepo(t)
+	defer os.RemoveAll(tmpDir)
+
+	ctx := context.Background()
 
 	// Create Typed Wrapper
 	userRepo := platform.NewTyped[UserProfile](repo)

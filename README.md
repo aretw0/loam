@@ -130,6 +130,23 @@ func main() {
 }
 ```
 
+131:
+132: ### Typed Retrieval (Generics)
+133:
+134: Para maior segurança de tipos, você pode usar o wrapper genérico:
+135:
+136: ```go
+137: type User struct { Name string `json:"name"` }
+138:
+139: // Wraps o repositório base
+140: userRepo := loam.NewTyped[User](baseRepo)
+141:
+142: // Acesso tipado
+143: user, _ := userRepo.Get(ctx, "users/alice")
+144: fmt.Println(user.Data.Name)
+145:```
+146:
+
 ## 📚 Documentação Técnica
 
 - [Visão do Produto](docs/PRODUCT.md)
