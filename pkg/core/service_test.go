@@ -101,3 +101,58 @@ func TestService_DeleteNote(t *testing.T) {
 		t.Errorf("expected note to be deleted")
 	}
 }
+
+func TestService_GetNote(t *testing.T) {
+	repo := NewMockRepository()
+	service := core.NewService(repo, nil)
+	ctx := context.TODO()
+
+	repo.Notes["exists"] = core.Note{ID: "exists", Content: "foo"}
+
+	// Success
+	n, err := service.GetNote(ctx, "exists")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if n.Content != "foo" {
+		t.Errorf("expected foo, got %s", n.Content)
+	}
+
+	// Not Found (Mock returns empty note, nil error for now based on implementation)
+	_, err = service.GetNote(ctx, "missing")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestService_ListNotes(t *testing.T) {
+	repo := NewMockRepository()
+	service := core.NewService(repo, nil)
+	ctx := context.TODO()
+
+	repo.Notes["n1"] = core.Note{ID: "n1"}
+	repo.Notes["n2"] = core.Note{ID: "n2"}
+
+	list, err := service.ListNotes(ctx)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(list) != 2 {
+		t.Errorf("expected 2 notes, got %d", len(list))
+	}
+}
+
+func TestService_Begin_Unsupported(t *testing.T) {
+	// MockRepository does not implement TransactionalRepository
+	repo := NewMockRepository()
+	service := core.NewService(repo, nil)
+	ctx := context.TODO()
+
+	_, err := service.Begin(ctx)
+	if err == nil {
+		t.Fatal("expected error for non-transactional repo")
+	}
+	if err.Error() != "repository does not support transactions" {
+		t.Errorf("unexpected error msg: %v", err)
+	}
+}
