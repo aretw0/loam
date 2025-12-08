@@ -1,11 +1,13 @@
 # Loam 🌱
 
-> A Transactional Storage Engine for Markdown + Frontmatter backed by Git.
+> A Transactional Storage Engine for Markdown + Frontmatter.
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/aretw0/loam)](https://goreportcard.com/report/github.com/aretw0/loam)
 [![Go Doc](https://godoc.org/github.com/aretw0/loam?status.svg)](https://godoc.org/github.com/aretw0/loam/pkg/loam)
 
-**Loam** trata seu diretório de notas Markdown como um banco de dados NoSQL.
+**Loam** é uma engine de armazenamento transacional de notas (Headless CMS), focada em conteúdo textual e metadados.
+Embora a implementação padrão utilize **Markdown + Frontmatter sobre Git** (FS Adapter), a arquitetura é agnóstica e permite outros backends (S3, SQL, etc).
+
 Ele oferece operações de CRUD atômicas e seguras, garantindo que suas automações não corrompam seu cofre pessoal. É ideal para **toolmakers** que querem criar bots ou scripts sobre suas bases de conhecimento (Obsidian, Logseq, etc).
 
 ## 🚀 Instalação
@@ -16,19 +18,21 @@ go install github.com/aretw0/loam/cmd/loam@latest
 
 ## 🛠️ CLI: Uso Básico
 
-O Loam CLI funciona como um "Git para Humanos", abstraindo o versionamento.
+O Loam CLI funciona como um "Gerenciador de Conteúdo", abstraindo a persistência.
 
 ### Inicializar
 
-Transforma a pasta atual em um cofre Loam (git init + configuração).
+Inicia um cofre Loam. Por padrão usa o adapter de sistema de arquivos (FS + Git).
 
 ```bash
 loam init
+# Ou explicitamente:
+loam init --adapter fs
 ```
 
 ### Criar/Editar Nota
 
-Salva conteúdo e cria um commit automaticamente. Suporta **Commits Semânticos**.
+Salva conteúdo e registra a razão da mudança (Commits no caso do Git).
 
 ```bash
 # Modo Simples (apenas mensagem)
@@ -40,7 +44,7 @@ loam write -id feature/nova-ideia -content "..." --type feat --scope ideias -m "
 
 ### Sincronizar (Sync)
 
-Puxa mudanças remotas (rebase) e envia as locais. Seguro contra conflitos simples.
+Sincroniza o cofre com o remoto configurado (se o adapter suportar).
 
 ```bash
 loam sync
@@ -49,14 +53,14 @@ loam sync
 ### Outros Comandos
 
 - **Ler**: `loam read -id daily/2025-12-06`
-- **Listar**: `loam list` (Usa cache para alta performance)
+- **Listar**: `loam list`
 - **Deletar**: `loam delete -id daily/2025-12-06`
 
 ---
 
 ## 📦 Library: Uso em Go
 
-Você pode embutir o Loam em seus próprios projetos Go para gerenciar persistência de arquivos Markdown.
+Você pode embutir o Loam em seus próprios projetos Go para gerenciar persistência de dados.
 
 ```bash
 go get github.com/aretw0/loam
@@ -78,20 +82,19 @@ import (
 )
 
 func main() {
- // 1. Inicializar Serviço (Factory) com Functional Options
- // Configuração mais limpa e extensível.
+ // 1. Inicializar Serviço (Factory) com Functional Options.
  service, err := loam.New("./minhas-notas",
+  loam.WithAdapter("fs"), // Padrão
   loam.WithAutoInit(true),
   loam.WithLogger(slog.New(slog.NewTextHandler(os.Stdout, nil))),
-  // loam.WithGitless(true), // Opcional: modo sem git
  )
  if err != nil {
   panic(err)
  }
 
  // 2. Salvar uma Nota (Save Note)
- // O Context pode passar metadados para o Adapter (ex: mensagem de commit)
- ctx := context.WithValue(context.Background(), core.CommitMessageKey, "chore: cria nota de exemplo")
+ // O Context pode passar metadados para o Adapter (ex: razão da mudança / commit message)
+ ctx := context.WithValue(context.Background(), core.ChangeReasonKey, "chore: cria nota de exemplo")
 
  err = service.SaveNote(ctx, "exemplo", "Conteúdo da nota em Markdown.", core.Metadata{
   "title": "Minha Nota",

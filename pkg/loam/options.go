@@ -8,12 +8,10 @@ import (
 
 // options holds the internal configuration for the Loam service.
 type options struct {
-	autoInit   bool
-	gitless    bool
-	tempDir    bool
-	mustExist  bool
 	repository core.Repository
 	logger     *slog.Logger
+	adapter    string
+	config     map[string]interface{}
 }
 
 // Option defines a functional option for configuring Loam.
@@ -22,19 +20,17 @@ type Option func(*options)
 // defaultOptions returns the default configuration.
 func defaultOptions() *options {
 	return &options{
-		autoInit:   false,
-		gitless:    false,
-		tempDir:    false,
-		mustExist:  false,
 		repository: nil,
-		logger:     nil, // or slog.Default() if we prefer
+		logger:     nil,
+		adapter:    "fs",
+		config:     make(map[string]interface{}),
 	}
 }
 
 // WithAutoInit enables automatic initialization of the vault (git init).
 func WithAutoInit(auto bool) Option {
 	return func(o *options) {
-		o.autoInit = auto
+		o.config["auto_init"] = auto
 	}
 }
 
@@ -43,21 +39,22 @@ func WithAutoInit(auto bool) Option {
 // Passing false will enable gitless mode (gitless = true).
 func WithVersioning(enabled bool) Option {
 	return func(o *options) {
-		o.gitless = !enabled
+		// Mapping to implementation detail: gitless = !enabled
+		o.config["gitless"] = !enabled
 	}
 }
 
 // WithForceTemp forces the use of a temporary directory (useful for testing).
 func WithForceTemp(force bool) Option {
 	return func(o *options) {
-		o.tempDir = force
+		o.config["temp_dir"] = force
 	}
 }
 
 // WithMustExist ensures the vault directory must already exist.
 func WithMustExist(must bool) Option {
 	return func(o *options) {
-		o.mustExist = must
+		o.config["must_exist"] = must
 	}
 }
 
@@ -73,5 +70,13 @@ func WithLogger(logger *slog.Logger) Option {
 func WithRepository(repo core.Repository) Option {
 	return func(o *options) {
 		o.repository = repo
+	}
+}
+
+// WithAdapter allows specifying the storage adapter to use by name (e.g. "fs").
+// Defaults to "fs".
+func WithAdapter(name string) Option {
+	return func(o *options) {
+		o.adapter = name
 	}
 }

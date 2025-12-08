@@ -25,7 +25,12 @@ var initCmd = &cobra.Command{
 		}
 
 		// loam init -> AutoInit=true
-		_, err = loam.Init(cwd, loam.WithAutoInit(true), loam.WithVersioning(!gitless), loam.WithLogger(slog.Default()))
+		_, err = loam.Init(cwd,
+			loam.WithAdapter(adapter),
+			loam.WithAutoInit(true),
+			loam.WithVersioning(!gitless),
+			loam.WithLogger(slog.Default()),
+		)
 		if err != nil {
 			fatal("Failed to initialize vault", err)
 		}

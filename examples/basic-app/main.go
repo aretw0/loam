@@ -1,10 +1,12 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"os"
 
+	"github.com/aretw0/loam/pkg/core"
 	"github.com/aretw0/loam/pkg/loam"
 )
 
@@ -18,33 +20,38 @@ func main() {
 	// WithAutoInit automatically creates the directory and initializes git if not present.
 	// NOTE: If running via 'go run', IsDevRun() will intercept this path and redirect it
 	// to a safe temp directory (e.g. %TEMP%/loam-dev/my-notes) to prevent host pollution.
-	vault, err := loam.NewVault(vaultPath, logger, loam.WithAutoInit(true))
+	service, err := loam.New(vaultPath,
+		loam.WithAutoInit(true),
+		loam.WithLogger(logger),
+	)
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Printf("Vault initialized at: %s\n", vault.Path)
+	fmt.Printf("Vault initialized at: %s\n", vaultPath)
 
-	// 2. Create a Note
-	note := &loam.Note{
-		ID: "example",
-		Metadata: loam.Metadata{
-			"title": "My First Note",
-			"tags":  []string{"demo", "loam"},
-		},
-		Content: "This is a note created via the Loam Go API.",
-	}
-
+	// 2. Create Note Content & Metadata
+	noteID := "example"
+	content := "This is a note created via the Loam Go API."
 	// 3. Save (Atomic Operation)
 	fmt.Println("Saving note...")
-	if err := vault.Save(note, "chore: create example note"); err != nil {
+
+	// Pass Change Reason via context
+	reason := loam.FormatChangeReason(loam.CommitTypeChore, "", "create example note", "")
+	ctx := context.WithValue(context.Background(), core.ChangeReasonKey, reason)
+
+	err = service.SaveNote(ctx, noteID, content, core.Metadata{
+		"title": "My First Note",
+		"tags":  []string{"demo", "loam"},
+	})
+	if err != nil {
 		panic(err)
 	}
 
 	fmt.Println("Note saved successfully.")
 
 	// Show how to read back
-	readNote, err := vault.Read("example")
+	readNote, err := service.GetNote(context.Background(), "example")
 	if err != nil {
 		panic(err)
 	}
