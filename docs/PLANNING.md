@@ -13,6 +13,16 @@
 - [x] **QA**:
   - [x] Coverage Check.
 
+## RFC: Library-Level Sync Strategies (0.x.x)
+
+**Objetivo:** Permitir que toolmakers definam estratégias de sincronização não-bloqueantes ou customizadas, crucial para adapters distribuídos (S3, SQL) ou clientes "Offline-First".
+
+- [ ] **Interface de Sync**:
+  - [ ] `Sync(ctx, Strategy)` no Service/Repository.
+  - [ ] Strategies: `Manual` (Atual), `Background/Periodic` (Goroutine), `OnSave` (Hook).
+- [ ] **Monitoramento**:
+  - [ ] Expor status de sync (LastSyncedAt, PendingChanges).
+
 ## Fase 0.6.0: Server & Interoperability (Backlog)
 
 Objetivo: Permitir que ferramentas externas (não-Go) interajam com o Loam via rede/socket, reforçando a visão de "Driver".

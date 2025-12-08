@@ -1,7 +1,15 @@
 # Visão do Produto
 
-**Loam** é um "driver de banco de dados" para sistemas de arquivos locais.
-O objetivo principal é fornecer uma **camada de persistência transacional** para arquivos Markdown com Frontmatter.
+**Loam** é um "driver de banco de dados" para conteúdo e metadados.
+O objetivo principal é fornecer uma **camada de persistência transacional** agnóstica. Embora a implementação de referência seja para **arquivos Markdown com Frontmatter**, a abstração permite outros backends.
+
+## Por que Loam?
+
+Para desenvolvedores acostumados com bancos de dados tradicionais, lidar com arquivos locais pode parecer arcaico e inseguro. O Loam traz a robustez de um banco de dados para o mundo dos arquivos de texto.
+
+- **SQLite para Markdown:** Assim como o SQLite é o padrão para dados estruturados locais, o Loam quer ser o padrão para conteúdo (Markdown/Obsidian). Não use `fs.WriteFile`, use `loam.SaveNote`.
+- **Automação Segura:** Seus scripts Python/Bash que editam notas podem corromper o repositório se rodarem concorrentemente. O Loam implementa *file locking* e transações para evitar isso.
+- **CI/CD de Conteúdo:** Garanta integridade de dados (tags, datas, links) no momento da escrita, validando *frontmatter* antes do commit.
 
 ## Objetivos
 

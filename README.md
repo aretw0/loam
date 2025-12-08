@@ -83,6 +83,7 @@ import (
 
 func main() {
  // 1. Inicializar Serviço (Factory) com Functional Options.
+ // O primeiro argumento é a URI ou Path do cofre. Para o adapter FS, use o caminho do diretório.
  service, err := loam.New("./minhas-notas",
   loam.WithAdapter("fs"), // Padrão
   loam.WithAutoInit(true),
@@ -92,21 +93,7 @@ func main() {
   panic(err)
  }
 
- // 2. Salvar uma Nota (Save Note)
- // O Context pode passar metadados para o Adapter (ex: razão da mudança / commit message)
- ctx := context.WithValue(context.Background(), core.ChangeReasonKey, "chore: cria nota de exemplo")
-
- err = service.SaveNote(ctx, "exemplo", "Conteúdo da nota em Markdown.", core.Metadata{
-  "title": "Minha Nota",
-  "tags":  []string{"teste", "golang"},
- })
-
- if err != nil {
-  panic(err)
- }
-
- fmt.Println("Nota salva com sucesso!")
-}
+ // ... (veja exemplos completos em examples/basic/crud)
 ```
 
 ## 📚 Documentação Técnica
