@@ -69,6 +69,6 @@ Testam regras de negócio usando Mocks em memória. Execução instantânea.
 
 Testam o fluxo completo (Service + FS Adapter + Git) em diretórios temporários reais. Garantem que o contrato de persistência é cumprido.
 
-### 3. Benchmarks (`cmd/bench`)
+### 3. Benchmarks (`examples/benchmarks`)
 
 Medem a performance do Adapter e eficácia do Cache.
