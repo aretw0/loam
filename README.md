@@ -5,10 +5,15 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/aretw0/loam)](https://goreportcard.com/report/github.com/aretw0/loam)
 [![Go Doc](https://godoc.org/github.com/aretw0/loam?status.svg)](https://godoc.org/github.com/aretw0/loam)
 
-**Loam** é uma engine de armazenamento transacional de notas (Headless CMS), focada em conteúdo textual e metadados.
-Embora a implementação padrão utilize **Markdown + Frontmatter sobre Git** (FS Adapter), a arquitetura é agnóstica e permite outros backends (S3, SQL, etc).
+**Loam** é uma engine de armazenamento transacional de documentos (Headless CMS), focada em conteúdo textual e metadados.
+Embora a implementação padrão utilize **Arquivos (Markdown, JSON, YAML, etc) sobre Git** (FS Adapter), a arquitetura é agnóstica e permite outros backends (S3, SQL, etc).
 
-Ele oferece operações de CRUD atômicas e seguras, garantindo que suas automações não corrompam seu cofre pessoal. É ideal para **toolmakers** que querem criar bots ou scripts sobre suas bases de conhecimento (Obsidian, Logseq, etc).
+Ele oferece operações de CRUD atômicas e seguras, garantindo que suas automações não corrompam seus dados. É ideal para **toolmakers** que constroem:
+
+- **Assistentes de PKM** (Obsidian, Logseq).
+- **Gerenciadores de Configuração** (GitOps, Dotfiles).
+- **Pipelines de Dados Locais** (ETL de CSV/JSON).
+- **Geradores de Sites Estáticos** (Hugo, Jekyll).
 
 ## 🚀 Instalação
 
@@ -30,7 +35,7 @@ loam init
 loam init --adapter fs
 ```
 
-### Criar/Editar Nota
+### Criar/Editar Documento
 
 Salva conteúdo e registra a razão da mudança (Commits no caso do Git).
 
@@ -98,19 +103,19 @@ func main() {
  // 2. Escrever (Save)
  // Salvamos o conteúdo com uma "razão de mudança" (Commit Message)
  // Isso garante que toda mudança tenha um porquê.
- ctxMsg := context.WithValue(ctx, core.ChangeReasonKey, "nota inicial")
- err = service.SaveNote(ctxMsg, "daily/hoje", "# Dia Incrível\nComeçamos o projeto.", nil)
+ ctxMsg := context.WithValue(ctx, core.ChangeReasonKey, "documento inicial")
+ err = service.SaveDocument(ctxMsg, "daily/hoje", "# Dia Incrível\nComeçamos o projeto.", nil)
  if err != nil {
   panic(err)
  }
- fmt.Println("Nota salva com sucesso!")
+ fmt.Println("Documento salvo com sucesso!")
 
  // 3. Ler (Read)
- note, err := service.GetNote(ctx, "daily/hoje")
+ doc, err := service.GetDocument(ctx, "daily/hoje")
  if err != nil { // Tratamento simplificado
   panic(err)
  }
- fmt.Printf("Conteúdo recuperado:\n%s\n", note.Content)
+ fmt.Printf("Conteúdo recuperado:\n%s\n", doc.Content)
 
  // ... (veja exemplos completos em examples/basics/crud)
 }

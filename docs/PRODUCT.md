@@ -1,13 +1,13 @@
 # Visão do Produto
 
 **Loam** é um "driver de banco de dados" para conteúdo e metadados.
-O objetivo principal é fornecer uma **camada de persistência transacional** agnóstica. Embora a implementação de referência seja para **arquivos Markdown com Frontmatter**, a abstração permite outros backends.
+O objetivo principal é fornecer uma **camada de persistência transacional** agnóstica. A implementação de referência (FS Adapter) suporta nativamente **Markdown, JSON, YAML e CSV**, tratando arquivos como documentos estruturados.
 
 ## Por que Loam?
 
 Para desenvolvedores acostumados com bancos de dados tradicionais, lidar com arquivos locais pode parecer arcaico e inseguro. O Loam traz a robustez de um banco de dados para o mundo dos arquivos de texto.
 
-- **SQLite para Markdown:** Assim como o SQLite é o padrão para dados estruturados locais, o Loam quer ser o padrão para conteúdo (Markdown/Obsidian). Não use `fs.WriteFile`, use `loam.SaveNote`.
+- **SQLite para Documentos:** Assim como o SQLite é o padrão para dados relacionais locais, o Loam quer ser o padrão para conteúdo não-estruturado e semi-estruturado (Markdown, Configs, Logs). Não use `fs.WriteFile`, use `loam.SaveDocument`.
 - **Automação Segura:** Seus scripts Python/Bash que editam notas podem corromper o repositório se rodarem concorrentemente. O Loam implementa *file locking* e transações para evitar isso.
 - **CI/CD de Conteúdo:** Garanta integridade de dados (tags, datas, links) no momento da escrita, validando *frontmatter* antes do commit.
 
@@ -21,9 +21,10 @@ Para desenvolvedores acostumados com bancos de dados tradicionais, lidar com arq
 
 ## Personas (Público-alvo)
 
-1. **Toolmakers:** Desenvolvedores criando bots, CLIs ou automações para PKM (Personal Knowledge Management).
-2. **Engenheiros de Dados Pessoais:** Usuários avançados que desejam pipelines de ETL para suas notas.
-3. **Entusiastas de "Local-First":** Quem busca soberania sobre seus dados, recusando bancos proprietários.
+1. **Toolmakers:** Desenvolvedores criando bots, CLIs ou automações.
+2. **Engenheiros de Dados:** Usuários avançados que desejam pipelines de ETL locais.
+3. **DevOps & SREs:** Gerenciamento seguro de configurações (GitOps) e dotfiles.
+4. **Entusiastas de "Local-First":** Quem busca soberania sobre seus dados.
 
 ## User Stories
 

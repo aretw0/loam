@@ -6,8 +6,8 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/aretw0/loam/pkg/core"
 	"github.com/aretw0/loam"
+	"github.com/aretw0/loam/pkg/core"
 )
 
 func main() {
@@ -29,7 +29,7 @@ func main() {
 	ctx := context.TODO()
 
 	// 1. CREATE (Save)
-	fmt.Println("\n[1] Creating Notes...")
+	fmt.Println("\n[1] Creating Documents...")
 	notes := []struct {
 		ID      string
 		Content string
@@ -40,25 +40,24 @@ func main() {
 	}
 
 	for _, n := range notes {
-		// Even in Gitless mode, we pass a 'commit message' context to keep API consistent.
-		ctxMsg := context.WithValue(ctx, core.ChangeReasonKey, "ignored message")
-		if err := service.SaveNote(ctxMsg, n.ID, n.Content, nil); err != nil {
+		ctxMsg := context.WithValue(ctx, core.ChangeReasonKey, "batch CREATE "+n.ID)
+		if err := service.SaveDocument(ctxMsg, n.ID, n.Content, nil); err != nil {
 			panic(fmt.Errorf("failed to save %s: %w", n.ID, err))
 		}
 		fmt.Printf("Saved: %s\n", n.ID)
 	}
 
 	// 2. READ
-	fmt.Println("\n[2] Reading Note 'ideas/app'...")
-	note, err := service.GetNote(ctx, "ideas/app")
+	fmt.Println("\n[2] Reading Document 'ideas/app'...")
+	doc, err := service.GetDocument(ctx, "ideas/app")
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("Content:\n---\n%s\n---\n", note.Content)
+	fmt.Printf("Content:\n---\n%s\n---\n", doc.Content)
 
 	// 3. LIST
-	fmt.Println("\n[3] Listing Notes...")
-	list, err := service.ListNotes(ctx)
+	fmt.Println("\n[3] Listing Documents...")
+	list, err := service.ListDocuments(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -68,14 +67,14 @@ func main() {
 
 	// 4. DELETE
 	fmt.Println("\n[4] Deleting 'temp'...")
-	if err := service.DeleteNote(ctx, "temp"); err != nil {
+	if err := service.DeleteDocument(ctx, "temp"); err != nil {
 		panic(err)
 	}
 	fmt.Println("Deleted 'temp'.")
 
 	// 5. VERIFY (List again)
-	fmt.Println("\n[5] Listing Notes (Post-Delete)...")
-	list, err = service.ListNotes(ctx)
+	fmt.Println("\n[5] Listing Documents (Post-Delete)...")
+	list, err = service.ListDocuments(ctx)
 	if err != nil {
 		panic(err)
 	}

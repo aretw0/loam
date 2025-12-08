@@ -74,7 +74,7 @@ func main() {
 			ctx := context.WithValue(context.Background(), core.ChangeReasonKey, reason)
 
 			// O Loam deve cuidar do Locking interno!
-			if err := service.SaveNote(ctx, noteID, content, nil); err != nil {
+			if err := service.SaveDocument(ctx, noteID, content, nil); err != nil {
 				log.Printf("❌ [Erro Rutine %d] Falha ao salvar: %v", id, err)
 				return
 			}
@@ -95,11 +95,6 @@ func main() {
 	log.Printf("⏱️  Tempo Total: %v", duration)
 	throughput := float64(WorkerCount) / duration.Seconds()
 	log.Printf("⚡ Throughput: %.2f commits/seg", throughput)
-
-	// Validar contagem de notas via API
-	// (Poderíamos usar git rev-list também, mas vamos usar a API para variar)
-	// Nota: List ainda não está exposto no Facade loam.go, então vamos confiar no log de erro acima
-	// ou se quiser, podemos instanciar um repo direto, mas o teste principal aqui é "não crashou".
 
 	log.Println("✅ Teste finalizado sem panics (esperamos que sem erros de log também).")
 }

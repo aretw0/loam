@@ -4,12 +4,12 @@
 
 **Objetivo:** Generalizar a entidade `Note` para `Document` e suportar múltiplos formatos (JSON, CSV, YAML) no Adapter FS, alinhando com a visão de "Headless CMS" universal.
 
-- [ ] **Core Refactoring**:
-  - [ ] Renomear `Note` para `Document` em `pkg/core`.
-  - [ ] Adicionar suporte a `Format/Extension` na entidade.
-- [ ] **FS Adapter Upgrade**:
-  - [ ] Suporte a escrita de arquivos crus (`.json`, `.csv`) baseado no formato do Documento.
-  - [ ] Manter retrocompatibilidade com Markdown/Frontmatter.
+- [x] **Core Refactoring**:
+  - [x] Renomear `Note` para `Document` em `pkg/core`.
+  - [ ] Adicionar suporte a `Format/Extension` na entidade. (Decidido: Delegar para Metadata/Adapter)
+- [x] **FS Adapter Upgrade**:
+  - [x] Suporte a escrita de arquivos crus (`.json`, `.csv`) baseado no ID/Metadata.
+  - [x] Manter retrocompatibilidade com Markdown/Frontmatter.
 
 ## RFC: Library-Level Sync Strategies (0.x.x)
 

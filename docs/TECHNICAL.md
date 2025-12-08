@@ -18,9 +18,9 @@ graph TD
 
 O coração do sistema. Contém apenas lógica de negócios pura e definições de tipos.
 
-- **Entidades**: `Note` (ID, Content, Metadata).
+- **Entidades**: `Document` (ID, Content, Metadata).
 - **Ports (Interfaces)**: `Repository` (Save, Get, List, Delete).
-- **Services**: `NoteService` (Orquestra validações e chama o Repository).
+- **Services**: `Service` (Orquestra validações e chama o Repository).
 - **Dependências**: Zero dependências de infraestrutura.
 
 ### 2. Adapters (`pkg/adapters`)
@@ -50,7 +50,7 @@ A fachada pública que simplifica o uso da biblioteca.
 
 ### 1. Storage Engine: Filesystem + Git (Driver Padrão)
 
-- **Formato:** Markdown (`.md`) com YAML Frontmatter.
+- **Formato:** Arquivos de texto (`.md`, `.json`, `.yaml`, `.csv`) gerenciados pelo FS Adapter.
 - **Transações:** O Git atua como *Write-Ahead Log*.
 - **Semântica de Commit:** O adapter `fs` lê `commit_message` do `context.Context` durante operações de escrita.
 

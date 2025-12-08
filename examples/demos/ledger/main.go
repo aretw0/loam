@@ -53,7 +53,7 @@ func main() {
 	reason := loam.FormatChangeReason(loam.CommitTypeFeat, "wallet", "buy groceries", "Weekly food supply")
 	ctx := context.WithValue(context.Background(), core.ChangeReasonKey, reason)
 
-	if err := service.SaveNote(ctx, txnID, receiptContent, txnMeta); err != nil {
+	if err := service.SaveDocument(ctx, txnID, receiptContent, txnMeta); err != nil {
 		panic(err)
 	}
 

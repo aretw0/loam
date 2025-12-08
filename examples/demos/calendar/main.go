@@ -49,7 +49,7 @@ func main() {
 	reason := loam.FormatChangeReason(loam.CommitTypeFeat, "cal", "schedule weekly sync", "Recurring event")
 	ctx := context.WithValue(context.Background(), core.ChangeReasonKey, reason)
 
-	if err := service.SaveNote(ctx, eventID, eventContent, eventMeta); err != nil {
+	if err := service.SaveDocument(ctx, eventID, eventContent, eventMeta); err != nil {
 		panic(err)
 	}
 

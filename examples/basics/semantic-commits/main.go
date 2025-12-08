@@ -6,9 +6,9 @@ import (
 	"log/slog"
 	"os"
 
+	"github.com/aretw0/loam"
 	"github.com/aretw0/loam/pkg/core"
 	"github.com/aretw0/loam/pkg/git"
-	"github.com/aretw0/loam"
 )
 
 func main() {
@@ -42,8 +42,6 @@ func main() {
 	}
 
 	// 2. Formatar mensagem semântica usando o helper do Loam
-	// Isso garante que o commit siga o padrão Conventional Commits + Footer
-	// UPDATED: FormatCommitMessage -> FormatChangeReason
 	msg := loam.FormatChangeReason(
 		loam.CommitTypeDocs,         // type: docs
 		"arch",                      // scope: arch
@@ -55,9 +53,10 @@ func main() {
 
 	// 3. Salvar (Commit)
 	ctx := context.WithValue(context.Background(), core.ChangeReasonKey, msg)
-	if err := service.SaveNote(ctx, noteID, content, meta); err != nil {
+	// We use SaveDocument now
+	if err := service.SaveDocument(ctx, noteID, content, meta); err != nil {
 		panic(err)
 	}
 
-	fmt.Println("Nota salva com commit semântico!")
+	fmt.Println("Documento salvo com commit semântico!")
 }

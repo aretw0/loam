@@ -3,11 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"log/slog"
 	"os"
 
-	"github.com/aretw0/loam/pkg/core"
 	"github.com/aretw0/loam"
+	"github.com/aretw0/loam/pkg/core"
 )
 
 func main() {
@@ -17,9 +18,6 @@ func main() {
 	vaultPath := "./my-notes"
 
 	// 1. Connect to Vault (Zero Config)
-	// WithAutoInit automatically creates the directory and initializes git if not present.
-	// NOTE: If running via 'go run', IsDevRun() will intercept this path and redirect it
-	// to a safe temp directory (e.g. %TEMP%/loam-dev/my-notes) to prevent host pollution.
 	service, err := loam.New(vaultPath,
 		loam.WithAutoInit(true),
 		loam.WithLogger(logger),
@@ -30,30 +28,29 @@ func main() {
 
 	fmt.Printf("Vault initialized at: %s\n", vaultPath)
 
-	// 2. Create Note Content & Metadata
 	noteID := "example"
 	content := "This is a note created via the Loam Go API."
-	// 3. Save (Atomic Operation)
-	fmt.Println("Saving note...")
+
+	// 2. Save (Atomic Operation)
+	fmt.Println("Saving document...")
 
 	// Pass Change Reason via context
-	reason := loam.FormatChangeReason(loam.CommitTypeChore, "", "create example note", "")
-	ctx := context.WithValue(context.Background(), core.ChangeReasonKey, reason)
+	ctx := context.WithValue(context.Background(), core.ChangeReasonKey, "first note")
 
-	err = service.SaveNote(ctx, noteID, content, core.Metadata{
+	err = service.SaveDocument(ctx, noteID, content, core.Metadata{
+		"tags":  []string{"intro", "example"},
 		"title": "My First Note",
-		"tags":  []string{"demo", "loam"},
 	})
 	if err != nil {
-		panic(err)
+		log.Fatalf("Failed to save: %v", err)
 	}
+	fmt.Printf("Saved document: %s\n", noteID)
 
-	fmt.Println("Note saved successfully.")
-
-	// Show how to read back
-	readNote, err := service.GetNote(context.Background(), "example")
+	// 3. Read Back
+	doc, err := service.GetDocument(context.Background(), noteID)
 	if err != nil {
-		panic(err)
+		log.Fatalf("Failed to get: %v", err)
 	}
-	fmt.Printf("Read Back: Title='%s'\n", readNote.Metadata["title"])
+	fmt.Printf("Read Back: Title='%s'\n", doc.Metadata["title"])
+	fmt.Printf("Content: %s\n", doc.Content)
 }

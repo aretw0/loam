@@ -26,7 +26,7 @@ func main() {
 	}
 
 	ctx := context.WithValue(context.Background(), core.ChangeReasonKey, "feat(crm): add supplier ACME")
-	service.SaveNote(ctx, supplierID, supplierContent, supplierMeta)
+	service.SaveDocument(ctx, supplierID, supplierContent, supplierMeta)
 	fmt.Println("✅ Created Supplier: ACME")
 
 	// 2. Create a Product linked to Supplier
@@ -40,7 +40,7 @@ func main() {
 	}
 
 	ctx2 := context.WithValue(context.Background(), core.ChangeReasonKey, "feat(inventory): add 10x Anvil 2000")
-	service.SaveNote(ctx2, productID, productContent, productMeta)
+	service.SaveDocument(ctx2, productID, productContent, productMeta)
 	fmt.Println("✅ Created Product: Anvil 2000 (linked to ACME)")
 
 	fmt.Println("\nLoam allows building a 'Graph of Things' using simple Markdown links.")

@@ -8,8 +8,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/aretw0/loam/pkg/core"
 	"github.com/aretw0/loam"
+	"github.com/aretw0/loam/pkg/core"
 )
 
 func main() {
@@ -57,7 +57,7 @@ func runNaive(s *core.Service, count int) error {
 	ctx := context.Background()
 	for i := 0; i < count; i++ {
 		id := fmt.Sprintf("naive-%d", i)
-		if err := s.SaveNote(ctx, id, "content", nil); err != nil {
+		if err := s.SaveDocument(ctx, id, "content", nil); err != nil {
 			return err
 		}
 	}
@@ -74,8 +74,8 @@ func runBatch(s *core.Service, count int) error {
 	// Stage all changes
 	for i := 0; i < count; i++ {
 		id := fmt.Sprintf("batch-%d", i)
-		note := core.Note{ID: id, Content: "content"}
-		if err := tx.Save(ctx, note); err != nil {
+		doc := core.Document{ID: id, Content: "content"}
+		if err := tx.Save(ctx, doc); err != nil {
 			return err
 		}
 	}
