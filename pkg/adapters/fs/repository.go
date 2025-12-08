@@ -191,6 +191,13 @@ func (r *Repository) Get(ctx context.Context, id string) (core.Document, error) 
 
 	f, err := os.Open(fullPath)
 	if err != nil {
+		if os.IsNotExist(err) {
+			// Fallback: Check if it's a sub-document inside a collection (e.g. CSV)
+			if doc, err2 := r.getFromCollection(ctx, id); err2 == nil {
+				return doc, nil
+			}
+			// Return original error if fallback fails
+		}
 		return core.Document{}, err
 	}
 	defer f.Close()
@@ -202,6 +209,102 @@ func (r *Repository) Get(ctx context.Context, id string) (core.Document, error) 
 	doc.ID = id
 
 	return *doc, nil
+}
+
+func (r *Repository) getFromCollection(ctx context.Context, id string) (core.Document, error) {
+	// Simple heuristic: Split by slash, look for parent file.
+	// ID: users.csv/jane -> Parent: users.csv, Key: jane
+
+	dir := filepath.Dir(id)
+	key := filepath.Base(id)
+
+	// Normalize separators
+	dir = filepath.ToSlash(dir)
+
+	var collectionPath string
+	var collectionExt string
+
+	// Candidates:
+	// 1. Exact match (e.g. users.csv from users.csv/jane)
+	// 2. Extensions (e.g. users.csv from users/jane)
+	candidates := []string{dir}
+	extensions := []string{".csv", ".json"} // Add supported extensions here
+	for _, ext := range extensions {
+		candidates = append(candidates, dir+ext)
+	}
+
+	found := false
+	for _, c := range candidates {
+		path := filepath.Join(r.Path, c)
+		info, err := os.Stat(path)
+		if err == nil && !info.IsDir() {
+			collectionPath = path
+			collectionExt = filepath.Ext(path)
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		return core.Document{}, fmt.Errorf("collection not found")
+	}
+
+	// Read Collection
+	data, err := os.ReadFile(collectionPath)
+	if err != nil {
+		return core.Document{}, err
+	}
+
+	if collectionExt == ".csv" {
+		reader := csv.NewReader(bytes.NewReader(data))
+		headers, err := reader.Read()
+		if err != nil {
+			return core.Document{}, err
+		}
+
+		// Find "id" column index
+		idCol := -1
+		for i, h := range headers {
+			if strings.ToLower(h) == "id" {
+				idCol = i
+				break
+			}
+		}
+		if idCol == -1 {
+			return core.Document{}, fmt.Errorf("csv collection missing 'id' column")
+		}
+
+		// Scan rows
+		for {
+			row, err := reader.Read()
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				return core.Document{}, err
+			}
+
+			if len(row) > idCol && row[idCol] == key {
+				// Match!
+				doc := core.Document{
+					ID:       id,
+					Metadata: make(core.Metadata),
+				}
+
+				for i, h := range headers {
+					val := row[i]
+					if strings.ToLower(h) == "content" {
+						doc.Content = val
+					} else {
+						doc.Metadata[h] = val
+					}
+				}
+				return doc, nil
+			}
+		}
+	}
+
+	return core.Document{}, fmt.Errorf("document not found in collection")
 }
 
 // List scans the directory for all documents.

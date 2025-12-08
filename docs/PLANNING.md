@@ -15,6 +15,18 @@
 - [x] **Developer Experience**:
   - [x] Typed Retrieval: Suporte a Generics (`loam.NewTyped[T]`) para acesso tipado a documentos.
 
+## Fase 0.7.0: Multi-Document Support (Current)
+
+**Objetivo:** Permitir que arquivos únicos (CSV, JSON Arrays) atuem como coleções de múltiplos documentos, acessíveis via Sub-IDs.
+
+- [ ] **Design & Architecture**:
+  - [x] Definir estratégia de endereçamento (Resource ID `collection/item`).
+  - [ ] Refinar estratégia de fallback no Adapter.
+- [ ] **FS Adapter Implementation**:
+  - [ ] Implementar leitura (`Get`) de Sub-Documentos (CSV).
+  - [ ] Implementar escrita (`Save`) com *Read-Modify-Write* atômico.
+  - [ ] Suporte a JSON Arrays.
+
 ## RFC 0.X.X: Library-Level Sync Strategies (Backlog)
 
 **Objetivo:** Permitir que toolmakers definam estratégias de sincronização não-bloqueantes ou customizadas, crucial para adapters distribuídos (S3, SQL) ou clientes "Offline-First".
