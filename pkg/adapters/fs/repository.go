@@ -95,6 +95,12 @@ func (r *Repository) Sync(ctx context.Context) error {
 		return fmt.Errorf("path is not a git repository: %s", r.Path)
 	}
 
+	unlock, err := r.git.Lock()
+	if err != nil {
+		return fmt.Errorf("failed to acquire git lock: %w", err)
+	}
+	defer unlock()
+
 	return r.git.Sync() // This method handles pull/push
 }
 
