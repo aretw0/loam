@@ -265,4 +265,46 @@ func RunScenarioNestedMetadata(tmpDir string) {
 			fmt.Println("FAIL: Metadata author mismatch or missing.")
 		}
 	}
+
+	// --- YAML Experiment ---
+	fmt.Println("\n--- YAML Nested Metadata Experiment ---")
+	docYaml := core.Document{
+		ID:      "nested_doc.yaml",
+		Content: "YAML Content",
+		Metadata: core.Metadata{
+			"status": "published",
+			"score":  10,
+		},
+	}
+
+	tx2, _ := nestedRepo.Begin(ctx)
+	tx2.Save(ctx, docYaml)
+	tx2.Commit(ctx, "seed nested yaml")
+
+	// Verify YAML File Structure
+	yamlPath := filepath.Join(nestedRepo.Path, "nested_doc.yaml")
+	if content, err := os.ReadFile(yamlPath); err == nil {
+		fmt.Println("[Verification] Content of nested_doc.yaml:")
+		fmt.Println(string(content))
+		if !strings.Contains(string(content), "frontmatter:") {
+			fmt.Println("FAIL: Metadata NOT nested under 'frontmatter' in YAML")
+		} else {
+			fmt.Println("PASS: YAML Metadata nested successfully.")
+		}
+	} else {
+		fmt.Printf("Error reading file: %v\n", err)
+	}
+
+	// Verify YAML Read Back
+	readDocYaml, err := nestedRepo.Get(ctx, "nested_doc.yaml")
+	if err != nil {
+		fmt.Printf("Error reading back nested yaml: %v\n", err)
+	} else {
+		fmt.Printf("Read Back YAML Metadata: %v\n", readDocYaml.Metadata)
+		if val, ok := readDocYaml.Metadata["status"]; ok && val == "published" {
+			fmt.Println("PASS: Read back YAML metadata correctly.")
+		} else {
+			fmt.Println("FAIL: YAML Metadata mismatch.")
+		}
+	}
 }
