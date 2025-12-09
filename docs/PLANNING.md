@@ -16,6 +16,20 @@
   - [x] Implementar transações multi-documento (`Batch`).
   - [x] Suporte a Coleções (CSV e IDs customizáveis).
 
+## Fase 0.8.0: Conversion & Docs Refinement
+
+**Objetivo:** Explorar capacidades de conversão de dados e reestruturar a documentação para melhor comunicar a proposta de valor do Loam.
+
+- [ ] **Collections formats and Conversion Exploration**:
+  - [ ] Avaliar suporte a coleções em YAML/JSON (no momento só CSV).
+  - [ ] Expandir `examples/demos/conversion`: Gerar YAML puro e validar comportamento emergente.
+  - [ ] Design: Definir fronteiras da conversão (Adapter vs Core).
+  - [ ] Utilitários: Investigar helpers de conversão de baixo overhead para toolmakers.
+- [ ] **Documentation Overhaul**:
+  - [ ] Arquitetura da Informação: Adicionar TOC, revisar estrutura de pastas.
+  - [ ] "Selling the Vision": Diferenciar claramente features do Core vs Adapter (fs).
+  - [ ] Visuals: Adicionar diagramas Mermaid para ilustrar fluxos e arquitetura.
+
 ## RFC 0.X.X: Library-Level Sync Strategies (Backlog)
 
 **Objetivo:** Permitir que toolmakers definam estratégias de sincronização não-bloqueantes ou customizadas, crucial para adapters distribuídos (S3, SQL) ou clientes "Offline-First".
