@@ -187,8 +187,6 @@ func RunScenarioPureYAML(repo *fs.Repository, tmpDir string) {
 	count, err := Migrate(context.Background(), repo, "configs/", func(doc core.Document) (core.Document, error) {
 		newDoc := doc
 		newDoc.ID = strings.Replace(doc.ID, ".json", ".yaml", 1)
-		// Pure data file experiment: explicitly empty content
-		newDoc.Content = ""
 		return newDoc, nil
 	})
 	if err != nil {
