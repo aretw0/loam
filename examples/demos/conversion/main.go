@@ -234,6 +234,49 @@ func main() {
 	} else {
 		fmt.Printf("Error reading p2.md: %v\n", err)
 	}
+	// --- Part 4: Pure YAML Experiment ---
+	fmt.Println("\n--- Part 4: Pure YAML Experiment ---")
+	// Scenario: Extract configuration data to standalone YAML files.
+	// We want to see how the FS adapter handles .yaml extension.
+
+	// Seed Config Data (JSON)
+	configs := []core.Document{
+		{ID: "configs/app.json", Content: "App Config", Metadata: core.Metadata{"debug": true, "timeout": 5000}},
+		{ID: "configs/db.json", Content: "DB Config", Metadata: core.Metadata{"host": "localhost", "port": 5432}},
+	}
+	seedTx3, _ := repo.Begin(context.Background())
+	for _, c := range configs {
+		seedTx3.Save(context.Background(), c)
+	}
+	seedTx3.Commit(context.Background(), "seed configs")
+
+	// Migrate to YAML
+	// Expected behavior: The FS adapter should detect .yaml and probably save it as frontmatter-less YAML if possible,
+	// OR it might save it as frontmatter + content. Let's find out!
+	// Update: As of now, FS adapter treats known extensions likely as Frontmatter.
+	// We want to see if we can get a "Pure YAML" file (just keys/values) if Content is empty?
+	// Or maybe it just creates a Frontmatter file with the extension .yaml?
+
+	count, err = Migrate(context.Background(), repo, "configs/", func(doc core.Document) (core.Document, error) {
+		newDoc := doc
+		newDoc.ID = strings.Replace(doc.ID, ".json", ".yaml", 1)
+		return newDoc, nil
+	})
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("Migrated %d configs to YAML.\n", count)
+
+	list(repo, "After YAML Conversion")
+
+	// Verify physical file content
+	appYamlPath := filepath.Join(tmpDir, "configs", "app.yaml")
+	if content, err := os.ReadFile(appYamlPath); err == nil {
+		fmt.Println("\n[Verification] Content of configs/app.yaml on disk:")
+		fmt.Println(string(content))
+	} else {
+		fmt.Printf("Error reading app.yaml: %v\n", err)
+	}
 }
 
 func list(repo *fs.Repository, title string) {
@@ -252,6 +295,7 @@ func list(repo *fs.Repository, title string) {
 			if full, err := repo.Get(context.Background(), d.ID); err == nil {
 				content = fmt.Sprintf("%s [fetched]", full.Content)
 			} else {
+				fmt.Printf("Error fetching %s: %v\n", d.ID, err)
 				content = "[cached-only]"
 			}
 		}
