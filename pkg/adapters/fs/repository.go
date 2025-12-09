@@ -28,13 +28,14 @@ type Repository struct {
 
 // Config holds the configuration for the filesystem repository.
 type Config struct {
-	Path      string
-	AutoInit  bool
-	Gitless   bool
-	MustExist bool
-	Logger    *slog.Logger
-	SystemDir string            // e.g. ".loam"
-	IDMap     map[string]string // Map filename -> ID column name (e.g. "users.csv": "email"). User must ensure uniqueness of values in this column.
+	Path        string
+	AutoInit    bool
+	Gitless     bool
+	MustExist   bool
+	Logger      *slog.Logger
+	SystemDir   string            // e.g. ".loam"
+	IDMap       map[string]string // Map filename -> ID column name (e.g. "users.csv": "email"). User must ensure uniqueness of values in this column.
+	MetadataKey string            // If set, metadata will be nested under this key in JSON/YAML (e.g. "meta" or "frontmatter"). Contents will be in "content" (unless empty).
 }
 
 // NewRepository creates a new filesystem-backed repository.
@@ -147,7 +148,7 @@ func (r *Repository) Save(ctx context.Context, doc core.Document) error {
 		return fmt.Errorf("failed to create directories: %w", err)
 	}
 
-	data, err := serialize(doc, ext)
+	data, err := serialize(doc, ext, r.config.MetadataKey)
 	if err != nil {
 		return fmt.Errorf("failed to serialize document: %w", err)
 	}
@@ -209,7 +210,7 @@ func (r *Repository) Get(ctx context.Context, id string) (core.Document, error) 
 	}
 	defer f.Close()
 
-	doc, err := parse(f, ext)
+	doc, err := parse(f, ext, r.config.MetadataKey)
 	if err != nil {
 		return core.Document{}, fmt.Errorf("failed to parse document %s: %w", id, err)
 	}
@@ -741,7 +742,7 @@ func IsGitInstalled() bool {
 
 // --- Serialization Helpers (Private) ---
 
-func parse(r io.Reader, ext string) (*core.Document, error) {
+func parse(r io.Reader, ext, metadataKey string) (*core.Document, error) {
 	data, err := io.ReadAll(r)
 	if err != nil {
 		return nil, err
@@ -757,22 +758,51 @@ func parse(r io.Reader, ext string) (*core.Document, error) {
 		if err := json.Unmarshal(data, &payload); err != nil {
 			return nil, fmt.Errorf("invalid json: %w", err)
 		}
+
+		if metadataKey != "" {
+			if meta, ok := payload[metadataKey].(map[string]interface{}); ok {
+				doc.Metadata = meta
+				delete(payload, metadataKey)
+			}
+		} else {
+			// Flat structure
+			doc.Metadata = payload // Assign all first, then extract content
+		}
+
 		if c, ok := payload["content"].(string); ok {
 			doc.Content = c
-			delete(payload, "content")
+			if metadataKey == "" {
+				delete(doc.Metadata, "content")
+			}
 		}
-		doc.Metadata = payload
+		// If nested, we don't need to delete 'content' from metadata because metadata was extracted from sub-key
 
 	case ".yaml", ".yml":
 		var payload map[string]interface{}
 		if err := yaml.Unmarshal(data, &payload); err != nil {
 			return nil, fmt.Errorf("invalid yaml: %w", err)
 		}
+
+		if metadataKey != "" {
+			// YAML unmarshals maps as map[string]interface{} usually, but nested might be complex?
+			// yaml.v3 might return map[string]interface{} for dynamic.
+			if meta, ok := payload[metadataKey].(map[string]interface{}); ok {
+				doc.Metadata = meta
+				delete(payload, metadataKey)
+			} else {
+				// Maybe it's map[interface{}]interface{}?
+				// Let's convert if needed, but for now assume string keys for JSON compat
+			}
+		} else {
+			doc.Metadata = payload
+		}
+
 		if c, ok := payload["content"].(string); ok {
 			doc.Content = c
-			delete(payload, "content")
+			if metadataKey == "" {
+				delete(doc.Metadata, "content")
+			}
 		}
-		doc.Metadata = payload
 
 	case ".csv":
 		reader := csv.NewReader(bytes.NewReader(data))
@@ -825,22 +855,40 @@ func parse(r io.Reader, ext string) (*core.Document, error) {
 	return doc, nil
 }
 
-func serialize(doc core.Document, ext string) ([]byte, error) {
+func serialize(doc core.Document, ext, metadataKey string) ([]byte, error) {
 	switch ext {
 	case ".json":
 		payload := make(map[string]interface{})
-		for k, v := range doc.Metadata {
-			payload[k] = v
+
+		if metadataKey != "" {
+			payload[metadataKey] = doc.Metadata
+		} else {
+			for k, v := range doc.Metadata {
+				payload[k] = v
+			}
 		}
-		payload["content"] = doc.Content
+
+		if doc.Content != "" || metadataKey == "" {
+			payload["content"] = doc.Content
+		}
+
 		return json.MarshalIndent(payload, "", "  ")
 
 	case ".yaml", ".yml":
 		payload := make(map[string]interface{})
-		for k, v := range doc.Metadata {
-			payload[k] = v
+
+		if metadataKey != "" {
+			payload[metadataKey] = doc.Metadata
+		} else {
+			for k, v := range doc.Metadata {
+				payload[k] = v
+			}
 		}
-		payload["content"] = doc.Content
+
+		if doc.Content != "" || metadataKey == "" {
+			payload["content"] = doc.Content
+		}
+
 		return yaml.Marshal(payload)
 
 	case ".csv":
