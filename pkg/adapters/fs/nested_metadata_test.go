@@ -13,21 +13,26 @@ import (
 	"github.com/aretw0/loam/pkg/core"
 )
 
-func TestNestedMetadata_JSON(t *testing.T) {
+func setupNestedMetadataRepo(t *testing.T, metadataKey string) (*fs.Repository, string) {
+	t.Helper()
 	tmpDir := t.TempDir()
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 
-	// Configure repo with MetadataKey
 	repo := fs.NewRepository(fs.Config{
 		Path:        tmpDir,
 		AutoInit:    true,
 		Gitless:     true,
 		Logger:      logger,
-		MetadataKey: "meta",
+		MetadataKey: metadataKey,
 	})
 	if err := repo.Initialize(context.Background()); err != nil {
 		t.Fatal(err)
 	}
+	return repo, tmpDir
+}
+
+func TestNestedMetadata_JSON(t *testing.T) {
+	repo, tmpDir := setupNestedMetadataRepo(t, "meta")
 
 	doc := core.Document{
 		ID:      "test.json",
@@ -71,20 +76,7 @@ func TestNestedMetadata_JSON(t *testing.T) {
 }
 
 func TestNestedMetadata_YAML(t *testing.T) {
-	tmpDir := t.TempDir()
-	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-
-	// Configure repo with MetadataKey
-	repo := fs.NewRepository(fs.Config{
-		Path:        tmpDir,
-		AutoInit:    true,
-		Gitless:     true,
-		Logger:      logger,
-		MetadataKey: "frontmatter",
-	})
-	if err := repo.Initialize(context.Background()); err != nil {
-		t.Fatal(err)
-	}
+	repo, tmpDir := setupNestedMetadataRepo(t, "frontmatter")
 
 	doc := core.Document{
 		ID:      "test.yaml",
@@ -123,20 +115,7 @@ func TestNestedMetadata_YAML(t *testing.T) {
 }
 
 func TestNestedMetadata_EmptyContent(t *testing.T) {
-	// Verify that empty content is handled (likely included as "content": "" based on current impl)
-	// or omitted if we optimized it (we didn't optimize it yet, logic is explicit).
-
-	tmpDir := t.TempDir()
-	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-
-	repo := fs.NewRepository(fs.Config{
-		Path:        tmpDir,
-		AutoInit:    true,
-		Gitless:     true,
-		Logger:      logger,
-		MetadataKey: "data",
-	})
-	repo.Initialize(context.Background())
+	repo, tmpDir := setupNestedMetadataRepo(t, "data")
 
 	doc := core.Document{
 		ID:       "data.json",
