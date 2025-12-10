@@ -20,11 +20,10 @@
 
 **Objetivo:** Explorar capacidades de conversão de dados e reestruturar a documentação para melhor comunicar a proposta de valor do Loam.
 
-- [ ] **Collections formats and Conversion Exploration**:
-  - [ ] Avaliar suporte a coleções em YAML/JSON (no momento só CSV).
-  - [ ] Expandir `examples/demos/conversion`: Gerar YAML puro e validar comportamento emergente.
-  - [ ] Design: Definir fronteiras da conversão (Adapter vs Core).
-  - [ ] Utilitários: Investigar helpers de conversão de baixo overhead para toolmakers.
+- [ ] **Export Utilities**:
+  - [ ] Converter Coleções (CSV) para JSON/YAML puro na saída (não na persistência).
+  - [ ] `loam export`: Utilitário CLI para gerar snapshots estáticos dos dados.
+  - [ ] Investigar helpers de serialização para toolmakers.
 - [ ] **Documentation Overhaul**:
   - [ ] Arquitetura da Informação: Adicionar TOC, revisar estrutura de pastas.
   - [ ] "Selling the Vision": Diferenciar claramente features do Core vs Adapter (fs).
@@ -54,17 +53,6 @@ Objetivo: Permitir que ferramentas externas (não-Go) interajam com o Loam via r
 - [ ] **Schema Validation**:
   - [ ] `loam validate`: Validar frontmatter contra um schema (JSON Schema ou struct Go).
   - [ ] Garantir tipos de dados (Datas, Arrays) para integridade.
-
-## Fase 0.X.X: Intelligence & Search (Backlog)
-
-Objetivo: Transformar o Loam em um "Knowledge Engine" com busca semântica e full-text.
-
-- [ ] **Indexação Full-Text**:
-  - [ ] Integração com Bleve ou SQLite FTS.
-  - [ ] Busca por conteúdo: `loam search "query"`.
-- [ ] **LLM Integration (RAG)**:
-  - [ ] `loam chat`: Interface de chat com contexto das notas.
-  - [ ] Embeddings locais para busca semântica.
 
 ## Futuro / Blue Sky
 

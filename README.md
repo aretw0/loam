@@ -11,7 +11,7 @@ Por padrão, o Loam utiliza o **Sistema de Arquivos + Git** como banco de dados 
 
 É ideal para **toolmakers** que constroem:
 
-- **Assistentes de PKM** (Obsidian, Logseq).
+- **Assistentes de PKM** (Obsidian, Logseq) - *Storage layer apenas*.
 - **Gerenciadores de Configuração** (GitOps, Dotfiles).
 - **Pipelines de Dados Locais** (ETL de CSV/JSON).
 - **Geradores de Sites Estáticos** (Hugo, Jekyll).
@@ -22,7 +22,7 @@ Por que não apenas usar `os.WriteFile` ou SQLite?
 
 - **Atomicity & Safety**: O Loam garante escritas atômicas ("Batch Transactions"). Se o seu script falhar no meio, seus arquivos não ficam corrompidos.
 - **Human Friendly**: Seus dados não ficam presos em um binário `.db`. Eles são apenas arquivos de texto que você pode abrir, editar e versionar manualmente.
-- **Structured Formats**: Ele gerencia a separação de Frontmatter e Conteúdo automaticamente. Você recebe os metadados prontos em uma `struct` e o conteúdo como string, sem boilerplate.
+- **Structured Formats**: Ele gerencia a separação de Frontmatter e Conteúdo. Você recebe os metadados e o corpo bruto (string), sem opiniões de renderização.
 - **Git Power**: Todo `Save` gera um histórico. Você ganha "Undo/Redo" infinito e auditoria de graça.
 
 ## 📄 Arquivos Suportados (Smart Persistence)
