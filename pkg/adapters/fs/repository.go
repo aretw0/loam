@@ -76,18 +76,75 @@ func (r *Repository) Initialize(ctx context.Context) error {
 			return fmt.Errorf("git is not installed")
 		}
 
+		wasNewRepo := false
 		if !r.git.IsRepo() {
 			if r.config.AutoInit {
 				if err := r.git.Init(); err != nil {
 					return fmt.Errorf("failed to git init: %w", err)
 				}
+				wasNewRepo = true
 			} else {
 				return fmt.Errorf("path is not a git repository: %s", r.Path)
+			}
+		}
+
+		// Ensure .gitignore has the system directory
+		mod, err := r.ensureIgnore()
+		if err != nil {
+			return fmt.Errorf("failed to ensure .gitignore: %w", err)
+		}
+
+		if mod && wasNewRepo {
+			// If we just created the repo, commit the .gitignore to start clean
+			if err := r.git.Add(".gitignore"); err != nil {
+				return fmt.Errorf("failed to add .gitignore: %w", err)
+			}
+			if err := r.git.Commit(fmt.Sprintf("chore: configure %s ignore", r.config.SystemDir)); err != nil {
+				return fmt.Errorf("failed to commit .gitignore: %w", err)
 			}
 		}
 	}
 
 	return nil
+}
+
+func (r *Repository) ensureIgnore() (bool, error) {
+	ignorePath := filepath.Join(r.Path, ".gitignore")
+	ignoreEntry := r.config.SystemDir + "/"
+
+	// Read existing
+	content, err := os.ReadFile(ignorePath)
+	if err != nil && !os.IsNotExist(err) {
+		return false, err
+	}
+
+	// Check if already ignored
+	lines := strings.Split(string(content), "\n")
+	for _, line := range lines {
+		if strings.TrimSpace(line) == ignoreEntry {
+			return false, nil
+		}
+	}
+
+	// Append
+	f, err := os.OpenFile(ignorePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return false, err
+	}
+	defer f.Close()
+
+	// Ensure newline if needed
+	if len(content) > 0 && !strings.HasSuffix(string(content), "\n") {
+		if _, err := f.WriteString("\n"); err != nil {
+			return false, err
+		}
+	}
+
+	if _, err := f.WriteString(ignoreEntry + "\n"); err != nil {
+		return false, err
+	}
+
+	return true, nil
 }
 
 // Sync synchronizes the repository with its remote.

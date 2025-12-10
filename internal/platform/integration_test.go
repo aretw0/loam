@@ -123,19 +123,6 @@ func TestService_DeleteList(t *testing.T) {
 	// Manual Git Check for Deletion Commit
 	gitClient := git.NewClient(tmpDir, ".loam.lock", nil)
 
-	// Fix: The new cache in hex arch creates .loam/. This dirties the repo.
-	// We need to ignore it for the test to pass "cleanliness" check.
-	// Create .gitignore
-	if err := os.WriteFile(filepath.Join(tmpDir, ".gitignore"), []byte(".loam/\n"), 0644); err != nil {
-		t.Fatalf("Failed to write .gitignore: %v", err)
-	}
-	if err := gitClient.Add(".gitignore"); err != nil {
-		t.Fatalf("Failed to add gitignore: %v", err)
-	}
-	if err := gitClient.Commit("add gitignore"); err != nil {
-		t.Fatalf("Failed to commit gitignore: %v", err)
-	}
-
 	status, _ := gitClient.Status()
 	if status != "" {
 		t.Errorf("Expected clean status after delete commit, got:\n%s", status)
@@ -197,7 +184,6 @@ func TestService_MustExist(t *testing.T) {
 func TestService_GitlessSync(t *testing.T) {
 	tmpDir := t.TempDir()
 
-	// Init in Gitless Mode explicitly
 	// Init in Gitless Mode explicitly
 	_, err := loam.New(tmpDir, loam.WithAutoInit(true), loam.WithVersioning(false), loam.WithForceTemp(true))
 	if err != nil {
