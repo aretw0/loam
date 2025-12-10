@@ -16,7 +16,6 @@ func TestService_WriteCommit(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	// Init Service using loam.New
-	// Init Service using loam.New
 	service, err := loam.New(tmpDir, loam.WithAutoInit(true), loam.WithForceTemp(true))
 	if err != nil {
 		t.Fatalf("Failed to init service: %v", err)
@@ -210,7 +209,7 @@ func TestService_GitlessSync(t *testing.T) {
 	// Check loam.Sync behavior directly
 	err = loam.Sync(tmpDir, loam.WithVersioning(false))
 	if err == nil {
-		t.Error("Expected loam.Sync to fail in gitless mode, but it suceeded")
+		t.Error("Expected loam.Sync to fail in gitless mode, but it succeeded")
 	} else if err.Error() != "cannot sync in gitless mode" {
 		// It might be "repository does not support synchronization" if strict casting fails?
 		// No, fs.Repository implements Syncable, but returns error inside Sync.
