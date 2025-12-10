@@ -39,6 +39,13 @@
 - [ ] **Monitoramento**:
   - [ ] Expor status de sync (LastSyncedAt, PendingChanges).
 
+## RFC 0.X.X: Binary/Blob Support (Librarian)
+
+**Objetivo:** Permitir que o Loam armazene qualquer tipo de arquivo (PDFs, Imagens, Zips) gerados por outras ferramentas, agindo como um "Git-backed Object Store" genérico.
+
+- [ ] Suporte a `[]byte` ou `io.Reader` na interface `Repository`.
+- [ ] Abstração de `git add/commit` para arquivos arbitrários fora do padrão "Conteúdo + Frontmatter".
+
 ## Fase 0.X.X: Server & Interoperability (Backlog)
 
 Objetivo: Permitir que ferramentas externas (não-Go) interajam com o Loam via rede/socket, reforçando a visão de "Driver".
