@@ -1,19 +1,29 @@
 # Loam 🌱
 
-> A Transactional Storage Engine for Content & Metadata.
+> An Embedded Transactional Engine for Content & Metadata.
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/aretw0/loam)](https://goreportcard.com/report/github.com/aretw0/loam)
 [![Go Doc](https://godoc.org/github.com/aretw0/loam?status.svg)](https://godoc.org/github.com/aretw0/loam)
 
-**Loam** é uma engine de armazenamento transacional de documentos (Headless CMS), focada em conteúdo textual e metadados.
-Embora a implementação padrão utilize **Arquivos (Markdown, JSON, YAML, etc) sobre Git** (FS Adapter), a arquitetura é agnóstica e permite outros backends (S3, SQL, etc).
+**Loam** é uma engine transacional de documentos embutida, desenhada para aplicações centradas em conteúdo e metadados.
 
-Ele oferece operações de CRUD atômicas e seguras, garantindo que suas automações não corrompam seus dados. É ideal para **toolmakers** que constroem:
+Por padrão, o Loam utiliza o **Sistema de Arquivos + Git** como banco de dados (`.md`, `.yaml`, `.json`, `.csv`), oferecendo controle de versão zero-config e legibilidade humana. No entanto, sua arquitetura *Core* é agnóstica, pronta para escalar para outros backends (S3, SQL) sem alterar o código do aplicativo.
+
+É ideal para **toolmakers** que constroem:
 
 - **Assistentes de PKM** (Obsidian, Logseq).
 - **Gerenciadores de Configuração** (GitOps, Dotfiles).
 - **Pipelines de Dados Locais** (ETL de CSV/JSON).
 - **Geradores de Sites Estáticos** (Hugo, Jekyll).
+
+## 🤔 Por que Loam?
+
+Por que não apenas usar `os.WriteFile` ou SQLite?
+
+- **Atomicity & Safety**: O Loam garante escritas atômicas ("Batch Transactions"). Se o seu script falhar no meio, seus arquivos não ficam corrompidos.
+- **Human Friendly**: Seus dados não ficam presos em um binário `.db`. Eles são apenas arquivos de texto que você pode abrir, editar e versionar manualmente.
+- **Structured Formats**: Ele gerencia a separação de Frontmatter e Conteúdo automaticamente. Você recebe os metadados prontos em uma `struct` e o conteúdo como string, sem boilerplate.
+- **Git Power**: Todo `Save` gera um histórico. Você ganha "Undo/Redo" infinito e auditoria de graça.
 
 ## 📄 Arquivos Suportados (Smart Persistence)
 
@@ -151,4 +161,5 @@ fmt.Println(user.Data.Name)
 
 ## Status
 
-🚧 **Alpha**. A API interna `pkg/loam` está se estabilizando, mas mudanças podem ocorrer. A CLI é estável para uso diário.
+🚧 **Alpha**.
+A API interna `pkg/loam` é estável e respeita versionamento semântico, mas novas features (como suporte a Coleções JSON/YAML) estão sendo ativamente desenvolvidas no Adapter FS. A CLI é estável para uso diário.

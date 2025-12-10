@@ -47,6 +47,10 @@ Objetivo: Permitir que ferramentas externas (não-Go) interajam com o Loam via r
 - [ ] **HTTP/JSON-RPC Server**:
   - [ ] `loam serve`: Expor API para leitura/escrita e listagem.
   - [ ] Tratamento de concorrência no servidor (Single Writer, Multiple Readers).
+- [ ] **Security & Auth**:
+  - [ ] Authentication Strategy (API Keys, JWT?).
+  - [ ] Authorization (Read-Only vs Read-Write tokens).
+  - [ ] TLS Support (para exposição segura).
 - [ ] **Schema Validation**:
   - [ ] `loam validate`: Validar frontmatter contra um schema (JSON Schema ou struct Go).
   - [ ] Garantir tipos de dados (Datas, Arrays) para integridade.
