@@ -20,14 +20,15 @@
 
 **Objetivo:** Explorar capacidades de conversão de dados e reestruturar a documentação para melhor comunicar a proposta de valor do Loam.
 
-- [ ] **Export Utilities**:
-  - [ ] Converter Coleções (CSV) para JSON/YAML puro na saída (não na persistência).
-  - [ ] `loam export`: Utilitário CLI para gerar snapshots estáticos dos dados.
-  - [ ] Investigar helpers de serialização para toolmakers.
+- [ ] **I/O Plumbing & Export (Unix Philosophy)**:
+  - [ ] **Ingestion**: Suportar STDIN no `loam write` para permitir pipes de ferramentas externas (ex: `jq | loam write`).
+  - [ ] **Export/Read**: Evoluir `loam read` para suportar flags de formatação (`--format=json|yaml|csv`).
+    - *Nota*: Isso transforma o `read` em um exportador universal, permitindo que toolmakers consumam dados como CSV/JSON sem conversão extra.
+  - [ ] **Library**: Adicionar `SaveFromReader(io.Reader)` para streaming eficiente sem buffers gigantes.
 - [ ] **Documentation Overhaul**:
-  - [ ] Arquitetura da Informação: Adicionar TOC, revisar estrutura de pastas.
-  - [ ] "Selling the Vision": Diferenciar claramente features do Core vs Adapter (fs).
-  - [ ] Visuals: Adicionar diagramas Mermaid para ilustrar fluxos e arquitetura.
+  - [ ] **Cookbook (Receitas)**: Criar exemplos práticos de integração via Pipes (Unix) e Tooling externo (ex: `jq`, scripts).
+  - [ ] **Identity & Contrast**: Reforçar a distinção entre "Librarian" (Loam) e "Reader" (App Final). Comparar com SQLite vs Excel.
+  - [ ] **Visuals**: Diagramas focados no ciclo de via da Transação e fronteiras Hexagonais.
 
 ## RFC 0.X.X: Library-Level Sync Strategies (Backlog)
 
