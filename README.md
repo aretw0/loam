@@ -166,9 +166,17 @@ user, _ := userRepo.Get(ctx, "users/alice")
 fmt.Println(user.Data.Name)
 ```
 
-## 📖 Exemplos <a name="examples"></a>
+## 📂 Exemplos e Receitas <a name="examples"></a>
 
-Veja os exemplos em [examples/README.md](examples/README.md).
+### Demos (Funcionalidades do Core)
+
+- **[CRUD Básico](examples/basics/crud)**: Create, Read, Update, Delete.
+- **[Formats](examples/demos/formats)**: Suporte nativo a JSON, YAML, CSV e Markdown.
+
+### Recipes (Casos de Uso)
+
+- **[Unix Pipes](examples/recipes/unix_pipes)**: Como converter dados de um formato para outro usando transações.
+- **[ETL & Migration](examples/recipes/etl_migration)**: Como converter dados de um formato para outro usando transações.
 
 ## 📚 Documentação Técnica <a name="tech-docs"></a>
 

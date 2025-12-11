@@ -9,8 +9,11 @@ import (
 	"github.com/aretw0/loam/pkg/adapters/fs"
 )
 
-// This example demonstrates how a Toolmaker would implement a "Convert" feature
-// using Loam as a library. It shows the pattern of "List -> Transform -> Save".
+// This recipe demonstrates how a Toolmaker would implement a "Convert" feature
+// using Loam as a library (ETL Pattern).
+// It shows the pattern of "List -> Transform (User Logic) -> Save".
+//
+// NOTE: This logic belongs to the "Reader/Writer" (the App), not the Loam Core.
 
 func main() {
 	// 1. Setup Environment
