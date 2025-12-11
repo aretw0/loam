@@ -24,7 +24,6 @@
   - [ ] **Ingestion**: Suportar STDIN no `loam write` para permitir pipes de ferramentas externas (ex: `jq | loam write`).
   - [ ] **Export/Read**: Evoluir `loam read` para suportar flags de formatação (`--format=json|yaml|csv`).
     - *Nota*: Isso transforma o `read` em um exportador universal, permitindo que toolmakers consumam dados como CSV/JSON sem conversão extra.
-  - [ ] **Library**: Adicionar `SaveFromReader(io.Reader)` para streaming eficiente sem buffers gigantes.
 - [ ] **Documentation Overhaul**:
   - [ ] **Cookbook (Receitas)**: Criar exemplos práticos de integração via Pipes (Unix) e Tooling externo (ex: `jq`, scripts).
   - [ ] **Identity & Contrast**: Reforçar a distinção entre "Librarian" (Loam) e "Reader" (App Final). Comparar com SQLite vs Excel.
@@ -45,6 +44,7 @@
 **Objetivo:** Permitir que o Loam armazene qualquer tipo de arquivo (PDFs, Imagens, Zips) gerados por outras ferramentas, agindo como um "Git-backed Object Store" genérico.
 
 - [ ] Suporte a `[]byte` ou `io.Reader` na interface `Repository`.
+- [ ] **Library**: Adicionar `SaveFromReader(io.Reader)` para streaming eficiente sem buffers gigantes.
 - [ ] Abstração de `git add/commit` para arquivos arbitrários fora do padrão "Conteúdo + Frontmatter".
 
 ## Fase 0.X.X: Server & Interoperability (Backlog)
