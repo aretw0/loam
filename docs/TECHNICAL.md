@@ -2,6 +2,14 @@
 
 O **Loam** adota uma **Arquitetura Hexagonal (Ports & Adapters)** para garantir desacoplamento, testabilidade e extensibilidade. O núcleo do sistema opera independentemente do mecanismo de persistência, permitindo trocar o sistema de arquivos (FS + Git) por outras implementações (SQL, API, etc.) sem alterar as regras de negócio.
 
+## Tabela de Conteúdo
+
+- [Visão Geral](#visão-geral)
+- [Fluxos de Execução](#fluxos-de-execução)
+- [Componentes](#componentes)
+- [Decisões Arquiteturais Chave](#decisões-arquiteturais-chave)
+- [Estratégia de Testes](#estratégia-de-testes)
+
 ## Visão Geral
 
 ```mermaid
@@ -86,6 +94,20 @@ stateDiagram-v2
 ```
 
 ## Componentes
+
+A estrutura de diretórios do projeto reflete diretamente a arquitetura hexagonal adotada:
+
+```text
+.
+├── cmd/                # Pontos de entrada (CLI)
+├── internal/
+│   └── platform/       # Implementações de Infraestrutura (Hidden)
+├── pkg/
+│   ├── adapters/       # Adaptadores (FS, Git) - "Fora do Hexágono"
+│   └── core/           # Domínio e Portas - "Dentro do Hexágono"
+├── loam.go             # Facade pública
+└── examples/           # Exemplos de uso
+```
 
 ### 1. Core Domain (`pkg/core`)
 
