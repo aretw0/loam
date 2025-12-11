@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 
@@ -23,10 +24,28 @@ var (
 var writeCmd = &cobra.Command{
 	Use:   "write",
 	Short: "Write a document",
-	Long:  `Create or update a document with the given ID and content.`,
+	Long:  `Create or update a document with the given ID and content. Reads from STDIN if content flag is missing.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if writeID == "" {
 			fmt.Println("Error: --id is required")
+			cmd.Usage()
+			os.Exit(1)
+		}
+
+		// Handle STDIN if content is empty
+		if writeContent == "" {
+			stat, _ := os.Stdin.Stat()
+			if (stat.Mode() & os.ModeCharDevice) == 0 {
+				data, err := io.ReadAll(os.Stdin)
+				if err != nil {
+					fatal("Failed to read from STDIN", err)
+				}
+				writeContent = string(data)
+			}
+		}
+
+		if writeContent == "" {
+			fmt.Println("Error: --content is required or must be piped via STDIN")
 			cmd.Usage()
 			os.Exit(1)
 		}

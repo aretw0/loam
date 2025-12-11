@@ -12,13 +12,13 @@ import (
 )
 
 var (
-	readJSON bool
+	readFormat string
 )
 
 var readCmd = &cobra.Command{
 	Use:   "read [id]",
 	Short: "Read a document",
-	Long:  `Read a document by its ID. Outputs raw markdown content by default, or JSON object with --json.`,
+	Long:  `Read a document by its ID. Outputs raw markdown content by default. Use --format=json for structured output.`,
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		id := args[0]
@@ -46,22 +46,24 @@ var readCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		if readJSON {
+		switch readFormat {
+		case "json":
 			encoder := json.NewEncoder(os.Stdout)
 			encoder.SetIndent("", "  ")
 			if err := encoder.Encode(note); err != nil {
 				fmt.Fprintf(os.Stderr, "Error encoding JSON: %v\n", err)
 				os.Exit(1)
 			}
-			return
+		case "raw":
+			fmt.Print(note.Content)
+		default:
+			fmt.Fprintf(os.Stderr, "Error: unsupported format '%s'. Use 'raw' or 'json'.\n", readFormat)
+			os.Exit(1)
 		}
-
-		// Default: Print Content
-		fmt.Print(note.Content)
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(readCmd)
-	readCmd.Flags().BoolVar(&readJSON, "json", false, "Output in JSON format")
+	readCmd.Flags().StringVar(&readFormat, "format", "raw", "Output format (raw, json)")
 }
