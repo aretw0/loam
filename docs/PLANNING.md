@@ -13,6 +13,22 @@
   - [x] **Identity & Contrast**: Reforçar a distinção entre "Librarian" (Loam) e "Reader" (App Final). Comparar com SQLite vs Excel.
   - [x] **Visuals**: Diagramas focados no ciclo de via da Transação e fronteiras Hexagonais.
 
+## Fase 0.8.X: Improvements, Patches & Revisions (Current)
+
+**Objetivo:** Melhorar a qualidade do código, a experiência do usuário, e no processo, fazer alguns patchs, revisar documentação e exemplos.
+
+- [ ] *Improvements*:
+  - [ ] Melhorar a experiência do usuário, talvez melhorando a `platform`, para facilitar a criação de TypedServices e TypedRepositories.
+- [ ] *Patches*:
+  - [ ] Ajustar a [fachada](../loam.go) para que ofereça toda a funcionalidade do `platform`.
+  - [ ] Manter o discurso do "WithVersioning" até na CLI, i.e. trocar `--gitless` por `--nover`.
+- [ ] *Revisions*:
+  - [ ] Documentação
+    - [ ] Refletir sobre o estado atual da pasta `docs` e o futuro do projeto, e se devemos partir para outra abordagem.
+  - [ ] Código
+    - [ ] Revisar código atual na busca de comentários desnecessários e a falta dos mesmos em locais vitais.
+    - [ ] Revisar exemplos para que sejam claros, completos e prontos para uso.
+
 ## RFC 0.X.X: Library-Level Sync Strategies (Backlog)
 
 **Objetivo:** Permitir que toolmakers definam estratégias de sincronização não-bloqueantes ou customizadas, crucial para adapters distribuídos (S3, SQL) ou clientes "Offline-First".
