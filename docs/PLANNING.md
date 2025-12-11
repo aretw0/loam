@@ -20,14 +20,14 @@
 
 **Objetivo:** Explorar capacidades de conversão de dados e reestruturar a documentação para melhor comunicar a proposta de valor do Loam.
 
-- [ ] **I/O Plumbing & Export (Unix Philosophy)**:
-  - [ ] **Ingestion**: Suportar STDIN no `loam write` para permitir pipes de ferramentas externas (ex: `jq | loam write`).
-  - [ ] **Export/Read**: Evoluir `loam read` para suportar flags de formatação (`--format=json|yaml|csv`).
+- [x] **I/O Plumbing & Export (Unix Philosophy)**:
+  - [x] **Ingestion**: Suportar STDIN no `loam write` para permitir pipes de ferramentas externas (ex: `jq | loam write`).
+  - [x] **Export/Read**: Evoluir `loam read` para suportar flags de formatação (`--format=json|yaml|csv`).
     - *Nota*: Isso transforma o `read` em um exportador universal, permitindo que toolmakers consumam dados como CSV/JSON sem conversão extra.
-- [ ] **Documentation Overhaul**:
-  - [ ] **Cookbook (Receitas)**: Criar exemplos práticos de integração via Pipes (Unix) e Tooling externo (ex: `jq`, scripts).
-  - [ ] **Identity & Contrast**: Reforçar a distinção entre "Librarian" (Loam) e "Reader" (App Final). Comparar com SQLite vs Excel.
-  - [ ] **Visuals**: Diagramas focados no ciclo de via da Transação e fronteiras Hexagonais.
+- [x] **Documentation Overhaul**:
+  - [x] **Cookbook (Receitas)**: Criar exemplos práticos de integração via Pipes (Unix) e Tooling externo (ex: `jq`, scripts).
+  - [x] **Identity & Contrast**: Reforçar a distinção entre "Librarian" (Loam) e "Reader" (App Final). Comparar com SQLite vs Excel.
+  - [x] **Visuals**: Diagramas focados no ciclo de via da Transação e fronteiras Hexagonais.
 
 ## RFC 0.X.X: Library-Level Sync Strategies (Backlog)
 
@@ -58,15 +58,11 @@ Objetivo: Permitir que ferramentas externas (não-Go) interajam com o Loam via r
   - [ ] Authentication Strategy (API Keys, JWT?).
   - [ ] Authorization (Read-Only vs Read-Write tokens).
   - [ ] TLS Support (para exposição segura).
-- [ ] **Schema Validation**:
-  - [ ] `loam validate`: Validar frontmatter contra um schema (JSON Schema ou struct Go).
-  - [ ] Garantir tipos de dados (Datas, Arrays) para integridade.
 
 ## Futuro / Blue Sky
 
 - **SDK**: Gerar clients (Polyglot) para integrar Loam com outras linguagens.
 - **Definir imagem mínima**: Containerização eficiente e segura.
 - **Multi-Tenant**: Suporte a múltiplos vaults simultâneos no servidor.
-- **Terminal UI**: Interface gráfica simples acoplada ao `loam serve` (bubbletea, charm.land e etc).
-- **Web UI**: Interface gráfica simples acoplada ao `loam serve`.
+- **Admin Dashboard (Debug only)**: Visualização técnica simples acoplada ao `loam serve` (para inspeção, não edição rica).
 - **Distribuição**: Publicação via Homebrew/Scoop.

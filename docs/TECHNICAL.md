@@ -12,14 +12,50 @@ graph TD
     Adapters[ADAPTERS] -. implementa .-> Port
 ```
 
+## Fluxos de Execução
+
+### Batch Transaction (Atomicidade)
+
+O fluxo de uma transação em lote garante que arquivos só sejam persistidos e commitados se todas as operações tiverem sucesso.
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Service
+    participant Adapter
+    participant Git
+
+    Client->>Service: WithTransaction(fn)
+    Service->>Adapter: Begin()
+    Adapter-->>Service: Transaction (tx)
+    
+    Service->>Client: fn(tx)
+    
+    Note right of Client: Operações em Memória
+    Client->>+tx: Save(doc1)
+    tx-->>-Client: ok (staged)
+    Client->>+tx: Save(doc2)
+    tx-->>-Client: ok (staged)
+    
+    Client-->>Service: return nil (Success)
+    
+    Note right of Service: Persistência Atômica
+    Service->>+tx: Commit("feat: update docs")
+    tx->>Adapter: Write Files (Disk)
+    tx->>Git: git add .
+    tx->>Git: git commit -m "feat:..."
+    Git-->>tx: ok
+    tx-->>-Service: ok
+    
+    Service-->>Client: ok
+```
+
 ## Componentes
 
 ### 1. Core Domain (`pkg/core`)
 
-O coração do sistema. Contém apenas lógica de negócios pura e definições de tipos.
-
 - **Entidades**: `Document` (ID, Content, Metadata).
-- **Ports (Interfaces)**: `Repository` (Save, Get, List, Delete).
+- **Ports (Interfaces)**: `Repository` (Save, Get, List, Delete) — O "Abstract Librarian".
 - **Services**: `Service` (Orquestra validações e chama o Repository).
 - **Dependências**: Zero dependências de infraestrutura.
 
@@ -27,8 +63,8 @@ O coração do sistema. Contém apenas lógica de negócios pura e definições 
 
 Implementações concretas dos Ports definidos no Core.
 
-- **FS Adapter (`pkg/adapters/fs`)**: Implementa `core.Repository`.
-  - Gerencia arquivos Markdown e YAML Frontmatter.
+- **FS Adapter (`pkg/adapters/fs`)**: Implementa `core.Repository`. A "Estante Física".
+  - Gerencia a **persistência física** de Documentos (serializando como Markdown/YAML/JSON).
   - Utiliza `pkg/git` para controle de versão.
   - Mantém um **Cache (.loam/index.json)** para listagens rápidas (Otimização).
 
