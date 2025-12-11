@@ -188,3 +188,7 @@ fmt.Println(user.Data.Name)
 
 🚧 **Alpha**.
 A API interna `pkg/loam` é estável e respeita versionamento semântico, mas novas features (como suporte a Coleções JSON/YAML) estão sendo ativamente desenvolvidas no Adapter FS. A CLI é estável para uso diário.
+
+## Licença
+
+[AGPL-3.0](LICENSE.txt)
