@@ -1,22 +1,6 @@
 # Planning & Roadmap
 
-## Fase 0.7.0: Multi-Document Support (Completed)
-
-**Objetivo:** Permitir que arquivos únicos (CSV, JSON Arrays) atuem como coleções de múltiplos documentos, acessíveis via Sub-IDs.
-
-- [x] **Design & Architecture**:
-  - [x] Definir estratégia de endereçamento (Resource ID `collection/item`).
-  - [x] Refinar estratégia de fallback no Adapter (Smart Discovery).
-- [x] **Developer Experience**:
-  - [x] Implementar Active Record (`doc.Save()`).
-- [x] **FS Adapter Implementation**:
-  - [x] Implementar leitura (`Get`) de Sub-Documentos (CSV).
-  - [x] Implementar escrita (`Save`) com *Read-Modify-Write* atômico.
-  - [x] Implementar listagem (`List`) com *Flattening* de coleções.
-  - [x] Implementar transações multi-documento (`Batch`).
-  - [x] Suporte a Coleções (CSV e IDs customizáveis).
-
-## Fase 0.8.0: Conversion & Docs Refinement
+## Fase 0.8.0: Conversion & Docs Refinement (Completed)
 
 **Objetivo:** Explorar capacidades de conversão de dados e reestruturar a documentação para melhor comunicar a proposta de valor do Loam.
 
@@ -61,6 +45,7 @@ Objetivo: Permitir que ferramentas externas (não-Go) interajam com o Loam via r
 
 ## Futuro / Blue Sky
 
+- **Multi-Document Support**: Aumentar suporte a Coleções JSON/YAML (hoje é apenas CSV).
 - **SDK**: Gerar clients (Polyglot) para integrar Loam com outras linguagens.
 - **Definir imagem mínima**: Containerização eficiente e segura.
 - **Multi-Tenant**: Suporte a múltiplos vaults simultâneos no servidor.
