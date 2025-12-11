@@ -41,9 +41,9 @@ func main() {
 	}
 	fmt.Println("Saved to safe vault")
 
-	fmt.Println("\n--- Demonstrate Gitless Mode ---")
-	// Usage 2: Gitless (Standard FS mode)
-	gitlessService, err := loam.New("./local-gitless",
+	fmt.Println("\n--- Demonstrate No-Versioning Mode ---")
+	// Usage 2: No-Versioning (Standard FS mode)
+	gitlessService, err := loam.New("./local-nover",
 		loam.WithLogger(logger),
 		loam.WithAutoInit(true),
 		loam.WithVersioning(false),

@@ -31,7 +31,7 @@ var readCmd = &cobra.Command{
 		// Configure Loam
 		service, err := loam.New(wd,
 			loam.WithAdapter(adapter),
-			loam.WithVersioning(!gitless),
+			loam.WithVersioning(!nover),
 			loam.WithMustExist(true),
 			loam.WithLogger(slog.Default()),
 		)

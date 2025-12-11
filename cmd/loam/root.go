@@ -10,7 +10,7 @@ import (
 
 var (
 	verbose bool
-	gitless bool
+	nover   bool
 	adapter string
 )
 
@@ -45,6 +45,6 @@ func Execute() {
 
 func init() {
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Enable verbose logging")
-	rootCmd.PersistentFlags().BoolVar(&gitless, "gitless", false, "Run in gitless mode (no git operations)")
+	rootCmd.PersistentFlags().BoolVar(&nover, "nover", false, "Run in no-versioning mode (no git operations)")
 	rootCmd.PersistentFlags().StringVar(&adapter, "adapter", "fs", "Storage adapter to use (fs)")
 }

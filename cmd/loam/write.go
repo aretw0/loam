@@ -58,7 +58,7 @@ var writeCmd = &cobra.Command{
 		// Configure Loam using the new Config struct
 		service, err := loam.New(cwd,
 			loam.WithAdapter(adapter),
-			loam.WithVersioning(!gitless),
+			loam.WithVersioning(!nover),
 			loam.WithLogger(slog.Default()),
 			// AutoInit is false by default
 		)

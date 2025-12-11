@@ -30,7 +30,7 @@ var listCmd = &cobra.Command{
 
 		service, err := loam.New(wd,
 			loam.WithAdapter(adapter),
-			loam.WithVersioning(!gitless),
+			loam.WithVersioning(!nover),
 			loam.WithMustExist(true),
 			loam.WithLogger(slog.Default()),
 		)

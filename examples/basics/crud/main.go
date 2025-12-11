@@ -13,10 +13,10 @@ import (
 func main() {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
-	fmt.Println("--- Gitless Mode CRUD Demo ---")
+	fmt.Println("--- No-Versioning Mode CRUD Demo ---")
 
-	// Create a safe, temporary vault in Gitless mode.
-	service, err := loam.New("gitless-demo",
+	// Create a safe, temporary vault in No-Versioning mode.
+	service, err := loam.New("nover-demo",
 		loam.WithLogger(logger),
 		loam.WithForceTemp(true),
 		loam.WithVersioning(false),
@@ -35,7 +35,7 @@ func main() {
 		Content string
 	}{
 		{ID: "todo", Content: "- [ ] Buy milk\n- [ ] Walk the dog"},
-		{ID: "ideas/app", Content: "# App Idea\nA gitless markdown manager."},
+		{ID: "ideas/app", Content: "# App Idea\nA no-versioning markdown manager."},
 		{ID: "temp", Content: "This will be deleted."},
 	}
 

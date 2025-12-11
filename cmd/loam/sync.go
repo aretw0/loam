@@ -24,7 +24,7 @@ It performs a 'git pull --rebase' to integrate remote changes, followed by a 'gi
 		fmt.Println("Syncing...")
 		if err := loam.Sync(cwd,
 			loam.WithAdapter(adapter),
-			loam.WithVersioning(!gitless),
+			loam.WithVersioning(!nover),
 			loam.WithLogger(slog.Default()),
 		); err != nil {
 			// User friendly error handling

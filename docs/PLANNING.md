@@ -21,7 +21,7 @@
   - [ ] Melhorar a experiência do usuário, talvez melhorando a `platform`, para facilitar a criação de TypedServices e TypedRepositories.
 - [ ] *Patches*:
   - [ ] Ajustar a [fachada](../loam.go) para que ofereça toda a funcionalidade do `platform`.
-  - [ ] Manter o discurso do "WithVersioning" até na CLI, i.e. trocar `--gitless` por `--nover`.
+  - [x] Manter o discurso do "WithVersioning" até na CLI, i.e. trocar `--gitless` por `--nover`.
 - [ ] *Revisions*:
   - [ ] Documentação
     - [ ] Refletir sobre o estado atual da pasta `docs` e o futuro do projeto, e se devemos partir para outra abordagem.
