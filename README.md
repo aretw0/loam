@@ -16,7 +16,20 @@ Por padrão, o Loam utiliza o **Sistema de Arquivos + Git** como banco de dados 
 - **Pipelines de Dados Locais** (ETL de CSV/JSON).
 - **Geradores de Sites Estáticos** (Hugo, Jekyll).
 
-## 🤔 Por que Loam?
+## 🗺️ Navegação
+
+- [🤔 Por que Loam?](#why-loam)
+- [📄 Arquivos Suportados](#files)
+- [🚀 Instalação](#install)
+- [🛠️ CLI: Uso Básico](#cli-usage)
+- [📦 Library: Uso em Go](#lib-usage)
+- [📖 Exemplos](#examples)
+- [📚 Documentação Técnica](#tech-docs)
+  - [Visão do Produto](docs/PRODUCT.md)
+  - [Arquitetura Técnica](docs/TECHNICAL.md)
+  - [Roadmap & Planning](docs/PLANNING.md)
+
+## 🤔 Por que Loam? <a name="why-loam"></a>
 
 Por que não apenas usar `os.WriteFile` ou SQLite?
 
@@ -25,7 +38,7 @@ Por que não apenas usar `os.WriteFile` ou SQLite?
 - **Structured Formats**: Ele gerencia a separação de Frontmatter e Conteúdo. Você recebe os metadados e o corpo bruto (string), sem opiniões de renderização.
 - **Git Power**: Todo `Save` gera um histórico. Você ganha "Undo/Redo" infinito e auditoria de graça.
 
-## 📄 Arquivos Suportados (Smart Persistence)
+## 📄 Arquivos Suportados (Smart Persistence) <a name="files"></a>
 
 O **Adapter padrão (FS)** detecta automaticamente o formato do arquivo baseado na extensão do ID:
 
@@ -34,13 +47,13 @@ O **Adapter padrão (FS)** detecta automaticamente o formato do arquivo baseado 
 - **YAML (`.yaml`)**: Serializa como objeto YAML puro. Campo `content` é opcional.
 - **CSV (`.csv`)**: Serializa como linha de valores. Suporta coleções com múltiplos documentos.
 
-## 🚀 Instalação
+## 🚀 Instalação <a name="install"></a>
 
 ```bash
 go install github.com/aretw0/loam/cmd/loam@latest
 ```
 
-## 🛠️ CLI: Uso Básico
+## 🛠️ CLI: Uso Básico <a name="cli-usage"></a>
 
 O Loam CLI funciona como um "Gerenciador de Conteúdo", abstraindo a persistência.
 
@@ -82,7 +95,7 @@ loam sync
 
 ---
 
-## 📦 Library: Uso em Go
+## 📦 Library: Uso em Go <a name="lib-usage"></a>
 
 Você pode embutir o Loam em seus próprios projetos Go para gerenciar persistência de dados.
 
@@ -153,7 +166,11 @@ user, _ := userRepo.Get(ctx, "users/alice")
 fmt.Println(user.Data.Name)
 ```
 
-## 📚 Documentação Técnica
+## 📖 Exemplos <a name="examples"></a>
+
+Veja os exemplos em [examples/README.md](examples/README.md).
+
+## 📚 Documentação Técnica <a name="tech-docs"></a>
 
 - [Visão do Produto](docs/PRODUCT.md)
 - [Arquitetura Técnica](docs/TECHNICAL.md)
