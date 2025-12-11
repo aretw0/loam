@@ -12,6 +12,28 @@ Uma distinção crucial na filosofia do Loam é a separação entre **Armazename
 
 O Loam fornece o *acesso* e a *integridade*. O App fornece a *experiência*.
 
+```mermaid
+graph LR
+    subgraph "Librarian (Backend)"
+        Loam[Loam Engine]
+        Storage[(Git / FS)]
+        Loam -->|Manage| Storage
+    end
+
+    subgraph "Reader (Frontend/App)"
+        CLI
+        TUI
+        WebApp
+    end
+
+    Loam -->|Raw Content + Metadata| CLI
+    Loam -->|Raw Content + Metadata| TUI
+    Loam -->|Raw Content + Metadata| WebApp
+    
+    style Loam fill:#f9f,stroke:#333,stroke-width:2px
+    style Storage fill:#eee,stroke:#333,stroke-width:1px
+```
+
 ## Comparativo de Mercado
 
 Entender onde o Loam se encaixa ajuda a escolher a ferramenta certa:

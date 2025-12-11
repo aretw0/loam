@@ -6,10 +6,31 @@ O **Loam** adota uma **Arquitetura Hexagonal (Ports & Adapters)** para garantir 
 
 ```mermaid
 graph TD
-    CLI[CMD / CLI] --> Factory[LOAM FACTORY]
-    Factory --> Service[CORE SERVICE]
-    Service --> Port([REPOSITORY PORT])
-    Adapters[ADAPTERS] -. implementa .-> Port
+    subgraph "External World (Primary Adapters)"
+        CLI[CLI / Command Line]
+        App[Your Go App]
+    end
+
+    subgraph "Hexagon (Core Domain)"
+        direction TB
+        Service[Core Service - Business Rules]
+        Model[Domain Model - Document / Metadata]
+    end
+
+    subgraph "Infrastructure (Secondary Adapters)"
+        FSAdapter[FS Adapter - File persist]
+        Git[Git Client]
+        Cache[Index Cache]
+    end
+
+    CLI -->|Calls| Service
+    App -->|Calls| Service
+    
+    Service -->|Uses| Model
+    Service -->|Port Interface| FSAdapter
+    
+    FSAdapter -->|Impl| Git
+    FSAdapter -->|Impl| Cache
 ```
 
 ## Fluxos de Execução
@@ -48,6 +69,20 @@ sequenceDiagram
     tx-->>-Service: ok
     
     Service-->>Client: ok
+```
+
+### Ciclo de Vida do Documento
+
+```mermaid
+stateDiagram-v2
+    [*] --> Memory : New()
+    Memory --> Staged : Save()
+    Staged --> Persisted : Commit()
+    Persisted --> [*]
+    
+    state "In Context (Dirty)" as Memory
+    state "Filesystem (Pending)" as Staged
+    state "Git History (Safe)" as Persisted
 ```
 
 ## Componentes
