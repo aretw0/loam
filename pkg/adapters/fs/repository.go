@@ -198,7 +198,7 @@ func (r *Repository) Save(ctx context.Context, doc core.Document) error {
 	// Ensure parent directory exists
 	// But first, check if we should intercept for Multi-Doc (Collection)
 	if collectionPath, colExt, key, found := r.findCollection(doc.ID); found {
-		return r.saveToCollection(ctx, doc, collectionPath, colExt, key)
+		return r.saveToCollection(doc, collectionPath, colExt, key)
 	}
 
 	if err := os.MkdirAll(filepath.Dir(fullPath), 0755); err != nil {
@@ -258,7 +258,7 @@ func (r *Repository) Get(ctx context.Context, id string) (core.Document, error) 
 	if err != nil {
 		if os.IsNotExist(err) {
 			// Fallback: Check if it's a sub-document inside a collection (e.g. CSV)
-			if doc, err2 := r.getFromCollection(ctx, id); err2 == nil {
+			if doc, err2 := r.getFromCollection(id); err2 == nil {
 				return doc, nil
 			}
 			// Return original error if fallback fails
@@ -297,7 +297,9 @@ func (r *Repository) findCollection(id string) (collectionPath, collectionExt, k
 	return "", "", "", false
 }
 
-func (r *Repository) getFromCollection(ctx context.Context, id string) (core.Document, error) {
+// getFromCollection retrieves a sub-document from a collection file (e.g. CSV).
+// Note: context is not passed here as these are blocking local file operations.
+func (r *Repository) getFromCollection(id string) (core.Document, error) {
 	collectionPath, collectionExt, key, found := r.findCollection(id)
 	if !found {
 		return core.Document{}, fmt.Errorf("collection not found")
@@ -362,7 +364,9 @@ func (r *Repository) getFromCollection(ctx context.Context, id string) (core.Doc
 	return core.Document{}, fmt.Errorf("document not found in collection")
 }
 
-func (r *Repository) saveToCollection(ctx context.Context, doc core.Document, collectionPath, collectionExt, key string) error {
+// saveToCollection updates a sub-document in a collection file.
+// Note: context is not passed here as these are blocking local file operations.
+func (r *Repository) saveToCollection(doc core.Document, collectionPath, collectionExt, key string) error {
 	// Read-Modify-Write
 	// Lock? Ideally yes. atomic.go helps with write, but race condition on read-mod possible.
 	// For now, relies on atomic.go file swap.
@@ -508,7 +512,7 @@ func (r *Repository) List(ctx context.Context) ([]core.Document, error) {
 		relPath = filepath.ToSlash(relPath)
 
 		// Check if it's a collection and flatten it
-		if colDocs, err := r.flattenCollection(ctx, path, relPath); err == nil {
+		if colDocs, err := r.flattenCollection(path, relPath); err == nil {
 			// We don't verify cache for sub-docs yet (TODO)
 			// Directly append for prototype
 			docs = append(docs, colDocs...)
@@ -597,7 +601,9 @@ func (r *Repository) List(ctx context.Context) ([]core.Document, error) {
 
 }
 
-func (r *Repository) flattenCollection(ctx context.Context, fullPath, relPath string) ([]core.Document, error) {
+// flattenCollection reads a collection file and returns independent Document objects for each row.
+// Note: context is not passed here as these are blocking local file operations.
+func (r *Repository) flattenCollection(fullPath, relPath string) ([]core.Document, error) {
 	ext := filepath.Ext(fullPath)
 	if ext != ".csv" { // Only CSV implemented for now
 		return nil, fmt.Errorf("unsupported collection format")
@@ -665,7 +671,9 @@ func (r *Repository) flattenCollection(ctx context.Context, fullPath, relPath st
 	return docs, nil
 }
 
-func (r *Repository) saveBatchToCollection(ctx context.Context, collectionPath, collectionExt string, batch map[string]core.Document) error {
+// saveBatchToCollection writes multiple documents to a collection file in one go.
+// Note: context is not passed here as these are blocking local file operations.
+func (r *Repository) saveBatchToCollection(collectionPath, collectionExt string, batch map[string]core.Document) error {
 	data, err := os.ReadFile(collectionPath)
 	if err != nil {
 		return err

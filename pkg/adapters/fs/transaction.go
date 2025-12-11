@@ -122,7 +122,7 @@ func (t *Transaction) Commit(ctx context.Context, changeReason string) error {
 	// Execution Phase (Collections)
 	for colPath, batch := range collectionBatches {
 		ext := collectionExts[colPath]
-		if err := t.repo.saveBatchToCollection(ctx, colPath, ext, batch); err != nil {
+		if err := t.repo.saveBatchToCollection(colPath, ext, batch); err != nil {
 			return fmt.Errorf("failed to save batch for collection %s: %w", colPath, err)
 		}
 
