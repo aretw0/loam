@@ -1,37 +1,30 @@
 # Planning & Roadmap
 
-## Fase 0.8.0: Conversion & Docs Refinement (Completed)
+## Fase 0.8.1: API Polish & CLI DX (Completed)
 
-**Objetivo:** Explorar capacidades de conversão de dados e reestruturar a documentação para melhor comunicar a proposta de valor do Loam.
+**Objetivo:** Melhorar a experiência do usuário (CLI) e a experiência do desenvolvedor (API Pública).
 
-- [x] **I/O Plumbing & Export (Unix Philosophy)**:
-  - [x] **Ingestion**: Suportar STDIN no `loam write` para permitir pipes de ferramentas externas (ex: `jq | loam write`).
-  - [x] **Export/Read**: Evoluir `loam read` para suportar flags de formatação (`--format=json|yaml|csv`).
-    - *Nota*: Isso transforma o `read` em um exportador universal, permitindo que toolmakers consumam dados como CSV/JSON sem conversão extra.
-- [x] **Documentation Overhaul**:
-  - [x] **Cookbook (Receitas)**: Criar exemplos práticos de integração via Pipes (Unix) e Tooling externo (ex: `jq`, scripts).
-  - [x] **Identity & Contrast**: Reforçar a distinção entre "Librarian" (Loam) e "Reader" (App Final). Comparar com SQLite vs Excel.
-  - [x] **Visuals**: Diagramas focados no ciclo de via da Transação e fronteiras Hexagonais.
+- [x] **CLI DX**:
+  - [x] **Root Seeking**: CLI agora encontra `.loam` ou `.git` recursivamente (`FindVaultRoot`).
+  - [x] **Relaxed Init**: `loam init --nover` permite iniciar vaults sem Git obrigatório.
+  - [x] **Dependency Check**: `read/list` detectam automaticamente se devem usar Git ou modo simples.
+- [x] **Public API (Toolmaker DX)**:
+  - [x] **Clean Facade**: `loam.Init`, `loam.New`, `loam.OpenTyped*` expostos na raiz.
+  - [x] **Typed Package**: Refatoração para `pkg/typed` com `TypedRepository`, `TypedService` e `Transactions`.
+  - [x] **Testing**: Cobertura de testes unitários para o novo pacote tipado.
 
-## Fase 0.8.X: Improvements, Patches & Revisions (Current)
+## Fase 0.8.2: Documentation & Reliability (Next)
 
-**Objetivo:** Melhorar a qualidade do código, a experiência do usuário, e no processo, fazer alguns patchs, revisar documentação e exemplos.
+**Objetivo:** Revisão profunda de documentação, código e exemplos para garantir robustez.
 
-- [ ] *Improvements*:
-  - [ ] Melhorar a experiência do usuário (DX Refinements):
-    - [ ] **Root Seeking**: CLI deve encontrar a raiz do cofre recursivamente para evitar aninhamento acidental (`write` em subdirs).
-    - [ ] **Relaxed Init**: Permitir `init --nover` (apenas cria diretórios, sem git init).
-    - [ ] **Simplified Read/List**: Remover dependência rígida de versionamento para comandos de leitura.
-  - [ ] Melhorar a `platform` para facilitar a criação de TypedServices e TypedRepositories.
-- [ ] *Patches*:
-  - [ ] Ajustar a [fachada](../loam.go) para que ofereça toda a funcionalidade do `platform`.
-  - [x] Manter o discurso do "WithVersioning" até na CLI, i.e. trocar `--gitless` por `--nover`.
-- [ ] *Revisions*:
-  - [ ] Documentação
-    - [ ] Refletir sobre o estado atual da pasta `docs` e o futuro do projeto, e se devemos partir para outra abordagem.
-  - [ ] Código
-    - [ ] Revisar código atual na busca de comentários desnecessários e a falta dos mesmos em locais vitais.
-    - [ ] Revisar exemplos para que sejam claros, completos e prontos para uso.
+- [ ] **Documentação 2.0**:
+  - [ ] Refletir sobre o estado atual da pasta `docs` e o futuro do projeto.
+  - [ ] Revisar `PRODUCT.md` e `TECHNICAL.md` para alinhar com as mudanças recentes (Adapters, Typed API).
+- [ ] **Code Quality**:
+  - [ ] Revisão de código em busca de "Code Smells" ou comentários obsoletos.
+  - [ ] Adicionar comentários em partes vitais (ex: complexidade do `fs/adapter`).
+- [ ] **Examples Review**:
+  - [ ] Garantir que todos os demos em `examples/` compilem e reflitam as melhores práticas da v0.8.1.
 
 ## RFC 0.X.X: Library-Level Sync Strategies (Backlog)
 

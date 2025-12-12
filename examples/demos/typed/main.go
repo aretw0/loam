@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 
 	"github.com/aretw0/loam"
-	"github.com/aretw0/loam/pkg/adapters/fs"
 )
 
 // User represents our domain object.
@@ -27,19 +26,14 @@ func main() {
 	repoPath := loam.ResolveVaultPath(filepath.Join(wd, "data"), true)
 	fmt.Printf("Repository Path: %s\n", repoPath)
 
-	// Create a standard FS repository
-	fsRepo := fs.NewRepository(fs.Config{
-		Path:    repoPath,
-		Gitless: true, // No git for this simple demo
-	})
-
-	if err := fsRepo.Initialize(context.Background()); err != nil {
+	// 1. Initialize Typed Repository using new OpenTypedRepository factory
+	userRepo, err := loam.OpenTypedRepository[User](repoPath,
+		loam.WithVersioning(false), // Gitless for demo
+	)
+	if err != nil {
 		log.Fatal(err)
 	}
 
-	// 2. Create the Typed Repository Wrapper
-	// This provides a Type-Safe view over the filesystem
-	userRepo := loam.NewTyped[User](fsRepo)
 	ctx := context.Background()
 
 	// 3. Create & Save a User (Model)

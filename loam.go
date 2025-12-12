@@ -5,10 +5,22 @@ import (
 
 	"github.com/aretw0/loam/internal/platform"
 	"github.com/aretw0/loam/pkg/core"
+	"github.com/aretw0/loam/pkg/typed"
 )
 
 // Version exposes the version of the library.
 // See version.go for the implementation using go:embed.
+
+// --- Types ---
+
+// DocumentModel is a public alias for the typed document model.
+type DocumentModel[T any] = typed.DocumentModel[T]
+
+// TypedRepository is a public alias for the typed repository.
+type TypedRepository[T any] = typed.Repository[T]
+
+// TypedService is a public alias for the typed service.
+type TypedService[T any] = typed.Service[T]
 
 // --- Configuration ---
 
@@ -67,6 +79,36 @@ func Init(path string, opts ...Option) (core.Repository, error) {
 	return platform.Init(path, opts...)
 }
 
+// --- Typed Factories ---
+
+// NewTypedRepository creates a type-safe wrapper around an existing repository.
+func NewTypedRepository[T any](repo core.Repository) *typed.Repository[T] {
+	return typed.NewRepository[T](repo)
+}
+
+// NewTypedService creates a type-safe wrapper around an existing service.
+func NewTypedService[T any](svc *core.Service) *typed.Service[T] {
+	return typed.NewService[T](svc)
+}
+
+// OpenTypedRepository simplifies creating a TypedRepository from a path.
+func OpenTypedRepository[T any](path string, opts ...Option) (*typed.Repository[T], error) {
+	repo, err := Init(path, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return typed.NewRepository[T](repo), nil
+}
+
+// OpenTypedService simplifies creating a TypedService from a path.
+func OpenTypedService[T any](path string, opts ...Option) (*typed.Service[T], error) {
+	svc, err := New(path, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return typed.NewService[T](svc), nil
+}
+
 // --- Operations ---
 
 // Sync performs a synchronization (pull/push) of the vault.
@@ -84,6 +126,11 @@ func ResolveVaultPath(userPath string, forceTemp bool) string {
 // IsDevRun checks if the current process is running via `go run` or `go test`.
 func IsDevRun() bool {
 	return platform.IsDevRun()
+}
+
+// FindVaultRoot recursively looks upwards for a vault root indicator.
+func FindVaultRoot(startDir string) (string, error) {
+	return platform.FindRoot(startDir)
 }
 
 // --- Semantic Commits ---
@@ -107,9 +154,4 @@ func FormatChangeReason(ctype, scope, subject, body string) string {
 // AppendFooter appends the Loam footer to an arbitrary message.
 func AppendFooter(msg string) string {
 	return platform.AppendFooter(msg)
-}
-
-// FindVaultRoot recursively looks upwards for a vault root indicator.
-func FindVaultRoot(startDir string) (string, error) {
-	return platform.FindRoot(startDir)
 }

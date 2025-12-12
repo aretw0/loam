@@ -1,13 +1,13 @@
-package platform_test
+package typed_test
 
 import (
 	"context"
 	"path/filepath"
 	"testing"
 
-	"github.com/aretw0/loam/internal/platform"
 	"github.com/aretw0/loam/pkg/adapters/fs"
 	"github.com/aretw0/loam/pkg/core"
+	"github.com/aretw0/loam/pkg/typed"
 )
 
 type UserProfile struct {
@@ -36,11 +36,11 @@ func TestTypedRepository(t *testing.T) {
 
 	ctx := context.Background()
 
-	// Create Typed Wrapper
-	userRepo := platform.NewTyped[UserProfile](repo)
+	// Create Typed Wrapper directly (not via root facade)
+	userRepo := typed.NewRepository[UserProfile](repo)
 
 	// 1. Test Save
-	user := &platform.DocumentModel[UserProfile]{
+	user := &typed.DocumentModel[UserProfile]{
 		ID:      "users/alice",
 		Content: "Bio: generic profile",
 		Data: UserProfile{
@@ -69,13 +69,16 @@ func TestTypedRepository(t *testing.T) {
 
 	// 3. Test List
 	// Add another user
-	bob := &platform.DocumentModel[UserProfile]{
+	bob := &typed.DocumentModel[UserProfile]{
 		ID: "users/bob",
 		Data: UserProfile{
 			Name: "Bob",
 			Age:  25,
 		},
 	}
+	// Use Active Record style if saver attached (which it isn't for new doc unless attached)
+	// But we can attach manually or just use repo.Save.
+	// For this test, let's use repo.Save
 	if err := userRepo.Save(ctx, bob); err != nil {
 		t.Fatal(err)
 	}
@@ -85,9 +88,6 @@ func TestTypedRepository(t *testing.T) {
 		t.Fatalf("List failed: %v", err)
 	}
 
-	// Note: List might include other files if the dir wasn't clean, but here it is clean.
-	// However, FS List recursion guarantees might depend on implementation.
-	// We expect at least these 2.
 	foundAlice := false
 	foundBob := false
 	for _, u := range list {

@@ -49,8 +49,8 @@ func Example_basic() {
 	// Found document: hello-world
 }
 
-// Example_typed demonstrates how to use the Generic Typed Wrapper for type safety.
-func ExampleNewTyped() {
+// ExampleNewTypedRepository demonstrates how to use the Generic Typed Wrapper for type safety.
+func ExampleNewTypedRepository() {
 	// Setup: Temporary repository
 	tmpDir, err := os.MkdirTemp("", "loam-typed-example-*")
 	if err != nil {
@@ -71,7 +71,7 @@ func ExampleNewTyped() {
 	}
 
 	// Wrap the repository
-	userRepo := loam.NewTyped[User](repo)
+	userRepo := loam.NewTypedRepository[User](repo)
 	ctx := context.Background()
 
 	// Save a typed document

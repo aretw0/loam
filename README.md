@@ -159,8 +159,8 @@ Para maior segurança de tipos, você pode usar o wrapper genérico:
 
 ```go
 type User struct { Name string `json:"name"` }
-// Wraps o repositório base
-userRepo := loam.NewTyped[User](baseRepo)
+// Wraps o repositório base (ou use loam.OpenTypedRepository para abrir direto)
+userRepo := loam.NewTypedRepository[User](baseRepo)
 // Acesso tipado
 user, _ := userRepo.Get(ctx, "users/alice")
 fmt.Println(user.Data.Name)
