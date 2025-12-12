@@ -13,19 +13,19 @@
   - [x] **Typed Package**: Refatoração para `pkg/typed` com `TypedRepository`, `TypedService` e `Transactions`.
   - [x] **Testing**: Cobertura de testes unitários para o novo pacote tipado.
 
-## Fase 0.8.2: Documentation & Reliability (Current)
+## Fase 0.8.2: Documentation & Reliability (Completed)
 
 **Objetivo:** Revisão profunda de documentação, código e exemplos para garantir robustez.
 
 - [x] **Documentação 2.0**:
   - [x] Refletir sobre o estado atual da pasta `docs` e o futuro do projeto.
   - [x] Revisar `PRODUCT.md` e `TECHNICAL.md` para alinhar com as mudanças recentes (Adapters, Typed API).
-- [ ] **Code Quality**:
-  - [ ] **Godoc Coverage**: Garantir que todos os tipos e funções exportadas tenham comentários idiomáticos.
-  - [ ] Revisão de código em busca de "Code Smells" ou comentários obsoletos.
-  - [ ] Adicionar comentários em partes vitais (ex: complexidade do `fs/adapter`).
-- [ ] **Examples Review**:
-  - [ ] Garantir que todos os demos em `examples/` compilem e reflitam as melhores práticas da v0.8.1.
+- [x] **Code Quality**:
+  - [x] **Godoc Coverage**: Garantir que todos os tipos e funções exportadas tenham comentários idiomáticos.
+  - [x] Revisão de código em busca de "Code Smells" ou comentários obsoletos.
+  - [x] Adicionar comentários em partes vitais (ex: complexidade do `fs/adapter`).
+- [x] **Examples Review**:
+  - [x] Garantir que todos os demos em `examples/` compilem e reflitam as melhores práticas da v0.8.1.
 
 ## RFC 0.X.X: Library-Level Sync Strategies (Backlog)
 
