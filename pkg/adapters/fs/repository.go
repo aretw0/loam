@@ -168,6 +168,13 @@ func (r *Repository) Sync(ctx context.Context) error {
 
 // Save persists a document to the filesystem and commits it to Git.
 // If the document belongs to a collection (e.g. CSV), it updates the specific row.
+//
+// Workflow:
+//  1. Validate ID and determine extension strategy.
+//  2. Check if it's a "Collection Item" (e.g. inside a CSV) -> special handling.
+//  3. Create parent directories.
+//  4. Serialize content (Markdown/JSON/YAML) and write atomically to disk.
+//  5. (If Git enabled) 'git add' and 'git commit' with context metadata.
 func (r *Repository) Save(ctx context.Context, doc core.Document) error {
 	if doc.ID == "" {
 		return fmt.Errorf("document has no ID")
@@ -239,6 +246,11 @@ func (r *Repository) Save(ctx context.Context, doc core.Document) error {
 }
 
 // Get retrieves a document from the filesystem.
+//
+// Workflow:
+//  1. Try to open the file directly (handling extension logic).
+//  2. If file not found, check if it's a sub-document inside a Collection (e.g. row in CSV).
+//  3. Parse content based on file extension.
 func (r *Repository) Get(ctx context.Context, id string) (core.Document, error) {
 	// Attempt to find the file.
 	// 1. Try exact match (if ID has extension)
@@ -474,6 +486,14 @@ func (r *Repository) saveToCollection(doc core.Document, collectionPath, collect
 }
 
 // List scans the directory for all documents.
+//
+// Strategy:
+//  1. Load existing Cache (metadata index) from disk.
+//  2. Walk the directory tree (skipping .git and system dirs).
+//  3. For each supported file:
+//     a. Check Cache Hit (based on mtime). If hit, use cached metadata (FAST).
+//     b. Cache Miss: Full Parse (Get). Update Cache.
+//  4. Save Cache back to disk.
 func (r *Repository) List(ctx context.Context) ([]core.Document, error) {
 	var docs []core.Document
 

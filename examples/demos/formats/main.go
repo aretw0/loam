@@ -6,7 +6,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/aretw0/loam/pkg/adapters/fs"
+	"github.com/aretw0/loam"
 	"github.com/aretw0/loam/pkg/core"
 )
 
@@ -20,12 +20,10 @@ func main() {
 
 	fmt.Printf("Demo Vault: %s\n", tmpDir)
 
-	repo := fs.NewRepository(fs.Config{
-		Path:    tmpDir,
-		Gitless: true,
-	})
-
-	if err := repo.Initialize(context.Background()); err != nil {
+	// Use public facade
+	// We want Gitless for this demo to just show FS capabilities without git overhead
+	repo, err := loam.Init(tmpDir, loam.WithVersioning(false))
+	if err != nil {
 		log.Fatalf("Init failed: %v", err)
 	}
 

@@ -1,3 +1,4 @@
 loam.exe
 .loam/
 coverage
+examples/**/*.exe

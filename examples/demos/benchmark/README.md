@@ -18,3 +18,13 @@ go run .
 ## Expected Result
 
 Batch writes should be significantly faster (orders of magnitude) because they amortize the cost of the Git operation.
+
+## Local Development
+
+This example is configured to use the local version of Loam (via `replace` in `go.mod`).
+
+**If you copy this code to your own project:**
+
+1. Open `go.mod`.
+2. Delete the line starting with `replace ...`.
+3. Run `go mod tidy` to download the published version from GitHub.

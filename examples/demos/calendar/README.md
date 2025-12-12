@@ -15,12 +15,12 @@ This example treats every calendar event as a specialized Note.
 go run .
 ```
 
-## Developing
+## Local Development
 
-This example points to the local Loam codebase via `go.mod`:
+This example is configured to use the local version of Loam (via `replace` in `go.mod`).
 
-```go
-replace github.com/aretw0/loam => ../..
-```
+**If you copy this code to your own project:**
 
-If you move this folder, update the path to point to your Loam repository or remove it to use the published module.
+1. Open `go.mod`.
+2. Delete the line starting with `replace ...`.
+3. Run `go mod tidy` to download the published version from GitHub.

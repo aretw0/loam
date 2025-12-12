@@ -14,12 +14,12 @@ This will:
 2. Create a standardized note.
 3. Save it using `fs` adapter + `git` versioning automatically.
 
-## Using Local Loam
+## Local Development
 
-This example uses a `replace` directive in `go.mod` to point to the local version of Loam during development:
+This example is configured to use the local version of Loam (via `replace` in `go.mod`).
 
-```go
-replace github.com/aretw0/loam => ../..
-```
+**If you copy this code to your own project:**
 
-If you copy this code to a new project outside of this repository, simply remove that line to use the published version, or update the path to point to your local checkout.
+1. Open `go.mod`.
+2. Delete the line starting with `replace ...`.
+3. Run `go mod tidy` to download the published version from GitHub.
