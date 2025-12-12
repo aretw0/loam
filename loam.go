@@ -108,3 +108,8 @@ func FormatChangeReason(ctype, scope, subject, body string) string {
 func AppendFooter(msg string) string {
 	return platform.AppendFooter(msg)
 }
+
+// FindVaultRoot recursively looks upwards for a vault root indicator.
+func FindVaultRoot(startDir string) (string, error) {
+	return platform.FindRoot(startDir)
+}

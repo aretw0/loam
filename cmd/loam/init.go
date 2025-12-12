@@ -20,10 +20,6 @@ var initCmd = &cobra.Command{
 			fatal("Failed to get CWD", err)
 		}
 
-		if nover {
-			fatal("Cannot initialize vault in no-versioning mode", fmt.Errorf("git is required for init"))
-		}
-
 		// loam init -> AutoInit=true
 		_, err = loam.Init(cwd,
 			loam.WithAdapter(adapter),

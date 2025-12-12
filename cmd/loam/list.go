@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"path/filepath"
 
 	"github.com/aretw0/loam"
 	"github.com/aretw0/loam/pkg/core"
@@ -28,9 +29,23 @@ var listCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		service, err := loam.New(wd,
+		root, err := loam.FindVaultRoot(wd)
+		if err != nil {
+			fmt.Println("Error: Not a Loam vault (no .loam, .git, or loam.json found).")
+			os.Exit(1)
+		}
+
+		// Auto-detect versioning for list
+		useVersioning := !nover
+		if useVersioning {
+			if _, err := os.Stat(filepath.Join(root, ".git")); os.IsNotExist(err) {
+				useVersioning = false
+			}
+		}
+
+		service, err := loam.New(root,
 			loam.WithAdapter(adapter),
-			loam.WithVersioning(!nover),
+			loam.WithVersioning(useVersioning),
 			loam.WithMustExist(true),
 			loam.WithLogger(slog.Default()),
 		)

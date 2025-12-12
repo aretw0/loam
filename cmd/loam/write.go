@@ -50,13 +50,18 @@ var writeCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		cwd, err := os.Getwd()
+		wd, err := os.Getwd()
 		if err != nil {
 			fatal("Failed to get CWD", err)
 		}
 
+		root, err := loam.FindVaultRoot(wd)
+		if err != nil {
+			fatal("Not a Loam vault (no .loam, .git, or loam.json found). Run 'loam init' first.", nil)
+		}
+
 		// Configure Loam using the new Config struct
-		service, err := loam.New(cwd,
+		service, err := loam.New(root,
 			loam.WithAdapter(adapter),
 			loam.WithVersioning(!nover),
 			loam.WithLogger(slog.Default()),

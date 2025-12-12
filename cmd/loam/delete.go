@@ -22,7 +22,13 @@ var deleteCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		service, err := loam.New(wd, loam.WithAdapter(adapter), loam.WithVersioning(!nover), loam.WithMustExist(true))
+		root, err := loam.FindVaultRoot(wd)
+		if err != nil {
+			fmt.Printf("Error: Not a Loam vault: %v\n", err)
+			os.Exit(1)
+		}
+
+		service, err := loam.New(root, loam.WithAdapter(adapter), loam.WithVersioning(!nover), loam.WithMustExist(true))
 		if err != nil {
 			fmt.Printf("Error initializing loam: %v\n", err)
 			os.Exit(1)

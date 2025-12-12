@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"path/filepath"
 
 	"github.com/aretw0/loam"
 	"github.com/spf13/cobra"
@@ -28,10 +29,24 @@ var readCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		// Configure Loam
-		service, err := loam.New(wd,
+		root, err := loam.FindVaultRoot(wd)
+		if err != nil {
+			// For read/list, maybe we want to be nice? No, strict is better for now.
+			fmt.Println("Error: Not a Loam vault (no .loam, .git, or loam.json found).")
+			os.Exit(1)
+		}
+
+		// Auto-detect versioning for read: If default enabled but no .git, disable it.
+		useVersioning := !nover
+		if useVersioning {
+			if _, err := os.Stat(filepath.Join(root, ".git")); os.IsNotExist(err) {
+				useVersioning = false
+			}
+		}
+
+		service, err := loam.New(root,
 			loam.WithAdapter(adapter),
-			loam.WithVersioning(!nover),
+			loam.WithVersioning(useVersioning),
 			loam.WithMustExist(true),
 			loam.WithLogger(slog.Default()),
 		)
