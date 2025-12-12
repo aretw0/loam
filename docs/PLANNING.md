@@ -13,7 +13,7 @@
   - [x] **Typed Package**: Refatoração para `pkg/typed` com `TypedRepository`, `TypedService` e `Transactions`.
   - [x] **Testing**: Cobertura de testes unitários para o novo pacote tipado.
 
-## Fase 0.8.2: Documentation & Reliability (Next)
+## Fase 0.8.2: Documentation & Reliability (Current)
 
 **Objetivo:** Revisão profunda de documentação, código e exemplos para garantir robustez.
 
