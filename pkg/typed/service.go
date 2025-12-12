@@ -11,11 +11,6 @@ import (
 // Service wraps a core.Service to provide type-safe access and business logic support.
 type Service[T any] struct {
 	svc *core.Service
-	// We might also keep a typed repo reference if needed, but going via Service methods is safer if Service logic evolves.
-	// Actually, core.Service just delegates to Repo via SaveDocument.
-	// But it does ID validation etc. So we should use Service methods.
-	// Problem: Service.SaveDocument takes (id, content, metadata).
-	// We have to disassemble our Model again.
 }
 
 // NewService creates a new typed service wrapper.
@@ -25,15 +20,6 @@ func NewService[T any](svc *core.Service) *Service[T] {
 
 // Save persists a typed document using the core Service (including validation/transactions).
 func (s *Service[T]) Save(ctx context.Context, doc *DocumentModel[T]) error {
-	// Re-use Repository serialization logic? Or duplicate?
-	// It's cleaner to duplicate the small Marshal logic than to expose internals of Repository.
-	// Or define a common internal helper in this package.
-	// Wait, we are in `package typed`, so `fromCore` helper is available!
-	// But `toCore` logic is inside `Repository.Save`.
-	// Let's copy it for now, it's just JSON marshaling.
-
-	// actually, `Service.SaveDocument` takes metadata map.
-
 	return s.saveInternal(ctx, doc)
 }
 
@@ -43,12 +29,8 @@ func (s *Service[T]) saveInternal(ctx context.Context, doc *DocumentModel[T]) er
 		doc.Saver = s
 	}
 
-	// Marshal Data -> Map
-	// (Should ideally share this util with repository.go)
-	// For now, small duplication is fine for decoupling.
-	// Wait, they are in the same package!
-	// But `repository.go` logic was inline.
-	// I'll leave it inline for clarity.
+	// Marshaling logic duplicated from Repository to decouple from core.Document structure here if needed,
+	// checking against the map input of Service.SaveDocument.
 
 	// Just use library/json
 	importJSON, err := json.Marshal(doc.Data)
@@ -106,19 +88,11 @@ func (s *Service[T]) WithTransaction(ctx context.Context, fn func(tx *Transactio
 // Transaction wraps a core.Transaction for typed operations.
 type Transaction[T any] struct {
 	tx  core.Transaction
-	svc *Service[T] // Keep ref to service for helpers if needed (e.g. unmarshal logic)
+	svc *Service[T]
 }
 
 // Save persists a typed document within the transaction.
 func (t *Transaction[T]) Save(ctx context.Context, doc *DocumentModel[T]) error {
-	// Re-use logic from Service via s.saveInternal but we need it to use 'tx' not 'svc'.
-	// Refactor saveInternal to take a "saver" function or interface?
-	// Or just duplicate the marshal logic. It's tiny.
-	// Actually, `saveInternal` called `s.svc.SaveDocument`. `core.Transaction` has `Save`.
-	// `core.Transaction.Save` takes `core.Document`. `core.Service.SaveDocument` takes (id, content, meta).
-	// We need to construct `core.Document`.
-
-	// Attach saver (this transaction)
 	if doc.Saver == nil {
 		doc.Saver = t
 	}

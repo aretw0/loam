@@ -104,7 +104,8 @@ A estrutura de diretórios do projeto reflete diretamente a arquitetura hexagona
 │   └── platform/       # Implementações de Infraestrutura (Hidden)
 ├── pkg/
 │   ├── adapters/       # Adaptadores (FS, Git) - "Fora do Hexágono"
-│   └── core/           # Domínio e Portas - "Dentro do Hexágono"
+│   ├── core/           # Domínio e Portas - "Dentro do Hexágono"
+│   └── typed/          # Camada de Tipagem (Generic Wrapper)
 ├── loam.go             # Facade pública
 └── examples/           # Exemplos de uso
 ```
@@ -125,18 +126,25 @@ Implementações concretas dos Ports definidos no Core.
   - Utiliza `pkg/git` para controle de versão.
   - Mantém um **Cache (.loam/index.json)** para listagens rápidas (Otimização).
 
-### 3. Internal Platform (`internal/platform`)
+### 3. Typed Layer (`pkg/typed`)
+
+Camada de conveniência que envolve o `core.Service` para fornecer APIs genéricas (`TypedRepository[T]`).
+
+- **Responsabilidade**: Marshaling/Unmarshaling de structs Go para `core.Metadata` (map[string]any).
+- **Benefício**: Garante que o consumidor trabalhe com tipos fortes, enquanto o core permanece dinâmico.
+
+### 4. Internal Platform (`internal/platform`)
 
 O "chão de fábrica" do sistema. Contém a implementação concreta do bootstrap e segurança.
 
 - **Responsabilidade**: Factory method, Configuração de Opções, Sanitização de Paths (`ResolveVaultPath`) e utilitários de Dev (`IsDevRun`).
 - **Visibilidade**: Privado para a biblioteca, não importável externamente.
 
-### 4. Public Facade (`github.com/aretw0/loam`)
+### 5. Public Facade (`github.com/aretw0/loam`)
 
 A fachada pública que simplifica o uso da biblioteca.
 
-- **`loam.go`**: Expõe aliases para as funções do `internal/platform` (`New`, `Init`, `Sync`, `Option`).
+- **`loam.go`**: Expõe aliases para as funções do `internal/platform` (`New`, `Init`, `Sync`, `Option`) e `pkg/typed` (`OpenTyped`).
 - **Objetivo**: Manter a raiz do projeto limpa e fornecer uma API estável enquanto a implementação evolui internamente.
 
 ## Decisões Arquiteturais Chave

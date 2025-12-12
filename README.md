@@ -159,24 +159,32 @@ Para maior segurança de tipos, você pode usar o wrapper genérico:
 
 ```go
 type User struct { Name string `json:"name"` }
-// Wraps o repositório base (ou use loam.OpenTypedRepository para abrir direto)
-userRepo := loam.NewTypedRepository[User](baseRepo)
+
+// Abre um repositório já tipado (leitura/escrita de User)
+// O ID do documento é preservado, mas o conteúdo é mapeado para User.
+userRepo, err := loam.OpenTypedRepository[User]("./meus-docs")
+if err != nil {
+    panic(err)
+}
+
 // Acesso tipado
 user, _ := userRepo.Get(ctx, "users/alice")
-fmt.Println(user.Data.Name)
+fmt.Println(user.Data.Name) // Type-safe!
 ```
 
 ## 📂 Exemplos e Receitas <a name="examples"></a>
 
 ### Demos (Funcionalidades do Core)
 
+- **[Hello World](examples/basics/hello-world)**: O exemplo mais básico possível.
 - **[CRUD Básico](examples/basics/crud)**: Create, Read, Update, Delete.
-- **[Formats](examples/demos/formats)**: Suporte nativo a JSON, YAML, CSV e Markdown.
+- **[formats](examples/demos/formats)**: Suporte nativo a JSON, YAML, CSV e Markdown.
+- **[Typed API](examples/demos/typed)**: Exemplo de uso de Generics.
 
 ### Recipes (Casos de Uso)
 
-- **[Unix Pipes](examples/recipes/unix_pipes)**: Como converter dados de um formato para outro usando transações.
-- **[ETL & Migration](examples/recipes/etl_migration)**: Como converter dados de um formato para outro usando transações.
+- **[Unix Pipes](examples/recipes/unix_pipes)**: Como converter dados de um formato para outro usando o terminal com pipes (unix).
+- **[ETL & Migration](examples/recipes/etl_migration)**: Migração de dados legados.
 
 ## 📚 Documentação Técnica <a name="tech-docs"></a>
 

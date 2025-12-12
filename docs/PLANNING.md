@@ -17,10 +17,11 @@
 
 **Objetivo:** Revisão profunda de documentação, código e exemplos para garantir robustez.
 
-- [ ] **Documentação 2.0**:
-  - [ ] Refletir sobre o estado atual da pasta `docs` e o futuro do projeto.
-  - [ ] Revisar `PRODUCT.md` e `TECHNICAL.md` para alinhar com as mudanças recentes (Adapters, Typed API).
+- [x] **Documentação 2.0**:
+  - [x] Refletir sobre o estado atual da pasta `docs` e o futuro do projeto.
+  - [x] Revisar `PRODUCT.md` e `TECHNICAL.md` para alinhar com as mudanças recentes (Adapters, Typed API).
 - [ ] **Code Quality**:
+  - [ ] **Godoc Coverage**: Garantir que todos os tipos e funções exportadas tenham comentários idiomáticos.
   - [ ] Revisão de código em busca de "Code Smells" ou comentários obsoletos.
   - [ ] Adicionar comentários em partes vitais (ex: complexidade do `fs/adapter`).
 - [ ] **Examples Review**:

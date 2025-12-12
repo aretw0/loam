@@ -58,10 +58,11 @@ Para desenvolvedores acostumados com bancos de dados tradicionais, lidar com arq
 ## Objetivos
 
 1. **Centralizar a Persistência:** Abstrair operações de armazenamento e serialização para evitar duplicação de regras em diferentes ferramentas.
-2. **Garantir Integridade (ACID-ish):** Prevenir condições de corrida quando múltiplos processos tentam editar o mesmo repositório simultaneamente.
-3. **Histórico Auditável:** Manter um log de alterações transparente e reversível (implementado via Git no adapter padrão).
-4. **Estrutura Universal:** Focar na estrutura "Conteúdo + Metadados", independente do formato de serialização final (Markdown, JSON, SQL).
-5. **Portabilidade:** Ser distribuído como uma biblioteca Go e/ou um binário *standalone*.
+2. **Type Safety e Estrutura:** Oferecer uma API tipada (`pkg/typed`) que mapeia documentos para structs Go, garantindo contratos de dados em tempo de compilação.
+3. **Garantir Integridade (ACID-ish):** Prevenir condições de corrida quando múltiplos processos tentam editar o mesmo repositório simultaneamente.
+4. **Histórico Auditável:** Manter um log de alterações transparente e reversível (implementado via Git no adapter padrão).
+5. **Estrutura Universal:** Focar na estrutura "Conteúdo + Metadados", independente do formato de serialização final (Markdown, JSON, SQL).
+6. **Portabilidade:** Ser distribuído como uma biblioteca Go e/ou um binário *standalone*.
 
 ## Personas (Público-alvo)
 
@@ -85,3 +86,10 @@ O Loam trata o histórico de mudanças como um log estruturado, não apenas text
 - **Intenção sobre Implementação:** O usuário informa a *intenção* (Feat, Chore, Fix) e a razão da mudança.
 - **Adaptação:** No adapter FS, isso se traduz em **Commits Semânticos** (Conventional Commits). Em um adapter SQL, poderia ser uma tabela de auditoria.
 - **Assinatura:** Mudanças geradas via automação devem indicar sua origem (ex: `Powered by Loam`).
+
+### Estrutura Opcional (Schema-on-Read)
+
+O Loam não impõe schemas no armazenamento (banco de dados schemaless), mas permite schemas rigorosos na aplicação.
+
+- **Armazenamento Flexível:** Arquivos podem ter campos extras ou estruturas variadas.
+- **Leitura Tipada:** A aplicação define structs (`TypedRepository[T]`) para consumir apenas o que interessa, tratando erros de validação no momento da leitura.
