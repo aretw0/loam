@@ -183,7 +183,7 @@ fmt.Println(user.Data.Name) // Type-safe!
 
 ### Recipes (Casos de Uso)
 
-- **[Unix Pipes](examples/recipes/unix_pipes)**: Como converter dados de um formato para outro usando o terminal com pipes (unix).
+- **[Unix Pipes](examples/recipes/unix_pipes.md)**: Como converter dados de um formato para outro usando o terminal com pipes (unix).
 - **[ETL & Migration](examples/recipes/etl_migration)**: Migração de dados legados.
 
 ## 📚 Documentação Técnica <a name="tech-docs"></a>
