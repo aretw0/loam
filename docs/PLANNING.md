@@ -18,7 +18,11 @@
 **Objetivo:** Melhorar a qualidade do código, a experiência do usuário, e no processo, fazer alguns patchs, revisar documentação e exemplos.
 
 - [ ] *Improvements*:
-  - [ ] Melhorar a experiência do usuário, talvez melhorando a `platform`, para facilitar a criação de TypedServices e TypedRepositories.
+  - [ ] Melhorar a experiência do usuário (DX Refinements):
+    - [ ] **Root Seeking**: CLI deve encontrar a raiz do cofre recursivamente para evitar aninhamento acidental (`write` em subdirs).
+    - [ ] **Relaxed Init**: Permitir `init --nover` (apenas cria diretórios, sem git init).
+    - [ ] **Simplified Read/List**: Remover dependência rígida de versionamento para comandos de leitura.
+  - [ ] Melhorar a `platform` para facilitar a criação de TypedServices e TypedRepositories.
 - [ ] *Patches*:
   - [ ] Ajustar a [fachada](../loam.go) para que ofereça toda a funcionalidade do `platform`.
   - [x] Manter o discurso do "WithVersioning" até na CLI, i.e. trocar `--gitless` por `--nover`.
