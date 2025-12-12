@@ -27,6 +27,16 @@
 - [x] **Examples Review**:
   - [x] Garantir que todos os demos em `examples/` compilem e reflitam as melhores práticas da v0.8.1.
 
+## Fase 0.8.3: Smart Retrieval (Bugs & Consistency)
+
+**Objetivo:** Garantir consistência entre Smart Persistence e Retrieval no FS Adapter, permitindo "Fuzzy Lookup" para extensões omitidas.
+
+- [x] **Smart Retrieval Consistency**:
+  - [x] Reproduzir o bug relatado onde `Get(ctx, "id")` falha para arquivos não-markdown (ex: `choice.json`).
+  - [x] Implementar "Fuzzy Lookup" no FS Adapter: Se ID exato não existe, escanear diretório por `id.*`.
+  - [x] Garantir que a ordem de prioridade de extensões seja determinística ou configurável.
+  - [x] Adicionar testes de integração cobrindo Save/Get com e sem extensões explícitas.
+
 ## RFC 0.X.X: Library-Level Sync Strategies (Backlog)
 
 **Objetivo:** Permitir que toolmakers definam estratégias de sincronização não-bloqueantes ou customizadas, crucial para adapters distribuídos (S3, SQL) ou clientes "Offline-First".

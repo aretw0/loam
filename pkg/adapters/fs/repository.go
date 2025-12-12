@@ -260,8 +260,24 @@ func (r *Repository) Get(ctx context.Context, id string) (core.Document, error) 
 	ext := filepath.Ext(id)
 
 	if ext == "" {
-		ext = ".md"
-		filename = id + ext
+		// Smart Retrieval: Scan for supported extensions
+		// Priority: .md > .json > .yaml > .yml > .csv
+		extensions := []string{".md", ".json", ".yaml", ".yml", ".csv"}
+		found := false
+		for _, e := range extensions {
+			candidate := id + e
+			if _, err := os.Stat(filepath.Join(r.Path, candidate)); err == nil {
+				ext = e
+				filename = candidate
+				found = true
+				break
+			}
+		}
+		// Default to .md if none found (preserves "file not found" error for .md)
+		if !found {
+			ext = ".md"
+			filename = id + ext
+		}
 	}
 
 	fullPath := filepath.Join(r.Path, filename)

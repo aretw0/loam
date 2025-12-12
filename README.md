@@ -47,6 +47,8 @@ O **Adapter padrão (FS)** detecta automaticamente o formato do arquivo baseado 
 - **YAML (`.yaml`)**: Serializa como objeto YAML puro. Campo `content` é opcional.
 - **CSV (`.csv`)**: Serializa como linha de valores. Suporta coleções com múltiplos documentos.
 
+> **Smart Retrieval**: Na leitura (`Get`), se o ID não tiver extensão (ex: `dados`), o Loam procura automaticamente por `dados.md`, `dados.json`, etc., respeitando a existência do arquivo.
+
 ## 🚀 Instalação <a name="install"></a>
 
 ```bash

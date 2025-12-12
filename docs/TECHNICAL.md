@@ -152,6 +152,7 @@ A fachada pública que simplifica o uso da biblioteca.
 ### 1. Storage Engine: Filesystem + Git (Driver Padrão)
 
 - **Formato:** Arquivos de texto (`.md`, `.json`, `.yaml`, `.csv`) gerenciados pelo FS Adapter.
+- **Smart Retrieval (Fuzzy Lookup):** Ao buscar um documento sem extensão (ex: `Get("user")`), o adapter escaneia o diretório por extensões suportadas (`.md` > `.json` > `.yaml` > `.csv`), permitindo abstração do formato físico.
 - **Transações:** O Git atua como *Write-Ahead Log*.
 - **Semântica de Commit:** O adapter `fs` lê `commit_message` do `context.Context` durante operações de escrita.
 
