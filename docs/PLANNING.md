@@ -62,6 +62,19 @@
   - [x] Revisitar `recipes/unix_pipes.md` para incluir exemplos reais de CSV/JSON com `--raw`.
   - [x] Auditar `TECHNICAL.md`, `PRODUCT.md` e `README.md`.
 
+## Fase 0.8.5: Multi-Platform Compliance & Build Simplicity (Current)
+
+**Objetivo:** Garantir que o projeto seja totalmente compatível com ambientes Unix-like (Linux/WSL) e simplificar o processo de build para todos os desenvolvedores.
+
+- [x] **Cross-Platform Bug Fix**:
+  - [x] Investigar e corrigir a suíte de testes que falhava no Linux devido à manipulação incorreta de caminhos de arquivo.
+  - [x] Refatorar a lógica de `Get` e `findCollection` no `fs/adapter` para ser agnóstica de plataforma, tratando corretamente IDs de documentos que usam `/` como separador.
+- [x] **Build Simplification (`Makefile`)**:
+  - [x] Introduzir um `Makefile` para padronizar os comandos de build, teste e instalação.
+  - [x] Adicionar alvos para cross-compilation (Linux, Windows, Darwin), facilitando a distribuição.
+- [x] **Documentation**:
+
+
 ## RFC 0.X.X: Library-Level Sync Strategies (Backlog)
 
 **Objetivo:** Permitir que toolmakers definam estratégias de sincronização não-bloqueantes ou customizadas, crucial para adapters distribuídos (S3, SQL) ou clientes "Offline-First".
