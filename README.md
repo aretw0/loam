@@ -51,8 +51,29 @@ O **Adapter padrão (FS)** detecta automaticamente o formato do arquivo baseado 
 
 ## 🚀 Instalação <a name="install"></a>
 
+### Via Go Install (Recomendado)
+
 ```bash
 go install github.com/aretw0/loam/cmd/loam@latest
+```
+
+### Via Release
+
+Baixe os binários pré-compilados na página de [Releases](https://github.com/aretw0/loam/releases).
+
+### Compilando do Fonte (Build)
+
+Para desenvolvedores, utilizamos `make` para simplificar o processo:
+
+```bash
+# Build para sua plataforma atual
+make build
+
+# Cross-compilation (Linux, Windows, Mac)
+make cross-build
+
+# Instalar localmente
+make install
 ```
 
 ## 🛠️ CLI: Uso Básico <a name="cli-usage"></a>
@@ -193,7 +214,7 @@ fmt.Println(user.Data.Name) // Type-safe!
 
 ### Recipes (Casos de Uso)
 
-- **[Unix Pipes](examples/recipes/unix_pipes.md)**: Como converter dados de um formato para outro usando o terminal com pipes (unix).
+- **[CLI Scripting](examples/recipes/cli_scripting)**: Como converter dados usando Pipes e Shell (Bash/PowerShell).
 - **[ETL & Migration](examples/recipes/etl_migration)**: Migração de dados legados.
 
 ## 📚 Documentação Técnica <a name="tech-docs"></a>
