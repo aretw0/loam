@@ -98,7 +98,7 @@ var writeCmd = &cobra.Command{
 			fatal("Failed to save document", err)
 		}
 
-		fmt.Printf("Document '%s' saved and committed.\n", writeID)
+		fmt.Printf("Document '%s' saved.\n", writeID)
 	},
 }
 
