@@ -63,17 +63,39 @@ func initFS(path string, o *options) (core.Repository, error) {
 
 	// Smart Gitless Detection
 	// If "gitless" is not explicitly configured, we detect the environment.
-	// If .git exists, we assume Git (gitless=false).
-	// If .git missing, we assume Gitless (gitless=true).
 	if _, ok := o.config["gitless"]; !ok {
-		// Check for .git
 		gitPath := filepath.Join(resolvedPath, ".git")
+		systemPath := filepath.Join(resolvedPath, systemDir) // defaulting systemDir if empty implies dependency, but systemDir var is init below. Let's rely on default ".loam" here or reorder.
+
+		// Re-resolve default systemDir temporarily if needed for detection (it's defined below, let's move it up or use literal)
+		defaultSystemDir := ".loam"
+		if systemDir != "" {
+			defaultSystemDir = systemDir
+		}
+		systemPath = filepath.Join(resolvedPath, defaultSystemDir)
+
 		if _, err := os.Stat(gitPath); err == nil {
+			// .git exists -> It's a Git vault
 			gitless = false
 		} else {
-			gitless = true
-			if o.logger != nil {
-				o.logger.Debug("auto-detected gitless mode (.git not found)")
+			// .git missing.
+			// If AutoInit is TRUE, we must decide if we are creating a NEW vault (Default=Git) or upgrading/opening an EXISTING Gitless vault.
+			if autoInit {
+				// If .loam exists, it's an existing Gitless vault -> Keep Gitless.
+				// If .loam missing, it's a Fresh Start -> Default to Git (Standard Loam behavior).
+				if _, err := os.Stat(systemPath); err == nil {
+					gitless = true
+				} else {
+					gitless = false
+				}
+			} else {
+				// AutoInit false: We are just opening a folder.
+				// If no .git, treat as Gitless (Raw FS mode).
+				gitless = true
+			}
+
+			if gitless && o.logger != nil {
+				o.logger.Debug("auto-detected gitless mode", "reason", ".git missing")
 			}
 		}
 	}
