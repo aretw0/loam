@@ -23,7 +23,7 @@ Por padrão, o Loam utiliza o **Sistema de Arquivos + Git** como banco de dados 
 - [🚀 Instalação](#install)
 - [🛠️ CLI: Uso Básico](#cli-usage)
 - [📦 Library: Uso em Go](#lib-usage)
-- [📖 Exemplos](#examples)
+- [📂 Exemplos e Receitas](#examples)
 - [📚 Documentação Técnica](#tech-docs)
   - [Visão do Produto](docs/PRODUCT.md)
   - [Arquitetura Técnica](docs/TECHNICAL.md)
@@ -40,7 +40,7 @@ Por que não apenas usar `os.WriteFile` ou SQLite?
 
 ## 📄 Arquivos Suportados (Smart Persistence) <a name="files"></a>
 
-O **Adapter padrão (FS)** detecta automaticamente o formato do arquivo baseado na extensão do ID:
+O **Adapter padrão (FS)** detecta automaticamente o formato do arquivo baseado na extensão do ID, suportando leitura e **escrita raw (`--raw`)**:
 
 - **Markdown (`.md`)**: Padrão. Conteúdo + Frontmatter YAML.
 - **JSON (`.json`)**: Serializa como objeto JSON puro. Campo `content` é opcional.
@@ -205,7 +205,7 @@ fmt.Println(user.Data.Name) // Type-safe!
 ## Status
 
 🚧 **Alpha**.
-A API interna `pkg/loam` é estável e respeita versionamento semântico, mas novas features (como suporte a Coleções JSON/YAML) estão sendo ativamente desenvolvidas no Adapter FS. A CLI é estável para uso diário.
+A API Go (`github.com/aretw0/loam`) e a CLI são estáveis para uso diário (Unix Compliant). Novas features como suporte a Coleções JSON/YAML estão em desenvolvimento ativo no Adapter FS.
 
 ## Licença
 
