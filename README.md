@@ -79,6 +79,14 @@ loam write -id daily/2025-12-06 -content "Hoje foi um dia produtivo." -m "log di
 
 # Modo Semântico (Type, Scope, Body)
 loam write -id feature/nova-ideia -content "..." --type feat --scope ideias -m "adiciona rascunho"
+
+# Modo Imperativo (--set)
+# Define metadados individuais sem precisar de JSON
+loam write --id docs/readme.md --content "Texto" --set title="Novo Readme" --set status=draft
+
+# Modo Declarativo (--raw)
+# Envie o documento inteiro via pipe. O Loam detecta Frontmatter/JSON/CSV.
+echo '{"title":"Logs", "content":"..."}' | loam write --id logs/1.json --raw
 ```
 
 ### Sincronizar (Sync)

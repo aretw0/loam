@@ -37,6 +37,27 @@
   - [x] Garantir que a ordem de prioridade de extensões seja determinística ou configurável.
   - [x] Adicionar testes de integração cobrindo Save/Get com e sem extensões explícitas.
 
+## Fase 0.8.4: Unix Compliance & Metadata (Current)
+
+**Objetivo:** Harmonizar a CLI com a filosofia Unix, permitindo tanto construção imperativa quanto pipes declarativos transparentes.
+
+- [x] **Imperative CLI (`--set`)**:
+  - [x] Flag `--set key=value` para update granular de metadata (conveniência).
+  - [x] Evita necessidade de construir JSON manual para edições simples.
+- [x] **Declarative CLI (`--raw` / `--verbatim`)**:
+  - [x] Flag `--raw`: Trata STDIN como documento completo (transparente).
+  - [x] CLI realiza parse do input (baseado na extensão) e preserva metadata/conteúdo.
+  - [x] Permite loops `jq` -> `loam write` sem friction.
+- [x] **Smart Gitless Detection**:
+  - [x] Auto-detecção de modo Gitless (se `.loam` existe e `.git` não).
+  - [x] Remove necessidade de flag `--nover` redundante.
+- [ ] **CSV Parsing Logic (TDD Phase 1)**:
+  - [x] Teste TDD criado (`tests/e2e/cli_metadata_test.go`) para `loam write --id data.csv --raw`.
+  - [ ] Implementar parser de CSV no Adapter FS para input raw (Next Step).
+- [ ] **Batch Strategy**:
+  - [x] Abandonar ideia de `--batch` proprietário/complexo.
+  - [ ] Focar em performance do modo `--raw` em loops shell (Unix Way).
+
 ## RFC 0.X.X: Library-Level Sync Strategies (Backlog)
 
 **Objetivo:** Permitir que toolmakers definam estratégias de sincronização não-bloqueantes ou customizadas, crucial para adapters distribuídos (S3, SQL) ou clientes "Offline-First".
