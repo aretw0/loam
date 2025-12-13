@@ -3,6 +3,8 @@ package platform
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/aretw0/loam/pkg/adapters/fs"
 	"github.com/aretw0/loam/pkg/core"
@@ -58,6 +60,23 @@ func initFS(path string, o *options) (core.Repository, error) {
 	// Safety & Path Resolution
 	useTemp := tempDir || IsDevRun()
 	resolvedPath := ResolveVaultPath(path, useTemp)
+
+	// Smart Gitless Detection
+	// If "gitless" is not explicitly configured, we detect the environment.
+	// If .git exists, we assume Git (gitless=false).
+	// If .git missing, we assume Gitless (gitless=true).
+	if _, ok := o.config["gitless"]; !ok {
+		// Check for .git
+		gitPath := filepath.Join(resolvedPath, ".git")
+		if _, err := os.Stat(gitPath); err == nil {
+			gitless = false
+		} else {
+			gitless = true
+			if o.logger != nil {
+				o.logger.Debug("auto-detected gitless mode (.git not found)")
+			}
+		}
+	}
 
 	if systemDir == "" {
 		systemDir = ".loam"

@@ -6,8 +6,11 @@ import (
 	"io"
 	"log/slog"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/aretw0/loam"
+	"github.com/aretw0/loam/pkg/adapters/fs"
 	"github.com/aretw0/loam/pkg/core"
 	"github.com/spf13/cobra"
 )
@@ -18,6 +21,8 @@ var (
 	changeReason string
 	writeType    string
 	writeScope   string
+	writeSet     map[string]string
+	writeRaw     bool
 )
 
 // writeCmd represents the write command
@@ -32,7 +37,12 @@ var writeCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		// Handle STDIN if content is empty
+		if writeContent != "" && writeRaw {
+			fmt.Println("Error: cannot use --content with --raw")
+			os.Exit(1)
+		}
+
+		// Handle STDIN if content is empty (or we are in raw mode)
 		if writeContent == "" {
 			stat, _ := os.Stdin.Stat()
 			if (stat.Mode() & os.ModeCharDevice) == 0 {
@@ -60,15 +70,52 @@ var writeCmd = &cobra.Command{
 			fatal("Not a Loam vault (no .loam, .git, or loam.json found). Run 'loam init' first.", nil)
 		}
 
-		// Configure Loam using the new Config struct
-		service, err := loam.New(root,
+		// Configure Loam
+		opts := []loam.Option{
 			loam.WithAdapter(adapter),
-			loam.WithVersioning(!nover),
 			loam.WithLogger(slog.Default()),
-			// AutoInit is false by default
-		)
+		}
+
+		// Only force versioning config if the flag was explicitly set.
+		// Otherwise, let the platform auto-detect (Smart Gitless Detection).
+		if cmd.Flags().Lookup("nover").Changed {
+			opts = append(opts, loam.WithVersioning(!nover))
+		}
+
+		service, err := loam.New(root, opts...)
 		if err != nil {
 			fatal("Failed to initialize loam", err)
+		}
+
+		// Prepare Metadata
+		var meta core.Metadata
+		if writeRaw {
+			// RAW MODE: Parse content transparently
+			// We need to know the extension strategy loam uses.
+			// Loam logic: ID extension -> if none, try to guess or default .md
+			// Here we act as a "smart pipe". We assume the ID extension is authoritative for parsing.
+			ext := filepath.Ext(writeID)
+			if ext == "" {
+				ext = ".md" // Default assumption for raw piping if no extension provided?
+			}
+
+			// Parse content using the shared logic
+			doc, err := fs.ParseDocument(strings.NewReader(writeContent), ext, "") // We assume default metadata key for now? Or get from config?
+			// NOTE: We don't have access to repo config here easily without creating repo.
+			// Ideally loam service exposes this, but for now we assume standard behavior.
+			if err != nil {
+				fatal("Failed to parse raw content", err)
+			}
+			meta = doc.Metadata
+			writeContent = doc.Content // Update content to be the "body" only if parsed
+		} else {
+			// IMPERATIVE MODE: Use flags
+			if len(writeSet) > 0 {
+				meta = make(core.Metadata)
+				for k, v := range writeSet {
+					meta[k] = v
+				}
+			}
 		}
 
 		// Logic to construct message
@@ -94,7 +141,7 @@ var writeCmd = &cobra.Command{
 		// Pass commit message via context (Adapter specific requirement)
 		ctx := context.WithValue(context.Background(), core.ChangeReasonKey, finalMsg)
 
-		if err := service.SaveDocument(ctx, writeID, writeContent, nil); err != nil {
+		if err := service.SaveDocument(ctx, writeID, writeContent, meta); err != nil {
 			fatal("Failed to save document", err)
 		}
 
@@ -109,5 +156,7 @@ func init() {
 	writeCmd.Flags().StringVarP(&changeReason, "message", "m", "", "Change reason (audit note)")
 	writeCmd.Flags().StringVarP(&writeType, "type", "t", "", "Change type (feat, fix, etc)")
 	writeCmd.Flags().StringVarP(&writeScope, "scope", "s", "", "Commit scope")
+	writeCmd.Flags().StringToStringVar(&writeSet, "set", nil, "Set metadata fields (key=value)")
+	writeCmd.Flags().BoolVar(&writeRaw, "raw", false, "Treat input as raw document (parse metadata from content)")
 	writeCmd.MarkFlagRequired("id")
 }
