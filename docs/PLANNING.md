@@ -51,12 +51,12 @@
 - [x] **Smart Gitless Detection**:
   - [x] Auto-detecção de modo Gitless (se `.loam` existe e `.git` não).
   - [x] Remove necessidade de flag `--nover` redundante.
-- [ ] **CSV Parsing Logic (TDD Phase 1)**:
+- [x] **CSV Parsing Logic (TDD Phase 1)**:
   - [x] Teste TDD criado (`tests/e2e/cli_metadata_test.go`) para `loam write --id data.csv --raw`.
-  - [ ] Implementar parser de CSV no Adapter FS para input raw (Next Step).
-- [ ] **Batch Strategy**:
+  - [x] Implementar parser de CSV no Adapter FS para input raw (Verified).
+- [x] **Batch Strategy**:
   - [x] Abandonar ideia de `--batch` proprietário/complexo.
-  - [ ] Focar em performance do modo `--raw` em loops shell (Unix Way).
+  - [x] Focar em performance do modo `--raw` em loops shell (Unix Way).
 
 ## RFC 0.X.X: Library-Level Sync Strategies (Backlog)
 

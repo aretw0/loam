@@ -88,21 +88,21 @@ func TestMetadataFlags(t *testing.T) {
 		}
 	})
 
-	t.Run("Declarative CSV (TDD)", func(t *testing.T) {
+	t.Run("Declarative CSV", func(t *testing.T) {
 		// This test expects loam to parse a single-row CSV piped via --raw.
-		// If implementation supports it, it passes. If not, it fails (good for TDD).
 		id := "data.csv"
 		input := "id,content,title\nrow-1,CSV Content,CSV Title"
 
-		runCmdWithFail(t, tempDir, strings.NewReader(input), loamBin, "write", "--id", id, "--raw")
+		runCmd(t, tempDir, strings.NewReader(input), loamBin, "write", "--id", id, "--raw")
 
-		// If it succeeds, verify content (future proof)
+		// Verify content
 		b, err := os.ReadFile(filepath.Join(tempDir, id))
-		if err == nil {
-			s := string(b)
-			if !strings.Contains(s, "CSV Title") {
-				t.Errorf("Expected CSV Title, got:\n%s", s)
-			}
+		if err != nil {
+			t.Fatal(err)
+		}
+		s := string(b)
+		if !strings.Contains(s, "CSV Title") {
+			t.Errorf("Expected CSV Title, got:\n%s", s)
 		}
 	})
 }
@@ -120,23 +120,4 @@ func runCmd(t *testing.T, dir string, input *strings.Reader, name string, args .
 	if err := cmd.Run(); err != nil {
 		t.Fatalf("Command %s %v failed in %s: %v", name, args, dir, err)
 	}
-}
-
-// Helper for TDD failure expectation
-func runCmdWithFail(t *testing.T, dir string, input *strings.Reader, name string, args ...string) {
-	cmd := exec.Command(name, args...)
-	cmd.Dir = dir
-	if input != nil {
-		cmd.Stdin = input
-	}
-	// We capture combined output to log it on valid failure
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		t.Logf("Command failed as expected (TDD): %v\nOutput: %s", err, string(out))
-		return
-	}
-	// If it succeeds unexpectedly (before implementation), we might want to fail OR just log success if we are mostly happy it works.
-	// But for strict TDD, if we EXPECT failure, success is suspicious.
-	// However, the test logic was "if err != nil { log; return }".
-	// The caller continues to verify.
 }
