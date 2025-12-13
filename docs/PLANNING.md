@@ -57,6 +57,9 @@
 - [x] **Batch Strategy**:
   - [x] Abandonar ideia de `--batch` proprietário/complexo.
   - [x] Focar em performance do modo `--raw` em loops shell (Unix Way).
+- [ ] **Review Docs**:
+  - [ ] Revisitar `recipes/unix_pipes.md` para incluir exemplos reais de CSV/JSON com `--raw`.
+  - [ ] Auditar `TECHNICAL.md`, `PRODUCT.md` e `README.md`.
 
 ## RFC 0.X.X: Library-Level Sync Strategies (Backlog)
 
