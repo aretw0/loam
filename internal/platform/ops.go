@@ -65,14 +65,12 @@ func initFS(path string, o *options) (core.Repository, error) {
 	// If "gitless" is not explicitly configured, we detect the environment.
 	if _, ok := o.config["gitless"]; !ok {
 		gitPath := filepath.Join(resolvedPath, ".git")
-		systemPath := filepath.Join(resolvedPath, systemDir) // defaulting systemDir if empty implies dependency, but systemDir var is init below. Let's rely on default ".loam" here or reorder.
-
-		// Re-resolve default systemDir temporarily if needed for detection (it's defined below, let's move it up or use literal)
+		// Re-resolve default systemDir temporarily if needed for detection
 		defaultSystemDir := ".loam"
 		if systemDir != "" {
 			defaultSystemDir = systemDir
 		}
-		systemPath = filepath.Join(resolvedPath, defaultSystemDir)
+		systemPath := filepath.Join(resolvedPath, defaultSystemDir)
 
 		if _, err := os.Stat(gitPath); err == nil {
 			// .git exists -> It's a Git vault
