@@ -75,6 +75,7 @@ Para desenvolvedores acostumados com bancos de dados tradicionais, lidar com arq
 
 - "Como desenvolvedor, quero garantir que minhas automações não corrompam o repositório Git (concorrência interna)."
 - "Como usuário, quero desfazer um script mal sucedido usando `git revert` sem perder o estado consistente do cofre."
+- "Como usuário Unix, quero processar meus documentos usando pipes (`|`) e ferramentas padrão (`jq`, `sed`) sem fricção."
 - "Como ferramenta externa, quero ler o frontmatter de 1000 notas rapidamente."
 
 ## Filosofia de Design

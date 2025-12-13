@@ -71,3 +71,33 @@ cat data.json | jq -c '.[]' | while read item; do
     echo $item | loam write --id "items/$id" --content - --message "batch import"
 done
 ```
+
+## 4. Receitas Avançadas
+
+### Merge de JSONs com `jq`
+
+Você pode combinar dados de múltiplas fontes (ex: um arquivo de default + dados do usuário) e salvar como um único documento no Loam, tudo em uma linha.
+
+```bash
+# defaults.json + user.json -> merge -> loam
+jq -s '.[0] * .[1]' defaults.json user.json | loam write --id config/user-1 --raw
+```
+
+### Ingestão de CSV Bruto (Bulk Import)
+
+O Loam agora suporta ingestão de CSV linha-a-linha via `--raw`. Isso é mais performático do que loops shell pois delega o parse para o adapter.
+
+```bash
+# cat data.csv | loam write --id dados.csv --raw
+# (Isso salva o arquivo exato. Se você quiser explodir o CSV em múltiplos arquivos, use o loop abaixo)
+```
+
+### Explodindo CSV com `mlr` (Miller) para JSON
+
+Se você quer converter um CSV gigante em milhares de pequenos JSONs:
+
+```bash
+mlr --icsv --ojson cat data.csv | jq -c '.' | while read item; do
+    echo $item | loam write --id "data/$(echo $item | jq -r .id)" --raw
+done
+```

@@ -19,6 +19,11 @@ graph TD
         App[Your Go App]
     end
 
+    subgraph "Parsing Logic (Agnostic)"
+        PD[ParseDocument]
+        SD[SerializeDocument]
+    end
+
     subgraph "Hexagon (Core Domain)"
         direction TB
         Service[Core Service - Business Rules]
@@ -152,9 +157,10 @@ A fachada pública que simplifica o uso da biblioteca.
 ### 1. Storage Engine: Filesystem + Git (Driver Padrão)
 
 - **Formato:** Arquivos de texto (`.md`, `.json`, `.yaml`, `.csv`) gerenciados pelo FS Adapter.
-- **Smart Retrieval (Fuzzy Lookup):** Ao buscar um documento sem extensão (ex: `Get("user")`), o adapter escaneia o diretório por extensões suportadas (`.md` > `.json` > `.yaml` > `.csv`), permitindo abstração do formato físico.
+- **Smart Retrieval (Fuzzy Lookup):** Ao buscar um documento sem extensão, o adapter escaneia o diretório por extensões suportadas.
 - **Transações:** O Git atua como *Write-Ahead Log*.
-- **Semântica de Commit:** O adapter `fs` lê `commit_message` do `context.Context` durante operações de escrita.
+- **Smart Gitless:** O sistema detecta automaticamente se deve usar Git. Se `.git` não existir, mas `.loam` (system dir) existir, ele opera em modo "Gitless" (apenas FS), permitindo uso flexível em ambientes contêinerizados ou efêmeros.
+- **Semântica de Commit:** O adapter `fs` lê `commit_message` do `context.Context` (se Git estiver ativo).
 
 ### 2. Cache de Metadados
 
