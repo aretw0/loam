@@ -156,7 +156,7 @@ func (t *Transaction) Commit(ctx context.Context, changeReason string) error {
 		}
 
 		// Use shared serialization logic
-		buf, err := serialize(n, filepath.Ext(filename), t.repo.config.MetadataKey)
+		buf, err := SerializeDocument(n, filepath.Ext(filename), t.repo.config.MetadataKey)
 		if err != nil {
 			return fmt.Errorf("failed to serialize %s: %w", id, err)
 		}

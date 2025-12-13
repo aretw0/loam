@@ -103,6 +103,13 @@ func (r *Repository) Initialize(ctx context.Context) error {
 				return fmt.Errorf("failed to commit .gitignore: %w", err)
 			}
 		}
+	} else if r.config.AutoInit {
+		// If Gitless + AutoInit, ensure we create the system directory as a marker.
+		// Otherwise FindVaultRoot might fail to detect this as a vault.
+		sysPath := filepath.Join(r.Path, r.config.SystemDir)
+		if err := os.MkdirAll(sysPath, 0755); err != nil {
+			return fmt.Errorf("failed to create system directory: %w", err)
+		}
 	}
 
 	return nil
@@ -212,7 +219,7 @@ func (r *Repository) Save(ctx context.Context, doc core.Document) error {
 		return fmt.Errorf("failed to create directories: %w", err)
 	}
 
-	data, err := serialize(doc, ext, r.config.MetadataKey)
+	data, err := SerializeDocument(doc, ext, r.config.MetadataKey)
 	if err != nil {
 		return fmt.Errorf("failed to serialize document: %w", err)
 	}
@@ -295,7 +302,7 @@ func (r *Repository) Get(ctx context.Context, id string) (core.Document, error) 
 	}
 	defer f.Close()
 
-	doc, err := parse(f, ext, r.config.MetadataKey)
+	doc, err := ParseDocument(f, ext, r.config.MetadataKey)
 	if err != nil {
 		return core.Document{}, fmt.Errorf("failed to parse document %s: %w", id, err)
 	}
@@ -841,9 +848,11 @@ func IsGitInstalled() bool {
 	return git.IsInstalled()
 }
 
-// --- Serialization Helpers (Private) ---
+// --- Serialization Helpers (Public) ---
 
-func parse(r io.Reader, ext, metadataKey string) (*core.Document, error) {
+// ParseDocument parses raw content into a Core Document based on extension.
+// Exposed for use by CLI "raw mode".
+func ParseDocument(r io.Reader, ext, metadataKey string) (*core.Document, error) {
 	data, err := io.ReadAll(r)
 	if err != nil {
 		return nil, err
@@ -956,7 +965,9 @@ func parse(r io.Reader, ext, metadataKey string) (*core.Document, error) {
 	return doc, nil
 }
 
-func serialize(doc core.Document, ext, metadataKey string) ([]byte, error) {
+// SerializeDocument converts a Document to bytes based on extension.
+// Exposed for reuse if needed.
+func SerializeDocument(doc core.Document, ext, metadataKey string) ([]byte, error) {
 	switch ext {
 	case ".json":
 		payload := make(map[string]interface{})
