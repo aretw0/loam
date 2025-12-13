@@ -40,6 +40,7 @@ func main() {
 	RunScenarioMigrationToMarkdown(repo, tmpDir)
 	RunScenarioPureYAML(repo, tmpDir)
 	RunScenarioNestedMetadata(tmpDir)
+	RunScenarioCSVSplit(repo, tmpDir)
 }
 
 func list(repo *fs.Repository, title string) {
