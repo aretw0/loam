@@ -72,13 +72,11 @@
 - [x] **Build Simplification (`Makefile`)**:
   - [x] Introduzir um `Makefile` para padronizar os comandos de build, teste e instalação.
   - [x] Adicionar alvos para cross-compilation (Linux, Windows, Darwin), facilitando a distribuição.
-- [ ] **Documentation**:
-  - [ ] Revisar `README.md` para incluir instruções de build e cross-compilation.
-  - [ ] Revisar `README.md` para incluir link para a página de releases.
-- [ ] **Examples/Recipes**:
-  - [ ] Revisar `recipes/` para garantir que todos os demos em `recipes/` compilem e reflitam as melhores práticas da v0.8.x.
-  - [ ] Transformar `unix_pipes.md` em uma pasta com leia-me e scripts reais `.sh` e `.ps1` de todos os cenários descritos.
-  - [ ] Verificar se é possível transformar um csv em vários arquivos .md, e.g. finances_202505.csv -> finances_202505_01.md, finances_202505_02.md, etc.
+- [x] **Documentation & Recipes**:
+  - [x] Revisar `README.md` para incluir instruções de build e cross-compilation.
+  - [x] Revisar `README.md` para incluir link para a página de releases.
+  - [x] Refatorar `recipes/`: `etl_migration` agora é um Go Module demonstrando CSV Split.
+  - [x] Migrar `unix_pipes` para `cli_scripting` (folder) com scripts reais (`demo.sh`, `demo.ps1`).
 
 ## RFC 0.X.X: Library-Level Sync Strategies (Backlog)
 
