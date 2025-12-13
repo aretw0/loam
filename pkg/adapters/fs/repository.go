@@ -259,10 +259,13 @@ func (r *Repository) Save(ctx context.Context, doc core.Document) error {
 //  2. If file not found, check if it's a sub-document inside a Collection (e.g. row in CSV).
 //  3. Parse content based on file extension.
 func (r *Repository) Get(ctx context.Context, id string) (core.Document, error) {
-	// Attempt to find the file.
-	// 1. Try exact match (if ID has extension)
-	// 2. Try default .md
+	// First, check if it's a sub-document inside a collection (e.g. CSV).
+	// This avoids treating "a.csv/b" as a directory.
+	if doc, err := r.getFromCollection(id); err == nil {
+		return doc, nil
+	}
 
+	// If not in a collection, proceed as a regular file.
 	filename := id
 	ext := filepath.Ext(id)
 
@@ -291,13 +294,7 @@ func (r *Repository) Get(ctx context.Context, id string) (core.Document, error) 
 
 	f, err := os.Open(fullPath)
 	if err != nil {
-		if os.IsNotExist(err) {
-			// Fallback: Check if it's a sub-document inside a collection (e.g. CSV)
-			if doc, err2 := r.getFromCollection(id); err2 == nil {
-				return doc, nil
-			}
-			// Return original error if fallback fails
-		}
+		// We already tried collection fallback, so return the file-specific error.
 		return core.Document{}, err
 	}
 	defer f.Close()
@@ -312,14 +309,22 @@ func (r *Repository) Get(ctx context.Context, id string) (core.Document, error) 
 }
 
 func (r *Repository) findCollection(id string) (collectionPath, collectionExt, key string, found bool) {
-	dir := filepath.Dir(id)
-	key = filepath.Base(id)
-	dir = filepath.ToSlash(dir)
+	parts := strings.SplitN(id, "/", 2)
+	if len(parts) < 2 {
+		return "", "", "", false
+	}
 
-	candidates := []string{dir}
-	extensions := []string{".csv", ".json"}
-	for _, ext := range extensions {
-		candidates = append(candidates, dir+ext)
+	collectionFileCandidate := parts[0]
+	key = parts[1]
+
+	// Smart discovery for collection file
+	// e.g. "users/jane" -> candidate "users" -> check "users.csv", "users.json"
+	candidates := []string{collectionFileCandidate}
+	if filepath.Ext(collectionFileCandidate) == "" {
+		extensions := []string{".csv", ".json"}
+		for _, ext := range extensions {
+			candidates = append(candidates, collectionFileCandidate+ext)
+		}
 	}
 
 	for _, c := range candidates {
