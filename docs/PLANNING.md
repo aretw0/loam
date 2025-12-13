@@ -37,7 +37,7 @@
   - [x] Garantir que a ordem de prioridade de extensões seja determinística ou configurável.
   - [x] Adicionar testes de integração cobrindo Save/Get com e sem extensões explícitas.
 
-## Fase 0.8.4: Unix Compliance & Metadata (Current)
+## Fase 0.8.4: Unix Compliance & Metadata (Completed)
 
 **Objetivo:** Harmonizar a CLI com a filosofia Unix, permitindo tanto construção imperativa quanto pipes declarativos transparentes.
 
@@ -51,13 +51,14 @@
 - [x] **Smart Gitless Detection**:
   - [x] Auto-detecção de modo Gitless (se `.loam` existe e `.git` não).
   - [x] Remove necessidade de flag `--nover` redundante.
+  - [x] **Fix Regression**: `ops.go` agora lida corretamente com Fresh Init vs Gitless (Bugfix).
 - [x] **CSV Parsing Logic (TDD Phase 1)**:
   - [x] Teste TDD criado (`tests/e2e/cli_metadata_test.go`) para `loam write --id data.csv --raw`.
   - [x] Implementar parser de CSV no Adapter FS para input raw (Verified).
 - [x] **Batch Strategy**:
   - [x] Abandonar ideia de `--batch` proprietário/complexo.
   - [x] Focar em performance do modo `--raw` em loops shell (Unix Way).
-- [ ] **Review Docs**:
+- [x] **Review Docs**:
   - [x] Revisitar `recipes/unix_pipes.md` para incluir exemplos reais de CSV/JSON com `--raw`.
   - [x] Auditar `TECHNICAL.md`, `PRODUCT.md` e `README.md`.
 
