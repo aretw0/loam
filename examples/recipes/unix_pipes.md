@@ -88,8 +88,8 @@ jq -s '.[0] * .[1]' defaults.json user.json | loam write --id config/user-1 --ra
 O Loam agora suporta ingestão de CSV linha-a-linha via `--raw`. Isso é mais performático do que loops shell pois delega o parse para o adapter.
 
 ```bash
-# cat data.csv | loam write --id dados.csv --raw
-# (Isso salva o arquivo exato. Se você quiser explodir o CSV em múltiplos arquivos, use o loop abaixo)
+cat data.csv | loam write --id dados.csv --raw
+# Isso salva o arquivo exato. Se você quiser explodir o CSV em múltiplos arquivos, use o loop abaixo
 ```
 
 ### Explodindo CSV com `mlr` (Miller) para JSON
