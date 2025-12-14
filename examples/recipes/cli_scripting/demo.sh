@@ -37,7 +37,7 @@ task-3,Release,Critical" > tasks.csv
 # Skip header, read loop
 tail -n +2 tasks.csv | while IFS=, read -r id title priority; do
     # Create Markdown content
-    content="# $title\n\nPriority: $priority"
+    content="# $title\n\nPriority: $priority\n"
     # Save using loam write
     # We use - (stdin) for content implicitly if we piped, but here we construct arguments
     loam write --id "tasks/$id.md" --content "$content" --message "import task $id"
@@ -45,6 +45,67 @@ tail -n +2 tasks.csv | while IFS=, read -r id title priority; do
 done
 
 loam list
+
+echo -e "\n--- 5. Complex CSV (Miller Magic) ---"
+if ! command -v mlr &> /dev/null; then
+    echo "Miller (mlr) not found. Skipping advanced demo."
+else
+    # Create a "dirty" CSV (Uppercase headers, extra cols)
+    echo "ID,Title,DESCRIPTION,Internal_Code
+feat-1,Add Logging,Implement zap logger,SEC-001
+feat-2,Refactor API,Clean up handlers,TECH-99" > dirty.csv
+
+    # Use mlr to:
+    # 1. --csv input, --json output (to pipe to loam)
+    # 2. clean-whitespace maps keys to lowercase (ID -> id)
+    # 3. rename keys (description -> content)
+    # 4. cut unwanted columns (Internal_Code)
+    mlr --c2j --jlistwrap \
+        rename -g 'ID,id,Title,title,DESCRIPTION,content' \
+        then cut -x -f Internal_Code \
+        then put '$id = "features/" . $id' \
+        dirty.csv | \
+    jq -c '.[]' | while read -r payload; do
+        id=$(echo "$payload" | jq -r .id)
+        
+        # Construct Markdown with YAML Frontmatter using jq
+        # 1. Select all fields except id and content
+        # 2. Format as key: value (YAML-ish)
+        # 3. Concatenate with --- delimiters and content
+        md=$(echo "$payload" | jq -r '
+            "---\n" + 
+            (del(.id, .content) | to_entries | map("\(.key): \(.value)") | join("\n")) + 
+            "\n---\n\n" + 
+            .content
+        ')
+        
+        echo "$md" | loam write --id "$id.md" --raw --message "import feature $id"
+        echo "Imported $id (Cleaned)"
+    done
+    
+        echo "Imported $id (Cleaned)"
+    done
+    
+    loam read features/feat-1
+    
+    echo -e "\n--- 6. Complex CSV (Loam Set Flags) ---"
+    # Re-using dirty.csv
+    # We can use a simple while loop with IFS
+    tail -n +2 dirty.csv | while IFS=, read -r id title desc code; do
+        # Simple cleanup vars
+        id="set_demo/$id"
+        
+        # Power move: --set for metadata, --content for body
+        loam write --id "$id.md" \
+            --set "title=$title" \
+            --set "internal_code=$code" \
+            --content "$desc\n" \
+            --message "import feature $id via flags"
+            
+        echo "Imported $id (Flags)"
+    done
+fi
+
 
 echo -e "\n--- Demo Complete ---"
 cd ..

@@ -31,12 +31,62 @@ task-3,Release,Critical
 
 # Import-Csv automatically parses headers
 Import-Csv tasks.csv | ForEach-Object {
-    $content = "# $($_.title)`n`nPriority: $($_.priority)"
+    $content = "# $($_.title)`n`nPriority: $($_.priority)`n"
     loam write --id "tasks/$($_.id).md" --content $content --message "import task $($_.id)"
     Write-Host "Imported $($_.id)"
 }
 
 loam list
+
+Write-Host "`n--- 5. Complex CSV (PowerShell Idioms) ---" -ForegroundColor Cyan
+# Create a "dirty" CSV
+@"
+ID,Title,DESCRIPTION,Internal_Code
+feat-1,Add Logging,Implement zap logger,SEC-001
+feat-2,Refactor API,Clean up handlers,TECH-99
+"@ | Set-Content dirty.csv
+
+# Import, Transform, and Save
+Import-Csv dirty.csv | 
+Select-Object @{N = 'id'; E = { "features/$($_.ID)" } }, 
+@{N = 'title'; E = { $_.Title } }, 
+@{N = 'content'; E = { $_.DESCRIPTION } } | ForEach-Object {
+    $id = $_.id
+    $content = $_.content
+        
+    # Build YAML Frontmatter dynamically from other properties
+    $yaml = "---`n"
+    $_.PSObject.Properties | Where-Object { $_.Name -notin 'id', 'content' } | ForEach-Object {
+        $yaml += "$($_.Name): $($_.Value)`n"
+    }
+    $yaml += "---`n`n"
+        
+    $doc = $yaml + $content
+        
+    # We explicitly use .md extension so loam parses the frontmatter we just built
+    $doc | loam write --id "$id.md" --raw --message "import feature $id"
+    Write-Host "Imported $id (Cleaned)"
+}
+
+Write-Host "`n--- 6. Complex CSV (Loam Set Flags) ---" -ForegroundColor Cyan
+# Re-using dirty.csv, but cleaner approach using --set
+Import-Csv dirty.csv | ForEach-Object {
+    $id = "set_demo/$($_.ID)"
+    # Clean up title (example)
+    $title = $_.Title.Trim()
+    
+    # Use --set for metadata, --content for body
+    # This avoids manual YAML construction!
+    loam write --id "$id.md" --set "title=$title" --set "internal_code=$($_.Internal_Code)" --content "$($_.DESCRIPTION)`n" --message "import feature $id via flags"
+    Write-Host "Imported $id (Flags)"
+}
+
+loam read set_demo/feat-1.md
+
+Write-Host "`n--- Demo Complete ---"
+
+loam read features/feat-1
+
 
 Write-Host "`n--- Demo Complete ---" -ForegroundColor Cyan
 Pop-Location
