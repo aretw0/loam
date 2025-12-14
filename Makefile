@@ -28,15 +28,12 @@ clean:
 	$(GOCLEAN)
 	rm -f $(BINARY_NAME)
 	rm -f $(BINARY_NAME).exe
-	rm -f examples/recipes/etl_migration/etl_migration
-	rm -f examples/recipes/etl_migration/etl_migration.exe
+	rm -f $(BINARY_NAME)-*
 
 # Verify all code and examples compile
 check:
 	@echo "Running static analysis and compilation check..."
 	$(GOCMD) vet ./...
-	# Check if examples compile
-	$(GOCMD) build -v -o /dev/null ./examples/... || $(GOCMD) build -v -o NUL ./examples/...
 
 # Install the binary
 install:
