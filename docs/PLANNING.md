@@ -62,7 +62,7 @@
   - [x] Revisitar `recipes/unix_pipes.md` para incluir exemplos reais de CSV/JSON com `--raw`.
   - [x] Auditar `TECHNICAL.md`, `PRODUCT.md` e `README.md`.
 
-## Fase 0.8.5: Multi-Platform Compliance & Build Simplicity (Current)
+## Fase 0.8.5: Multi-Platform Compliance & Build Simplicity (Completed)
 
 **Objetivo:** Garantir que o projeto seja totalmente compatível com ambientes Unix-like (Linux/WSL) e simplificar o processo de build para todos os desenvolvedores.
 
