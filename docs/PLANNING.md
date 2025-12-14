@@ -77,6 +77,10 @@
   - [x] Revisar `README.md` para incluir link para a página de releases.
   - [x] Refatorar `recipes/`: `etl_migration` agora é um Go Module demonstrando CSV Split.
   - [x] Migrar `unix_pipes` para `cli_scripting` (folder) com scripts reais (`demo.sh`, `demo.ps1`).
+  - [x] **Advanced Recipe**: CSV Explosion com `mlr` (Miller) para demonstrar limpeza de headers e mapping sem "magia" no core.
+  - [x] **Bugfix**: `ensureIgnore` só deve criar `.gitignore` se estiver em um repositório Git.
+  - [x] **Recipe Refinement**: Garantir que as receitas gerem Markdown válido com Frontmatter (YAML) a partir do CSV.
+  - [x] **Safety Polish**: Implementar `git.Lock()` na criação do `.gitignore` e checagem de existência do repo em `Save`.
 
 ## RFC 0.X.X: Library-Level Sync Strategies (Backlog)
 
