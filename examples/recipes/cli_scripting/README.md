@@ -15,21 +15,54 @@ This recipe demonstrates how to build powerful content pipelines without writing
 - `demo.sh`: A Bash script demonstrating these concepts (for Linux/macOS/WSL).
 - `demo.ps1`: A PowerShell script demonstrating these concepts (for Windows).
 
-## Key Scenarios
+## Key Scenarios Covered
 
-1. **Simple Logging**: Echoing text into `loam write`.
-2. **JSON Pipeline**: Using `jq` to transform data before saving.
-3. **CSV Splitting**: Breaking a CSV file into multiple Markdown documents using a shell loop.
-4. **Bulk Import**: Ingesting raw files efficiently.
+1. **Simple Logging**: Echoing text directly into `loam write`.
+2. **JSON Pipeline**: Transforming Objects/JSON (via `jq` or `ConvertTo-Json`) before saving.
+3. **CSV Splitting**: Breaking a CSV file into multiple Markdown documents using a simple loop.
+4. **Advanced CSV (Manual Construction)**:
+    - Using specialized tools (`mlr` on Unix, native PowerShell Objects on Windows) to clean "dirty" CSV headers (renaming, lowercasing).
+    - Manually constructing the JSON/YAML payload for `loam write --raw`.
+5. **Advanced CSV (The `--set` Pattern)**:
+    - The cleanest way to script.
+    - Offloads metadata formatting to Loam flags (`loam write --set "key=value"`).
+    - Ideal for iterating over data without worrying about JSON/YAML syntax escaping.
 
-## Advanced: CSV Explosion with Miller (`mlr`)
+## Prerequisites
 
-If you need to process massive CSV files, using `jq` + `mlr` is often faster and more robust than shell loops.
+To run the full demos:
+
+### Unix (`demo.sh`)
+
+- `loam` (installed and in PATH)
+- `jq` (for JSON manipulation)
+- `mlr` (Miller) - *Optional, required only for Section 5 (Complex CSV)*.
+  - Install: `sudo apt install miller` or `brew install miller`
+
+### Windows (`demo.ps1`)
+
+- `loam` (installed and in PATH)
+- PowerShell 5.1+ or PowerShell Core (pwsh)
+
+## Advanced Pattern: The `--set` Flag
+
+The most robust way to script imports is letting Loam build the document for you. Instead of trying to generate valid JSON or Markdown strings inside your shell script (which is error-prone), use the `--set` flag for metadata and `--content` for the body.
+
+**Bash Example:**
 
 ```bash
-# Convert CSV to JSON stream -> Parse -> Save individually
-mlr --icsv --ojson cat data.csv | jq -c '.' | while read item; do
-    id=$(echo $item | jq -r .id)
-    echo $item | loam write --id "data/$id" --raw
-done
+loam write --id "doc-1" \
+  --set "title=My Document" \
+  --set "status=draft" \
+  --content "This is the body"
+```
+
+**PowerShell Example:**
+
+```powershell
+$obj | ForEach-Object {
+    loam write --id "$($_.ID)" `
+      --set "title=$($_.Name)" `
+      --content "$($_.Description)"
+}
 ```

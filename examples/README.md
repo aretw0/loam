@@ -15,7 +15,12 @@ Este diretório contém exemplos de uso e provas de conceito do projeto Loam.
 - **[Configuration](./basics/configuration)**: Como configurar o Vault.
 - **[Semantic Commits](./basics/semantic-commits)**: Uso avançado de razões de mudança.
 
-## Demos
+## Recipes (Padrões de Uso)
+
+- **[CLI Scripting](./recipes/cli_scripting)**: Scripts Shell (Bash/PowerShell) para ETL e automação.
+- **[ETL & Migration](./recipes/etl_migration)**: Técnicas de migração de dados legados.
+
+## Demos (Funcionalidades)
 
 | Projeto | Descrição |
 | :--- | :--- |
@@ -30,10 +35,26 @@ Este diretório contém exemplos de uso e provas de conceito do projeto Loam.
 
 ## Como Executar
 
-Cada pasta é um módulo Go independente. Para rodar qualquer exemplo:
+### Go Examples (Demos & Basics)
+
+Cada pasta nessas categorias é um módulo Go independente.
 
 ```bash
 cd examples/demos/calendar
 go mod tidy
 go run .
+```
+
+### Recipes (Scripts)
+
+As receitas de scripting utilizam a CLI do Loam (`loam`) e scripts nativos do sistema.
+
+```bash
+# Unix (Linux/Mac/WSL)
+cd examples/recipes/cli_scripting
+./demo.sh
+
+# Windows (PowerShell)
+cd examples/recipes/cli_scripting
+./demo.ps1
 ```
