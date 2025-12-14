@@ -2,3 +2,4 @@ loam.exe
 .loam/
 coverage
 examples/**/*.exe
+examples/recipes/cli_scripting/*/*.*

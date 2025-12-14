@@ -76,32 +76,39 @@ func (r *Repository) Initialize(ctx context.Context) error {
 			return fmt.Errorf("git is not installed")
 		}
 
-		wasNewRepo := false
 		if !r.git.IsRepo() {
 			if r.config.AutoInit {
 				if err := r.git.Init(); err != nil {
 					return fmt.Errorf("failed to git init: %w", err)
 				}
-				wasNewRepo = true
+
+				// Ensure .gitignore has the system directory (Only for fresh repos)
+				mod, err := r.ensureIgnore()
+				if err != nil {
+					return fmt.Errorf("failed to ensure .gitignore: %w", err)
+				}
+				if mod {
+					// Lock before writing to git
+					unlock, err := r.git.Lock()
+					if err != nil {
+						return fmt.Errorf("failed to acquire git lock: %w", err)
+					}
+					defer unlock()
+
+					// If we just created the repo, commit the .gitignore to start clean
+					if err := r.git.Add(".gitignore"); err != nil {
+						return fmt.Errorf("failed to add .gitignore: %w", err)
+					}
+					if err := r.git.Commit(fmt.Sprintf("chore: configure %s ignore", r.config.SystemDir)); err != nil {
+						return fmt.Errorf("failed to commit .gitignore: %w", err)
+					}
+				}
 			} else {
 				return fmt.Errorf("path is not a git repository: %s", r.Path)
 			}
-		}
-
-		// Ensure .gitignore has the system directory
-		mod, err := r.ensureIgnore()
-		if err != nil {
-			return fmt.Errorf("failed to ensure .gitignore: %w", err)
-		}
-
-		if mod && wasNewRepo {
-			// If we just created the repo, commit the .gitignore to start clean
-			if err := r.git.Add(".gitignore"); err != nil {
-				return fmt.Errorf("failed to add .gitignore: %w", err)
-			}
-			if err := r.git.Commit(fmt.Sprintf("chore: configure %s ignore", r.config.SystemDir)); err != nil {
-				return fmt.Errorf("failed to commit .gitignore: %w", err)
-			}
+		} else {
+			// Existing repo: We do NOT touch .gitignore automatically.
+			// This respects user's manual configuration.
 		}
 	} else if r.config.AutoInit {
 		// If Gitless + AutoInit, ensure we create the system directory as a marker.
@@ -228,7 +235,7 @@ func (r *Repository) Save(ctx context.Context, doc core.Document) error {
 		return fmt.Errorf("failed to write file: %w", err)
 	}
 
-	if !r.config.Gitless {
+	if !r.config.Gitless && r.git.IsRepo() {
 		unlock, err := r.git.Lock()
 		if err != nil {
 			return fmt.Errorf("failed to acquire git lock: %w", err)
