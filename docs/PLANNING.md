@@ -82,6 +82,21 @@
   - [x] **Recipe Refinement**: Garantir que as receitas gerem Markdown válido com Frontmatter (YAML) a partir do CSV.
   - [x] **Safety Polish**: Implementar `git.Lock()` na criação do `.gitignore` e checagem de existência do repo em `Save`.
 
+## Fase 0.9.0: Reactivity & Hardening (Next)
+
+**Objetivo:** Transformar o Loam de um "Storage Passivo" para um "Motor Reativo", permitindo que aplicações reajam a mudanças no disco em tempo real, enquanto solidifica a estabilidade sob carga.
+
+- [ ] **Reactive Engine (Watcher)**:
+  - [ ] `Service.Watch(ctx, pattern, callback)`: API para observar mudanças em arquivos (via `fsnotify`).
+  - [ ] **Loop Prevention**: Implementar lógica para ignorar eventos gerados pelo próprio processo (evitar loop Save -> Event -> Logic -> Save).
+  - [ ] **Event Debouncing**: Agrupar eventos de sistema de arquivos rápidos (ms) em uma única notificação lógica.
+- [ ] **Concurrency Hardening**:
+  - [ ] **Broker de Eventos**: Garantir que callbacks do Watcher não bloqueiem a thread principal de IO.
+  - [ ] **Stress Testing**: Criar testes que simulam concorrência agressiva (Edição Externa vs Escrita Interna) para validar File Locking.
+- [ ] **Scalability Proof**:
+  - [ ] Benchmark de Listagem/Leitura com 10k+ arquivos pequenos.
+  - [ ] Otimização do Cache de Index se necessário.
+
 ## RFC 0.X.X: Library-Level Sync Strategies (Backlog)
 
 **Objetivo:** Permitir que toolmakers definam estratégias de sincronização não-bloqueantes ou customizadas, crucial para adapters distribuídos (S3, SQL) ou clientes "Offline-First".

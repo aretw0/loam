@@ -33,10 +33,9 @@ Por padrão, o Loam utiliza o **Sistema de Arquivos + Git** como banco de dados 
 
 Por que não apenas usar `os.WriteFile` ou SQLite?
 
-- **Atomicity & Safety**: O Loam garante escritas atômicas ("Batch Transactions"). Se o seu script falhar no meio, seus arquivos não ficam corrompidos.
-- **Human Friendly**: Seus dados não ficam presos em um binário `.db`. Eles são apenas arquivos de texto que você pode abrir, editar e versionar manualmente.
-- **Structured Formats**: Ele gerencia a separação de Frontmatter e Conteúdo. Você recebe os metadados e o corpo bruto (string), sem opiniões de renderização.
-- **Git Power**: Todo `Save` gera um histórico. Você ganha "Undo/Redo" infinito e auditoria de graça.
+- **Local-First & Soberania**: Seus dados são simples arquivos de texto (`.md`, `.json`). Você tem total controle e não depende do Loam para acessá-los.
+- **GitOps Nativo**: Todo `Save` gera um histórico auditável. Reverta erros e gerencie estado de configuração com a mesma segurança de infraestrutura.
+- **Automação Segura (ACID)**: Transações em lote e file-locking garantem que seus scripts de automação nunca corrompam o repositório.
 
 ## 📄 Arquivos Suportados (Smart Persistence) <a name="files"></a>
 

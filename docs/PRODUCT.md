@@ -48,12 +48,32 @@ Entender onde o Loam se encaixa ajuda a escolher a ferramenta certa:
 
 O Loam é o "SQLite para Conteúdo". Ele preenche a lacuna entre a simplicidade de um arquivo de texto e a segurança de um banco de dados.
 
-## Por que Loam?
+## Pilares & Diferenciais
 
-Para desenvolvedores acostumados com bancos de dados tradicionais, lidar com arquivos locais pode ser **desafiador e propenso a erros**. O Loam traz a robustez de um banco de dados para o mundo dos arquivos de texto.
+Por que usar o Loam em vez de `os.WriteFile` ou um Banco de Dados tradicional?
 
-- **SQLite para Documentos:** Assim como o SQLite é o padrão para dados relacionais locais, o Loam **se propõe a ser uma fundação sólida** para conteúdo não-estruturado (Markdown) e estruturado (CSV, JSON). Oferece suporte nativo a **Multi-Documentos** (coleções em um único arquivo) e um padrão **Active Record** para uma **melhor experiência de desenvolvimento (DX)**.
-- **Automação Segura:** Seus scripts Python/Bash que editam arquivos podem corromper o repositório se rodarem concorrentemente. O Loam implementa *file locking* e transações para evitar isso.
+### 1. Conformidade Local-First
+>
+> "Seus dados, suas regras."
+
+- **Zero Lock-in**: Seus dados são apenas arquivos (`.md`, `.json`, `.csv`) no seu disco. Você não precisa do Loam para lê-los.
+- **Soberania**: A nuvem é um espelho, não o dono. **O Loam** garante que sua aplicação funcione 100% offline.
+- **Legibilidade Humana**: Ao contrário de um arquivo binário `.db`, qualquer humano (ou IA) pode abrir e entender o estado do sistema.
+
+### 2. GitOps Nativo
+>
+> "Infraestrutura como Código -> Dados como Código."
+
+- **Histórico & Auditoria**: Quem mudou o quê? O Git responde. O Loam transforma qualquer diretório em um sistema versionado.
+- **Rollback Instantâneo**: Use `git revert` ou APIs de histórico para desfazer erros catastróficos em milissegundos. **O Loam** facilita esse controle.
+- **Transações em Lote**: O Loam garante atomicidade nos commits. Ou salva tudo, ou não salva nada, prevenindo estados corrompidos.
+
+### 3. Automação Segura (ACID-ish)
+>
+> "Scripts não devem quebrar o banco."
+
+- **File Locking**: Previne que dois processos editem o mesmo arquivo simultaneamente.
+- **Estrutura Híbrida**: Combina a flexibilidade de documentos schemaless (Frontmatter) com a segurança de leitura tipada em Go (`TypedRepository[T]`).
 
 ## Objetivos
 
