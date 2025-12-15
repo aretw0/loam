@@ -17,9 +17,9 @@ var (
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "loam",
-	Short: "A Transactional Storage Engine for Markdown + Frontmatter backed by Git",
+	Short: "A Transactional Storage Engine for Content & Metadata",
 	Long: `Loam treats your Markdown documents as a NoSQL database.
-It orchestrates filesystem writes and Git commits to ensure transactional integrity.`,
+It orchestrates filesystem writes and version control to ensure transactional integrity.`,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		level := slog.LevelInfo
 		if verbose {

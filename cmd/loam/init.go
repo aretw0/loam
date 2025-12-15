@@ -12,8 +12,8 @@ import (
 // initCmd represents the init command
 var initCmd = &cobra.Command{
 	Use:   "init",
-	Short: "Initialize a loam vault (git init)",
-	Long:  `Initialize a new Loam vault in the current directory. This effectively runs 'git init'.`,
+	Short: "Initialize a loam vault",
+	Long:  `Initialize a new Loam vault in the current directory.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		cwd, err := os.Getwd()
 		if err != nil {

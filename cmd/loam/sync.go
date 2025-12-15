@@ -12,9 +12,9 @@ import (
 // syncCmd represents the sync command
 var syncCmd = &cobra.Command{
 	Use:   "sync",
-	Short: "Synchronize vault with remote (pull & push)",
+	Short: "Synchronize vault with remote",
 	Long: `Synchronize the local vault with the configured remote repository.
-It performs a 'git pull --rebase' to integrate remote changes, followed by a 'git push' to upload local changes.`,
+It integrates remote changes and pushes local changes.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		cwd, err := os.Getwd()
 		if err != nil {

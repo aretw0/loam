@@ -12,8 +12,7 @@ import (
 var deleteCmd = &cobra.Command{
 	Use:   "delete [id]",
 	Short: "Delete a document from the vault",
-	Long:  `Delete permanently removes a document from the vault and stages the deletion in Git.`,
-	Args:  cobra.ExactArgs(1),
+	Long:  `Delete permanently removes a document from the vault.`, Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		id := args[0]
 		wd, err := os.Getwd()

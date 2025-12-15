@@ -155,7 +155,7 @@ func init() {
 	writeCmd.Flags().StringVar(&writeContent, "content", "", "Document content")
 	writeCmd.Flags().StringVarP(&changeReason, "message", "m", "", "Change reason (audit note)")
 	writeCmd.Flags().StringVarP(&writeType, "type", "t", "", "Change type (feat, fix, etc)")
-	writeCmd.Flags().StringVarP(&writeScope, "scope", "s", "", "Commit scope")
+	writeCmd.Flags().StringVarP(&writeScope, "scope", "s", "", "Change scope")
 	writeCmd.Flags().StringToStringVar(&writeSet, "set", nil, "Set metadata fields (key=value)")
 	writeCmd.Flags().BoolVar(&writeRaw, "raw", false, "Treat input as raw document (parse metadata from content)")
 	writeCmd.MarkFlagRequired("id")
