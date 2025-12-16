@@ -89,3 +89,12 @@ func (s *Service) Begin(ctx context.Context) (Transaction, error) {
 	}
 	return tr.Begin(ctx)
 }
+
+// Watch observes changes in the repository if supported.
+func (s *Service) Watch(ctx context.Context, pattern string) (<-chan Event, error) {
+	w, ok := s.repo.(Watchable)
+	if !ok {
+		return nil, errors.New("repository does not support watching")
+	}
+	return w.Watch(ctx, pattern)
+}

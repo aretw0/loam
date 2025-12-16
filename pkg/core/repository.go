@@ -35,6 +35,12 @@ type Syncable interface {
 	Sync(ctx context.Context) error
 }
 
+// Watchable defines an interface for repositories that can notify about changes.
+type Watchable interface {
+	// Watch returns a channel of events matching the pattern.
+	Watch(ctx context.Context, pattern string) (<-chan Event, error)
+}
+
 // Transaction represents a unit of work (batch of operations).
 type Transaction interface {
 	// Save stages a document for saving.

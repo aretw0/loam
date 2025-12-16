@@ -23,6 +23,11 @@ func (s *Service[T]) Save(ctx context.Context, doc *DocumentModel[T]) error {
 	return s.saveInternal(ctx, doc)
 }
 
+// Watch observes changes in the repository.
+func (s *Service[T]) Watch(ctx context.Context, pattern string) (<-chan core.Event, error) {
+	return s.svc.Watch(ctx, pattern)
+}
+
 func (s *Service[T]) saveInternal(ctx context.Context, doc *DocumentModel[T]) error {
 	// Attach saver
 	if doc.Saver == nil {
