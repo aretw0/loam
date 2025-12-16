@@ -12,6 +12,10 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
+	"time"
+
+	"github.com/fsnotify/fsnotify"
 
 	"github.com/aretw0/loam/pkg/core"
 	"github.com/aretw0/loam/pkg/git"
@@ -24,6 +28,10 @@ type Repository struct {
 	git    *git.Client
 	cache  *cache
 	config Config
+
+	// ignoreMap tracks files modified by this process to avoid event loops.
+	// Key: Absolute Path. Value: Timestamp of write.
+	ignoreMap sync.Map
 }
 
 // Config holds the configuration for the filesystem repository.
@@ -180,6 +188,119 @@ func (r *Repository) Sync(ctx context.Context) error {
 	return r.git.Sync() // This method handles pull/push
 }
 
+// Watch implements core.Watchable.
+func (r *Repository) Watch(ctx context.Context, pattern string) (<-chan core.Event, error) {
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create watcher: %w", err)
+	}
+
+	// Channel for events
+	events := make(chan core.Event)
+
+	// Add root path and subdirectories
+	err = filepath.WalkDir(r.Path, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			// Skip .git
+			if d.Name() == ".git" {
+				return filepath.SkipDir
+			}
+			return watcher.Add(path)
+		}
+		return nil
+	})
+	if err != nil {
+		watcher.Close()
+		return nil, err
+	}
+
+	go func() {
+		defer watcher.Close()
+		defer close(events)
+
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case event, ok := <-watcher.Events:
+				if !ok {
+					return
+				}
+				// DEBUG: Log raw event
+				if r.config.Logger != nil {
+					// r.config.Logger.Info("raw fsnotify", "op", event.Op, "name", event.Name)
+				}
+
+				// Filter temp files and hidden files
+				baseName := filepath.Base(event.Name)
+				if strings.HasPrefix(baseName, "loam-tmp-") || strings.HasPrefix(baseName, ".") {
+					continue
+				}
+
+				// Check Ignore Map (Self-Modification)
+				if _, ok := r.ignoreMap.Load(event.Name); ok {
+					// Found in ignore map (within window), skip.
+					continue
+				}
+
+				// Map fsnotify.Op to core.EventType
+				var eType core.EventType
+				if event.Has(fsnotify.Create) {
+					eType = core.EventCreate
+				} else if event.Has(fsnotify.Write) {
+					eType = core.EventModify
+				} else if event.Has(fsnotify.Remove) {
+					eType = core.EventDelete
+				} else if event.Has(fsnotify.Rename) {
+					eType = core.EventDelete
+				}
+
+				if eType == "" {
+					continue
+				}
+
+				// ID resolution
+				relPath, err := filepath.Rel(r.Path, event.Name)
+				if err != nil {
+					continue
+				}
+				relPath = filepath.ToSlash(relPath)
+
+				id := relPath
+				if filepath.Ext(id) == ".md" {
+					id = strings.TrimSuffix(id, ".md")
+				}
+				// Also handle other extensions if needed, but for now this matches List/Get basics.
+
+				// Non-blocking send? Or blocking?
+				// Blocking is safer for ordering, but if consumer is slow, we might buffer?
+				// Context check included.
+				select {
+				case events <- core.Event{
+					Type:      eType,
+					ID:        id,
+					Timestamp: time.Now().Unix(),
+				}:
+				case <-ctx.Done():
+					return
+				}
+			case err, ok := <-watcher.Errors:
+				if !ok {
+					return
+				}
+				if r.config.Logger != nil {
+					r.config.Logger.Error("fsnotify error", "error", err)
+				}
+			}
+		}
+	}()
+
+	return events, nil
+}
+
 // Save persists a document to the filesystem and commits it to Git.
 // If the document belongs to a collection (e.g. CSV), it updates the specific row.
 //
@@ -230,6 +351,14 @@ func (r *Repository) Save(ctx context.Context, doc core.Document) error {
 	if err != nil {
 		return fmt.Errorf("failed to serialize document: %w", err)
 	}
+
+	// Ignore subsequent events for this file (debounce self)
+	// We store BEFORE writing to avoid race condition where event arrives before map is updated.
+	r.ignoreMap.Store(fullPath, time.Now())
+	// Clean up after window
+	time.AfterFunc(2*time.Second, func() {
+		r.ignoreMap.Delete(fullPath)
+	})
 
 	if err := writeFileAtomic(fullPath, data, 0644); err != nil {
 		return fmt.Errorf("failed to write file: %w", err)
