@@ -89,13 +89,15 @@
 - [ ] **Reactive Engine (Watcher)**:
   - [ ] `Service.Watch(ctx, pattern, callback)`: API para observar mudanças em arquivos (via `fsnotify`).
   - [ ] **Loop Prevention**: Implementar lógica para ignorar eventos gerados pelo próprio processo (evitar loop Save -> Event -> Logic -> Save).
-  - [ ] **Event Debouncing**: Agrupar eventos de sistema de arquivos rápidos (ms) em uma única notificação lógica.
-- [ ] **Concurrency Hardening**:
+  - [ ] **Event Debouncing & Normalization**: Agrupar eventos rápidos e tratar "Atomic Saves" (Rename/Move patterns de editores) para evitar falsos positivos.
+  - [ ] **Startup Reconciliation**: Garantir consistência do Cache/Index na inicialização (detectar mudanças offline/Cold Start).
+- [ ] **Concurrency & Hardening**:
+  - [ ] **Git Awareness**: Detectar operações em lote (ex: `git checkout`) para evitar "Event Storms", pausando o watcher ou invalidando o cache em massa.
   - [ ] **Broker de Eventos**: Garantir que callbacks do Watcher não bloqueiem a thread principal de IO.
   - [ ] **Stress Testing**: Criar testes que simulam concorrência agressiva (Edição Externa vs Escrita Interna) para validar File Locking.
-- [ ] **Scalability Proof**:
+- [ ] **Scalability & Documentation**:
   - [ ] Benchmark de Listagem/Leitura com 10k+ arquivos pequenos.
-  - [ ] Otimização do Cache de Index se necessário.
+  - [ ] **OS Limits Caveat**: Documentar limitações de `inotify`/`kqueue` em grandes repositórios e falhas silenciosas.
 
 ## RFC 0.X.X: Library-Level Sync Strategies (Backlog)
 
