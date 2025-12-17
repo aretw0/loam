@@ -14,23 +14,31 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestWatch_FileModification tests that modifying a file triggers a watch event.
-// This test is expected to fail initially as the fs adapter does not implement Watchable.
-func TestWatch_FileModification(t *testing.T) {
-	// 1. Setup
+// setupWatchTest initializes a vault and opens a typed service for testing.
+// It returns the temporary directory path, the service, the context, and a cancel function.
+func setupWatchTest(t *testing.T) (string, *loam.TypedService[map[string]any], context.Context, context.CancelFunc) {
+	t.Helper()
 	tmp := t.TempDir()
 
 	// Initialize a vault
-	_, err := loam.Init(tmp) // tmp doesn't have .git and without autoinit it will just create .loam dir
+	_, err := loam.Init(tmp)
 	require.NoError(t, err)
 
 	// Open Typed Service
 	svc, err := loam.OpenTypedService[map[string]any](tmp)
 	require.NoError(t, err)
 
-	// 2. Start Watcher
-	// This should fail if the underlying adapter doesn't implement Watchable
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	// Create context with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second) // Default 5s
+
+	return tmp, svc, ctx, cancel
+}
+
+// TestWatch_FileModification tests that modifying a file triggers a watch event.
+// This test is expected to fail initially as the fs adapter does not implement Watchable.
+func TestWatch_FileModification(t *testing.T) {
+	// 1. Setup
+	tmp, svc, ctx, cancel := setupWatchTest(t)
 	defer cancel()
 
 	events, err := svc.Watch(ctx, "**/*")
@@ -61,13 +69,7 @@ func TestWatch_FileModification(t *testing.T) {
 // This prevents infinite loops in reactive apps.
 func TestWatch_IgnoreSelf(t *testing.T) {
 	// 1. Setup
-	tmp := t.TempDir()
-	_, err := loam.Init(tmp)
-	require.NoError(t, err)
-	svc, err := loam.OpenTypedService[map[string]any](tmp)
-	require.NoError(t, err)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	_, svc, ctx, cancel := setupWatchTest(t)
 	defer cancel()
 
 	events, err := svc.Watch(ctx, "**/*")
@@ -99,13 +101,7 @@ func TestWatch_IgnoreSelf(t *testing.T) {
 // TestWatch_ExternalAtomicWrite ensures that atomic writes (rename) from external tools are detected.
 func TestWatch_ExternalAtomicWrite(t *testing.T) {
 	// 1. Setup
-	tmp := t.TempDir()
-	_, err := loam.Init(tmp)
-	require.NoError(t, err)
-	svc, err := loam.OpenTypedService[map[string]any](tmp)
-	require.NoError(t, err)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	tmp, svc, ctx, cancel := setupWatchTest(t)
 	defer cancel()
 
 	events, err := svc.Watch(ctx, "**/*")
@@ -148,13 +144,7 @@ func TestWatch_ExternalAtomicWrite(t *testing.T) {
 // TestWatch_PatternMatching verifies that the watcher respects glob patterns.
 func TestWatch_PatternMatching(t *testing.T) {
 	// 1. Setup
-	tmp := t.TempDir()
-	_, err := loam.Init(tmp)
-	require.NoError(t, err)
-	svc, err := loam.OpenTypedService[map[string]any](tmp)
-	require.NoError(t, err)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	tmp, svc, ctx, cancel := setupWatchTest(t)
 	defer cancel()
 
 	// 2. Watch ONLY *.md
@@ -201,13 +191,7 @@ func TestWatch_PatternMatching(t *testing.T) {
 // TestWatch_Debounce verifies that rapid events are grouped.
 func TestWatch_Debounce(t *testing.T) {
 	// 1. Setup
-	tmp := t.TempDir()
-	_, err := loam.Init(tmp)
-	require.NoError(t, err)
-	svc, err := loam.OpenTypedService[map[string]any](tmp)
-	require.NoError(t, err)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	tmp, svc, ctx, cancel := setupWatchTest(t)
 	defer cancel()
 
 	events, err := svc.Watch(ctx, "**/*")
