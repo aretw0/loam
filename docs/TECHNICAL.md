@@ -192,6 +192,33 @@ Medem a performance do Adapter e eficácia do Cache.
 
 O mecanismo de reatividade (`Service.Watch`) permite que aplicações reajam a mudanças no disco em tempo real. Ele opera acoplado ao `fsnotify` mas implementa camadas de proteção cruciais.
 
+```mermaid
+flowchart TD
+    Start[Service.Watch] --> Setup[Recursive Setup]
+    Setup -->|Add Watchers| OS[OS Watcher - fsnotify]
+    
+    OS -->|Raw Event| Filter{Ignore?}
+    
+    Filter -- Yes --> Drop[Drop]
+    Filter -- No --> Mapper[Map to Domain Event]
+    
+    subgraph filtering [Pipeline de Filtros]
+        Filter
+        Note1[Ignora: .git, .loam, loam-tmp-*, Self-Writes]
+    end
+
+    Mapper --> Debouncer{Debouncer}
+    
+    subgraph processing [Processamento Temporal]
+        Debouncer -- "Wait 50ms" --> Timer[Buffer]
+        Debouncer -- "Rapid Fire" --> Merge[Merge Events]
+        Note2[Prioridade: CREATE > MODIFY]
+    end
+    
+    Timer -->|Timeout| Dispatch[Emit Core Event]
+    Merge --> Timer
+```
+
 ### Arquitetura do Watcher
 
 1. **Recursividade Estática**: Ao iniciar, o watcher percorre a árvore de diretórios e adiciona monitores.
