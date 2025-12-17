@@ -62,39 +62,47 @@ func TestService_CRUD(t *testing.T) {
 	ctx := context.TODO()
 
 	// 1. Save
-	err := service.SaveDocument(ctx, "doc1", "content1", core.Metadata{"author": "me"})
-	if err != nil {
-		t.Fatalf("SaveDocument failed: %v", err)
-	}
+	t.Run("Save New Document", func(t *testing.T) {
+		err := service.SaveDocument(ctx, "doc1", "content1", core.Metadata{"author": "me"})
+		if err != nil {
+			t.Fatalf("SaveDocument failed: %v", err)
+		}
+	})
 
 	// 2. Get
-	doc, err := service.GetDocument(ctx, "doc1")
-	if err != nil {
-		t.Fatalf("GetDocument failed: %v", err)
-	}
-	if doc.Content != "content1" {
-		t.Errorf("expected content 'content1', got '%s'", doc.Content)
-	}
+	t.Run("Get Existing Document", func(t *testing.T) {
+		doc, err := service.GetDocument(ctx, "doc1")
+		if err != nil {
+			t.Fatalf("GetDocument failed: %v", err)
+		}
+		if doc.Content != "content1" {
+			t.Errorf("expected content 'content1', got '%s'", doc.Content)
+		}
+	})
 
 	// 3. List
-	_ = service.SaveDocument(ctx, "doc2", "content2", nil)
-	docs, err := service.ListDocuments(ctx)
-	if err != nil {
-		t.Fatalf("ListDocuments failed: %v", err)
-	}
-	if len(docs) != 2 {
-		t.Errorf("expected 2 documents, got %d", len(docs))
-	}
+	t.Run("List Multiple Documents", func(t *testing.T) {
+		_ = service.SaveDocument(ctx, "doc2", "content2", nil)
+		docs, err := service.ListDocuments(ctx)
+		if err != nil {
+			t.Fatalf("ListDocuments failed: %v", err)
+		}
+		if len(docs) != 2 {
+			t.Errorf("expected 2 documents, got %d", len(docs))
+		}
+	})
 
 	// 4. Delete
-	err = service.DeleteDocument(ctx, "doc1")
-	if err != nil {
-		t.Fatalf("DeleteDocument failed: %v", err)
-	}
-	_, err = service.GetDocument(ctx, "doc1")
-	if err == nil {
-		t.Error("expected error after deletion, got nil")
-	}
+	t.Run("Delete Document", func(t *testing.T) {
+		err := service.DeleteDocument(ctx, "doc1")
+		if err != nil {
+			t.Fatalf("DeleteDocument failed: %v", err)
+		}
+		_, err = service.GetDocument(ctx, "doc1")
+		if err == nil {
+			t.Error("expected error after deletion, got nil")
+		}
+	})
 }
 
 func TestService_Begin_Unsupported(t *testing.T) {
