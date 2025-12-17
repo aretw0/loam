@@ -6,13 +6,18 @@ import (
 	"path/filepath"
 )
 
+const (
+	// TempFilePrefix is the prefix used for temporary atomic write files.
+	TempFilePrefix = "loam-tmp-"
+)
+
 // writeFileAtomic writes data to a file atomically by writing to a temp file
 // and then renaming it to the target filename.
 func writeFileAtomic(filename string, data []byte, perm os.FileMode) error {
 	dir := filepath.Dir(filename)
 
 	// Create a temporary file in the same directory to ensure atomic rename
-	tmpFile, err := os.CreateTemp(dir, "loam-tmp-*")
+	tmpFile, err := os.CreateTemp(dir, TempFilePrefix+"*")
 	if err != nil {
 		return fmt.Errorf("failed to create temp file: %w", err)
 	}

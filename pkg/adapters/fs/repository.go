@@ -272,7 +272,9 @@ func (r *Repository) recursiveAdd(watcher *fsnotify.Watcher) error {
 			return err
 		}
 		if d.IsDir() {
-			if d.Name() == ".git" {
+			name := d.Name()
+			// Skip .git and the configured SystemDir (e.g. .loam)
+			if name == ".git" || name == r.config.SystemDir {
 				return filepath.SkipDir
 			}
 			return watcher.Add(path)
@@ -285,7 +287,7 @@ func (r *Repository) recursiveAdd(watcher *fsnotify.Watcher) error {
 func (r *Repository) shouldIgnore(event fsnotify.Event, pattern string) bool {
 	// 1. Filter temp files and hidden files
 	baseName := filepath.Base(event.Name)
-	if strings.HasPrefix(baseName, "loam-tmp-") || strings.HasPrefix(baseName, ".") {
+	if strings.HasPrefix(baseName, TempFilePrefix) || strings.HasPrefix(baseName, ".") {
 		return true
 	}
 
