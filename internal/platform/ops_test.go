@@ -10,20 +10,27 @@ import (
 	"github.com/aretw0/loam/pkg/git"
 )
 
+// setupOpsTest initializes a vault and returns the fs repository and path.
+// It handles temp dir creation and type assertion.
+func setupOpsTest(t *testing.T, opts ...loam.Option) (*fs.Repository, string) {
+	t.Helper()
+	tmpDir := t.TempDir()
+
+	repo, err := loam.Init(tmpDir, opts...)
+	if err != nil {
+		t.Fatalf("Init failed: %v", err)
+	}
+
+	fsRepo, ok := repo.(*fs.Repository)
+	if !ok {
+		t.Fatalf("Expected fs repository, got %T", repo)
+	}
+	return fsRepo, tmpDir
+}
+
 func TestInit(t *testing.T) {
 	t.Run("AutoInit=true Creates Directory and Git Repo", func(t *testing.T) {
-		tmpDir := t.TempDir()
-		vaultPath := filepath.Join(tmpDir, "vault")
-
-		repo, err := loam.Init(vaultPath, loam.WithAutoInit(true), loam.WithForceTemp(true))
-		if err != nil {
-			t.Fatalf("Init failed: %v", err)
-		}
-
-		fsRepo, ok := repo.(*fs.Repository)
-		if !ok {
-			t.Fatalf("Expected fs repository")
-		}
+		fsRepo, vaultPath := setupOpsTest(t, loam.WithAutoInit(true))
 
 		if fsRepo.Path != vaultPath {
 			t.Errorf("Expected path %s, got %s", vaultPath, fsRepo.Path)
@@ -44,25 +51,15 @@ func TestInit(t *testing.T) {
 		tmpDir := t.TempDir()
 		vaultPath := filepath.Join(tmpDir, "missing")
 
-		_, err := loam.Init(vaultPath, loam.WithAutoInit(false), loam.WithMustExist(true), loam.WithForceTemp(true))
+		_, err := loam.Init(vaultPath, loam.WithAutoInit(false), loam.WithMustExist(true))
 		if err == nil {
 			t.Error("Expected failure for missing directory when AutoInit=false")
 		}
 	})
 
 	t.Run("IsGitless=true Does Not Initialize Git", func(t *testing.T) {
-		tmpDir := t.TempDir()
-		vaultPath := filepath.Join(tmpDir, "gitless_vault")
-
-		repo, err := loam.Init(vaultPath, loam.WithAutoInit(true), loam.WithVersioning(false), loam.WithForceTemp(true))
-		if err != nil {
-			t.Fatalf("Init failed: %v", err)
-		}
-
-		fsRepo, ok := repo.(*fs.Repository)
-		if !ok {
-			t.Fatalf("Expected fs repository")
-		}
+		// Note: setupOpsTest uses "vault" as subdir.
+		fsRepo, vaultPath := setupOpsTest(t, loam.WithAutoInit(true), loam.WithVersioning(false))
 
 		if fsRepo.Path != vaultPath {
 			t.Errorf("Expected path %s, got %s", vaultPath, fsRepo.Path)
@@ -83,7 +80,7 @@ func TestInit(t *testing.T) {
 func TestSync(t *testing.T) {
 	t.Run("Sync Fails if Gitless", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		err := loam.Sync(tmpDir, loam.WithVersioning(false), loam.WithForceTemp(true))
+		err := loam.Sync(tmpDir, loam.WithVersioning(false))
 		if err == nil {
 			t.Error("Expected Sync to fail in gitless mode")
 		}
@@ -97,7 +94,7 @@ func TestSync(t *testing.T) {
 		_ = client.Commit("initial commit") // commit so we have HEAD
 
 		// This might fail due to "No such remote 'origin'" or similar
-		err := loam.Sync(tmpDir, loam.WithVersioning(true), loam.WithForceTemp(true))
+		err := loam.Sync(tmpDir, loam.WithVersioning(true))
 		if err == nil {
 			t.Error("Expected Sync to fail without remote")
 		}

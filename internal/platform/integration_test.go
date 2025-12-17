@@ -11,20 +11,31 @@ import (
 	"github.com/aretw0/loam/pkg/git"
 )
 
-func TestService_WriteCommit(t *testing.T) {
-	// Setup Temp Dir
+func setupService(t *testing.T, opts ...loam.Option) (*core.Service, string) {
+	t.Helper()
 	tmpDir := t.TempDir()
 
-	// Init Service using loam.New
-	service, err := loam.New(tmpDir, loam.WithAutoInit(true), loam.WithForceTemp(true))
+	// Default options for tests if not provided/overridden,
+	// though ...opts comes last so it overrides defaults if we merged them correctly.
+	// But loam.New takes variadic. Let's preprare the base args.
+	// Most tests want AutoInit and ForceTemp.
+	baseOpts := []loam.Option{loam.WithAutoInit(true)}
+	finalOpts := append(baseOpts, opts...)
+
+	service, err := loam.New(tmpDir, finalOpts...)
 	if err != nil {
 		t.Fatalf("Failed to init service: %v", err)
 	}
+	return service, tmpDir
+}
+
+func TestService_WriteCommit(t *testing.T) {
+	service, tmpDir := setupService(t)
 
 	ctx := context.TODO()
 
 	// Create a Note
-	err = service.SaveDocument(ctx, "test_note", "# Hello Loam\nThis note is versioned.", core.Metadata{
+	err := service.SaveDocument(ctx, "test_note", "# Hello Loam\nThis note is versioned.", core.Metadata{
 		"title": "Integration Test",
 		"tags":  []string{"ci", "test"},
 	})
@@ -68,12 +79,7 @@ func TestService_WriteCommit(t *testing.T) {
 }
 
 func TestService_DeleteList(t *testing.T) {
-	// Setup
-	tmpDir := t.TempDir()
-	service, err := loam.New(tmpDir, loam.WithAutoInit(true), loam.WithForceTemp(true))
-	if err != nil {
-		t.Fatalf("Failed to init service: %v", err)
-	}
+	service, tmpDir := setupService(t)
 	ctx := context.TODO()
 
 	// Create Notes
@@ -130,17 +136,12 @@ func TestService_DeleteList(t *testing.T) {
 }
 
 func TestService_Namespaces(t *testing.T) {
-	// Setup
-	tmpDir := t.TempDir()
-	service, err := loam.New(tmpDir, loam.WithAutoInit(true), loam.WithForceTemp(true))
-	if err != nil {
-		t.Fatalf("Failed to init service: %v", err)
-	}
+	service, tmpDir := setupService(t)
 	ctx := context.TODO()
 
 	// Create Note in Subdirectory
 	noteID := "deep/nested/note"
-	err = service.SaveDocument(ctx, noteID, "Content in a folder", core.Metadata{"title": "Deep Note"})
+	err := service.SaveDocument(ctx, noteID, "Content in a folder", core.Metadata{"title": "Deep Note"})
 	if err != nil {
 		t.Fatalf("Failed to write nested note: %v", err)
 	}
@@ -175,25 +176,20 @@ func TestService_MustExist(t *testing.T) {
 	tmpDir := t.TempDir()
 	nonExistent := filepath.Join(tmpDir, "does-not-exist")
 
-	_, err := loam.New(nonExistent, loam.WithMustExist(true), loam.WithForceTemp(true))
+	_, err := loam.New(nonExistent, loam.WithMustExist(true))
 	if err == nil {
 		t.Error("Expected New to fail with MustExist for non-existent path, but it succeeded")
 	}
 }
 
 func TestService_GitlessSync(t *testing.T) {
-	tmpDir := t.TempDir()
-
 	// Init in Gitless Mode explicitly
-	_, err := loam.New(tmpDir, loam.WithAutoInit(true), loam.WithVersioning(false), loam.WithForceTemp(true))
-	if err != nil {
-		t.Fatalf("Failed to init service: %v", err)
-	}
+	_, tmpDir := setupService(t, loam.WithVersioning(false))
 	// We can't easily check "IsGitless()" on service without casting adapter.
 	// But we can check behavior (e.g. Sync not supported if we exposed Sync in service).
 
 	// Check loam.Sync behavior directly
-	err = loam.Sync(tmpDir, loam.WithVersioning(false))
+	err := loam.Sync(tmpDir, loam.WithVersioning(false))
 	if err == nil {
 		t.Error("Expected loam.Sync to fail in gitless mode, but it succeeded")
 	} else if err.Error() != "cannot sync in gitless mode" {
