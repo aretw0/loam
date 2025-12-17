@@ -87,9 +87,9 @@
 **Objetivo:** Transformar o Loam de um "Storage Passivo" para um "Motor Reativo", permitindo que aplicações reajam a mudanças no disco em tempo real, enquanto solidifica a estabilidade sob carga.
 
 - [ ] **Reactive Engine (Watcher)**:
-  - [ ] `Service.Watch(ctx, pattern, callback)`: API para observar mudanças em arquivos (via `fsnotify`).
-  - [ ] **Loop Prevention**: Implementar lógica para ignorar eventos gerados pelo próprio processo (evitar loop Save -> Event -> Logic -> Save).
-  - [ ] **Event Debouncing & Normalization**: Agrupar eventos rápidos e tratar "Atomic Saves" (Rename/Move patterns de editores) para evitar falsos positivos.
+  - [x] `Service.Watch(ctx, pattern, callback)`: API para observar mudanças em arquivos (via `fsnotify`).
+  - [x] **Loop Prevention**: Implementar lógica para ignorar eventos gerados pelo próprio processo (evitar loop Save -> Event -> Logic -> Save).
+  - [x] **Event Debouncing & Normalization**: Agrupar eventos rápidos e tratar "Atomic Saves" (Rename/Move patterns de editores) para evitar falsos positivos.
   - [ ] **Startup Reconciliation**: Garantir consistência do Cache/Index na inicialização (detectar mudanças offline/Cold Start).
 - [ ] **Concurrency & Hardening**:
   - [ ] **Git Awareness**: Detectar operações em lote (ex: `git checkout`) para evitar "Event Storms", pausando o watcher ou invalidando o cache em massa.
