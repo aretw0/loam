@@ -10,21 +10,17 @@ import (
 
 func TestSync(t *testing.T) {
 	// Setup temporary directory
-	tempDir, err := os.MkdirTemp("", "loam-sync-test")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(tempDir)
+	tmpDir := t.TempDir()
 
 	// Create "Remote" (bare repo)
-	remotePath := filepath.Join(tempDir, "remote.git")
+	remotePath := filepath.Join(tmpDir, "remote.git")
 	if err := os.Mkdir(remotePath, 0755); err != nil {
 		t.Fatal(err)
 	}
-	run(t, tempDir, "git", "init", "--bare", remotePath)
+	run(t, remotePath, "git", "init", "--bare", remotePath)
 
 	// Create "Origin" (to push initial content)
-	originPath := filepath.Join(tempDir, "origin")
+	originPath := filepath.Join(tmpDir, "origin")
 	if err := os.Mkdir(originPath, 0755); err != nil {
 		t.Fatal(err)
 	}
@@ -44,16 +40,11 @@ func TestSync(t *testing.T) {
 	run(t, remotePath, "git", "symbolic-ref", "HEAD", "refs/heads/main")
 
 	// Create "Local" (where we run loam)
-	localPath := filepath.Join(tempDir, "local")
-	run(t, tempDir, "git", "clone", remotePath, localPath)
+	localPath := filepath.Join(tmpDir, "local")
+	run(t, tmpDir, "git", "clone", remotePath, localPath)
 
 	// Build loam binary
-	loamBin := filepath.Join(tempDir, "loam.exe")
-	// Updated Path: go up two levels from tests/e2e to root, then to cmd/loam
-	buildCmd := exec.Command("go", "build", "-o", loamBin, "../../cmd/loam")
-	if out, err := buildCmd.CombinedOutput(); err != nil {
-		t.Fatalf("Failed to build loam: %v\n%s", err, string(out))
-	}
+	loamBin := buildLoamBinary(t, tmpDir)
 
 	// 1. Run loam sync (should do nothing but succeed)
 	run(t, localPath, loamBin, "sync")

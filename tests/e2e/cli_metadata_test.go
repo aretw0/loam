@@ -11,18 +11,15 @@ import (
 
 func TestMetadataFlags(t *testing.T) {
 	// Setup temporary directory
-	tempDir, err := os.MkdirTemp("", "loam-meta-test")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(tempDir)
+	tmpDir := t.TempDir()
 
 	// Build loam binary
-	loamBin := filepath.Join(tempDir, "loam.exe")
-	buildCmd := exec.Command("go", "build", "-o", loamBin, "../../cmd/loam")
-	// If tests run from tests/e2e, this relative path is correct.
-	if out, err := buildCmd.CombinedOutput(); err != nil {
-		t.Fatalf("Failed to build loam: %v\n%s", err, string(out))
+	loamBin := buildLoamBinary(t, tmpDir)
+
+	// Create temp vault
+	tempDir := filepath.Join(tmpDir, "loam-meta-test")
+	if err := os.Mkdir(tempDir, 0755); err != nil {
+		t.Fatal(err)
 	}
 
 	// Initialize Loam (no git needed for this test)
