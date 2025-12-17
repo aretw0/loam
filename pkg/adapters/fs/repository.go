@@ -15,6 +15,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/bmatcuk/doublestar/v4"
 	"github.com/fsnotify/fsnotify"
 
 	"github.com/aretw0/loam/pkg/core"
@@ -238,6 +239,28 @@ func (r *Repository) Watch(ctx context.Context, pattern string) (<-chan core.Eve
 				baseName := filepath.Base(event.Name)
 				if strings.HasPrefix(baseName, "loam-tmp-") || strings.HasPrefix(baseName, ".") {
 					continue
+				}
+
+				// Check Pattern (Glob)
+				// pattern is relative to root. event.Name is absolute.
+				// We need match against relPath.
+				relName, err := filepath.Rel(r.Path, event.Name)
+				if err != nil {
+					continue
+				}
+				relName = filepath.ToSlash(relName)
+
+				if pattern != "" && pattern != "*" {
+					matched, err := doublestar.Match(pattern, relName)
+					if err != nil {
+						// Invalid pattern? Log error but maybe don't break loop
+						if r.config.Logger != nil {
+							r.config.Logger.Error("glob match error", "err", err)
+						}
+					}
+					if !matched {
+						continue
+					}
 				}
 
 				// Check Ignore Map (Self-Modification)

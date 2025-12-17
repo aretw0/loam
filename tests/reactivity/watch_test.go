@@ -143,3 +143,60 @@ func TestWatch_ExternalAtomicWrite(t *testing.T) {
 		t.Fatal("Timed out waiting for external atomic write event")
 	}
 }
+
+// TestWatch_PatternMatching verifies that the watcher respects glob patterns.
+func TestWatch_PatternMatching(t *testing.T) {
+	// 1. Setup
+	tmp := t.TempDir()
+	_, err := loam.Init(tmp)
+	require.NoError(t, err)
+	svc, err := loam.OpenTypedService[map[string]any](tmp)
+	require.NoError(t, err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	// 2. Watch ONLY *.md
+	events, err := svc.Watch(ctx, "**/*.md")
+	require.NoError(t, err)
+	time.Sleep(100 * time.Millisecond)
+
+	// 3. Create Ignored File (.txt)
+	// We cheat and save as .txt by manual write because svc.Save might force .md default or be tricky with IDs
+	os.WriteFile(filepath.Join(tmp, "ignored.txt"), []byte("skip me"), 0644)
+
+	// 4. Create Matched File (.md)
+	// We need to write "matched" EXTERNALLY to test the *Pattern* filter specifically, avoiding the "Ignore Self" complexity overlapping.
+	os.WriteFile(filepath.Join(tmp, "matched.md"), []byte("pick me"), 0644)
+
+	matchCount := 0
+	ignoreCount := 0
+	seen := make(map[string]bool)
+
+	timeout := time.After(500 * time.Millisecond)
+	for {
+		select {
+		case event := <-events:
+			t.Logf("Event: %s", event.ID)
+
+			// Simple dedupe for valid events
+			switch event.ID {
+			case "matched.md", "matched":
+				if !seen[event.ID] {
+					matchCount++
+					seen[event.ID] = true
+				}
+			case "ignored.txt", "ignored":
+				ignoreCount++
+			}
+		case <-timeout:
+			if matchCount != 1 {
+				t.Errorf("Expected 1 match event, got %d", matchCount)
+			}
+			if ignoreCount != 0 {
+				t.Errorf("Expected 0 ignore events, got %d", ignoreCount)
+			}
+			return
+		}
+	}
+}
