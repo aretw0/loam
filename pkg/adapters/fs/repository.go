@@ -222,6 +222,39 @@ func (r *Repository) Watch(ctx context.Context, pattern string) (<-chan core.Eve
 		defer watcher.Close()
 		defer close(events)
 
+		// Local debounce map
+		var mu sync.Mutex
+		timers := make(map[string]*time.Timer)
+
+		// Helper to prevent race on map access in AfterFunc (actually we just need to send)
+		// But we want to clean up map? Hard with AfterFunc concurrent.
+		// Use simple leaks for now? No.
+		// Standard pattern: Main loop manages map. Timer sends "Ready" signal?
+		// Simpler: Mutex protected map. AfterFunc deletes itself?
+
+		debounce := func(e core.Event) {
+			mu.Lock()
+			defer mu.Unlock()
+
+			if t, ok := timers[e.ID]; ok {
+				t.Stop()
+			}
+
+			timers[e.ID] = time.AfterFunc(50*time.Millisecond, func() {
+				// Clean up timer from map?
+				// We need Lock again.
+				mu.Lock()
+				delete(timers, e.ID)
+				mu.Unlock()
+
+				// Send event safely
+				select {
+				case events <- e:
+				case <-ctx.Done():
+				}
+			})
+		}
+
 		for {
 			select {
 			case <-ctx.Done():
@@ -301,15 +334,12 @@ func (r *Repository) Watch(ctx context.Context, pattern string) (<-chan core.Eve
 				// Non-blocking send? Or blocking?
 				// Blocking is safer for ordering, but if consumer is slow, we might buffer?
 				// Context check included.
-				select {
-				case events <- core.Event{
+				// DEBOUNCE: Delegate to debounce helper
+				debounce(core.Event{
 					Type:      eType,
 					ID:        id,
 					Timestamp: time.Now().Unix(),
-				}:
-				case <-ctx.Done():
-					return
-				}
+				})
 			case err, ok := <-watcher.Errors:
 				if !ok {
 					return
