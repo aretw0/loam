@@ -196,64 +196,19 @@ func (r *Repository) Watch(ctx context.Context, pattern string) (<-chan core.Eve
 		return nil, fmt.Errorf("failed to create watcher: %w", err)
 	}
 
-	// Channel for events
 	events := make(chan core.Event)
 
-	// Add root path and subdirectories
-	err = filepath.WalkDir(r.Path, func(path string, d os.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if d.IsDir() {
-			// Skip .git
-			if d.Name() == ".git" {
-				return filepath.SkipDir
-			}
-			return watcher.Add(path)
-		}
-		return nil
-	})
-	if err != nil {
+	// 1. Recursive Watch
+	if err := r.recursiveAdd(watcher); err != nil {
 		watcher.Close()
 		return nil, err
 	}
 
+	// 2. Start Event Loop
 	go func() {
-		defer watcher.Close()
+		debouncer := newDebouncer(50 * time.Millisecond)
 		defer close(events)
-
-		// Local debounce map
-		var mu sync.Mutex
-		timers := make(map[string]*time.Timer)
-
-		// Helper to prevent race on map access in AfterFunc (actually we just need to send)
-		// But we want to clean up map? Hard with AfterFunc concurrent.
-		// Use simple leaks for now? No.
-		// Standard pattern: Main loop manages map. Timer sends "Ready" signal?
-		// Simpler: Mutex protected map. AfterFunc deletes itself?
-
-		debounce := func(e core.Event) {
-			mu.Lock()
-			defer mu.Unlock()
-
-			if t, ok := timers[e.ID]; ok {
-				t.Stop()
-			}
-
-			timers[e.ID] = time.AfterFunc(50*time.Millisecond, func() {
-				// Clean up timer from map?
-				// We need Lock again.
-				mu.Lock()
-				delete(timers, e.ID)
-				mu.Unlock()
-
-				// Send event safely
-				select {
-				case events <- e:
-				case <-ctx.Done():
-				}
-			})
-		}
+		defer debouncer.stop() // Ensure timers are stopped logic-wise
 
 		for {
 			select {
@@ -263,83 +218,39 @@ func (r *Repository) Watch(ctx context.Context, pattern string) (<-chan core.Eve
 				if !ok {
 					return
 				}
-				// DEBUG: Log raw event
+
 				if r.config.Logger != nil {
-					// r.config.Logger.Info("raw fsnotify", "op", event.Op, "name", event.Name)
+					r.config.Logger.Debug("event received", "name", event.Name)
 				}
 
-				// Filter temp files and hidden files
-				baseName := filepath.Base(event.Name)
-				if strings.HasPrefix(baseName, "loam-tmp-") || strings.HasPrefix(baseName, ".") {
+				// 3. Filter Events
+				if r.shouldIgnore(event, pattern) {
 					continue
 				}
 
-				// Check Pattern (Glob)
-				// pattern is relative to root. event.Name is absolute.
-				// We need match against relPath.
-				relName, err := filepath.Rel(r.Path, event.Name)
-				if err != nil {
-					continue
-				}
-				relName = filepath.ToSlash(relName)
-
-				if pattern != "" && pattern != "*" {
-					matched, err := doublestar.Match(pattern, relName)
-					if err != nil {
-						// Invalid pattern? Log error but maybe don't break loop
-						if r.config.Logger != nil {
-							r.config.Logger.Error("glob match error", "err", err)
-						}
-					}
-					if !matched {
-						continue
-					}
-				}
-
-				// Check Ignore Map (Self-Modification)
-				if _, ok := r.ignoreMap.Load(event.Name); ok {
-					// Found in ignore map (within window), skip.
-					continue
-				}
-
-				// Map fsnotify.Op to core.EventType
-				var eType core.EventType
-				if event.Has(fsnotify.Create) {
-					eType = core.EventCreate
-				} else if event.Has(fsnotify.Write) {
-					eType = core.EventModify
-				} else if event.Has(fsnotify.Remove) {
-					eType = core.EventDelete
-				} else if event.Has(fsnotify.Rename) {
-					eType = core.EventDelete
-				}
-
+				// 4. Map to Domain Event
+				eType := r.mapEventType(event)
 				if eType == "" {
 					continue
 				}
 
-				// ID resolution
-				relPath, err := filepath.Rel(r.Path, event.Name)
+				id, err := r.resolveID(event.Name)
 				if err != nil {
 					continue
 				}
-				relPath = filepath.ToSlash(relPath)
 
-				id := relPath
-				if filepath.Ext(id) == ".md" {
-					id = strings.TrimSuffix(id, ".md")
-				}
-				// Also handle other extensions if needed, but for now this matches List/Get basics.
-
-				// Non-blocking send? Or blocking?
-				// Blocking is safer for ordering, but if consumer is slow, we might buffer?
-				// Context check included.
-				// DEBOUNCE: Delegate to debounce helper
-				debounce(core.Event{
+				// 5. Debounce & Send
+				debouncer.add(core.Event{
 					Type:      eType,
 					ID:        id,
 					Timestamp: time.Now().Unix(),
+				}, func(e core.Event) {
+					select {
+					case events <- e:
+					case <-ctx.Done():
+					}
 				})
+
 			case err, ok := <-watcher.Errors:
 				if !ok {
 					return
@@ -352,6 +263,153 @@ func (r *Repository) Watch(ctx context.Context, pattern string) (<-chan core.Eve
 	}()
 
 	return events, nil
+}
+
+// recursiveAdd adds the root path and all subdirectories to the watcher.
+func (r *Repository) recursiveAdd(watcher *fsnotify.Watcher) error {
+	return filepath.WalkDir(r.Path, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			if d.Name() == ".git" {
+				return filepath.SkipDir
+			}
+			return watcher.Add(path)
+		}
+		return nil
+	})
+}
+
+// shouldIgnore checks if the event should be filtered out.
+func (r *Repository) shouldIgnore(event fsnotify.Event, pattern string) bool {
+	// 1. Filter temp files and hidden files
+	baseName := filepath.Base(event.Name)
+	if strings.HasPrefix(baseName, "loam-tmp-") || strings.HasPrefix(baseName, ".") {
+		return true
+	}
+
+	// 2. Check Pattern (Glob)
+	if pattern != "" && pattern != "*" {
+		relName, err := filepath.Rel(r.Path, event.Name)
+		if err == nil {
+			relName = filepath.ToSlash(relName)
+			matched, err := doublestar.Match(pattern, relName)
+			if err != nil {
+				if r.config.Logger != nil {
+					r.config.Logger.Error("glob match error", "err", err)
+				}
+			}
+			if !matched {
+				return true
+			}
+		}
+	}
+
+	// 3. Check Ignore Map (Self-Modification)
+	if _, ok := r.ignoreMap.Load(event.Name); ok {
+		return true
+	}
+
+	return false
+}
+
+// mapEventType converts fsnotify.Op to core.EventType.
+func (r *Repository) mapEventType(event fsnotify.Event) core.EventType {
+	if event.Has(fsnotify.Create) {
+		return core.EventCreate
+	} else if event.Has(fsnotify.Write) {
+		return core.EventModify
+	} else if event.Has(fsnotify.Remove) {
+		return core.EventDelete
+	} else if event.Has(fsnotify.Rename) {
+		return core.EventDelete
+	}
+	return ""
+}
+
+// resolveID converts absolute path to document ID.
+func (r *Repository) resolveID(absPath string) (string, error) {
+	relPath, err := filepath.Rel(r.Path, absPath)
+	if err != nil {
+		return "", err
+	}
+	relPath = filepath.ToSlash(relPath)
+
+	id := relPath
+	if filepath.Ext(id) == ".md" {
+		id = strings.TrimSuffix(id, ".md")
+	}
+	return id, nil
+}
+
+// debouncer helper struct
+type debouncer struct {
+	mu      sync.Mutex
+	timers  map[string]*time.Timer
+	pending map[string]core.Event
+	delay   time.Duration
+	closed  bool
+}
+
+// newDebouncer creates a new debouncer.
+func newDebouncer(delay time.Duration) *debouncer {
+	return &debouncer{
+		timers:  make(map[string]*time.Timer),
+		pending: make(map[string]core.Event),
+		delay:   delay,
+	}
+}
+
+func (d *debouncer) stop() {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.closed = true
+	for _, t := range d.timers {
+		t.Stop()
+	}
+}
+
+func (d *debouncer) add(newEvent core.Event, send func(core.Event)) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	if d.closed {
+		return
+	}
+
+	if t, ok := d.timers[newEvent.ID]; ok {
+		t.Stop()
+		// Merge logic
+		oldEvent := d.pending[newEvent.ID]
+		if oldEvent.Type == core.EventCreate && newEvent.Type == core.EventModify {
+			newEvent.Type = core.EventCreate
+		}
+	}
+
+	d.pending[newEvent.ID] = newEvent
+
+	d.timers[newEvent.ID] = time.AfterFunc(d.delay, func() {
+		d.mu.Lock()
+		if d.closed {
+			d.mu.Unlock()
+			return
+		}
+		eventToSend, ok := d.pending[newEvent.ID]
+		if !ok {
+			d.mu.Unlock()
+			return
+		}
+		delete(d.timers, newEvent.ID)
+		delete(d.pending, newEvent.ID)
+		d.mu.Unlock()
+
+		// Safe send
+		defer func() {
+			_ = recover()
+		}()
+		send(eventToSend)
+	})
 }
 
 // Save persists a document to the filesystem and commits it to Git.
