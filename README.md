@@ -223,6 +223,13 @@ fmt.Println(user.Data.Name) // Type-safe!
 - [Arquitetura Técnica](docs/TECHNICAL.md)
 - [Roadmap & Planning](docs/PLANNING.md)
 
+## Known Issues <a name="known-issues"></a>
+
+### Linux/inotify
+
+- Devido a limitações do `inotify`, novos diretórios criados *após* o início do watcher **não** são monitorados automaticamente (é necessário reiniciar o processo ou recriar o watcher). Em Windows e macOS, isso geralmente funciona nativamente.
+- Repositórios muito grandes (milhares de diretórios) podem exceder o limite de *file descriptors*. Aumente o limite via `sysctl fs.inotify.max_user_watches` se necessário.
+
 ## Status
 
 🚧 **Alpha**.

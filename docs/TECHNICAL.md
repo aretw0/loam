@@ -187,3 +187,19 @@ Testam o fluxo completo (Service + FS Adapter + Git) em diretórios temporários
 ### 3. Benchmarks (`examples/benchmarks`)
 
 Medem a performance do Adapter e eficácia do Cache.
+
+## Watcher Engine & Event Loop
+
+O mecanismo de reatividade (`Service.Watch`) permite que aplicações reajam a mudanças no disco em tempo real. Ele opera acoplado ao `fsnotify` mas implementa camadas de proteção cruciais.
+
+### Arquitetura do Watcher
+
+1. **Recursividade Estática**: Ao iniciar, o watcher percorre a árvore de diretórios e adiciona monitores.
+    - *Nota*: Em Linux (`inotify`), novos diretórios criados *após* o início **não** são monitorados automaticamente.
+2. **Event Debouncing**: Eventos rápidos são agrupados em janelas de 50ms.
+    - `CREATE` + `MODIFY` (comum em editores) são fundidos em um único `CREATE`.
+3. **Loop Prevention (Atomic Writes)**:
+    - O watcher ignora eventos gerados pelo próprio processo (`Repository.Save`) usando um `ignoreMap` temporário.
+    - Arquivos temporários internos (prefixo `loam-tmp-`) são ignorados.
+4. **Limites do SO**:
+    - Em repositórios muito grandes, o número de *file descriptors* (inotify watches) pode ser excedido. O Loam não faz sharding de watchers.

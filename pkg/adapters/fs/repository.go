@@ -190,6 +190,13 @@ func (r *Repository) Sync(ctx context.Context) error {
 }
 
 // Watch implements core.Watchable.
+//
+// Caveats:
+//  1. Recursive Monitoring on Linux (inotify): New directories created AFTER the watch starts
+//     might NOT be monitored automatically depending on the fsnotify implementation and OS limits.
+//     Loam currently does not implement dynamic hierarchical watching for inotify.
+//  2. OS Limits: Large repositories may hit file descriptor limits (inotify limits).
+//  3. Debouncing: Events are debounced by 50ms. Rapid atomic writes (Create+Modify) are merged.
 func (r *Repository) Watch(ctx context.Context, pattern string) (<-chan core.Event, error) {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
