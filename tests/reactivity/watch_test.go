@@ -2,6 +2,7 @@ package reactivity_test
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -171,7 +172,6 @@ func TestWatch_PatternMatching(t *testing.T) {
 
 	matchCount := 0
 	ignoreCount := 0
-	seen := make(map[string]bool)
 
 	timeout := time.After(500 * time.Millisecond)
 	for {
@@ -182,10 +182,7 @@ func TestWatch_PatternMatching(t *testing.T) {
 			// Simple dedupe for valid events
 			switch event.ID {
 			case "matched.md", "matched":
-				if !seen[event.ID] {
-					matchCount++
-					seen[event.ID] = true
-				}
+				matchCount++
 			case "ignored.txt", "ignored":
 				ignoreCount++
 			}
@@ -195,6 +192,59 @@ func TestWatch_PatternMatching(t *testing.T) {
 			}
 			if ignoreCount != 0 {
 				t.Errorf("Expected 0 ignore events, got %d", ignoreCount)
+			}
+			return
+		}
+	}
+}
+
+// TestWatch_Debounce verifies that rapid events are grouped.
+func TestWatch_Debounce(t *testing.T) {
+	// 1. Setup
+	tmp := t.TempDir()
+	_, err := loam.Init(tmp)
+	require.NoError(t, err)
+	svc, err := loam.OpenTypedService[map[string]any](tmp)
+	require.NoError(t, err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	events, err := svc.Watch(ctx, "**/*")
+	require.NoError(t, err)
+	time.Sleep(100 * time.Millisecond)
+
+	// 2. Rapid Writes (External)
+	target := filepath.Join(tmp, "rapid.md")
+
+	// Simulate 3 rapid writes within 50ms
+	for i := 0; i < 3; i++ {
+		os.WriteFile(target, []byte(fmt.Sprintf("content %d", i)), 0644)
+		// No sleep or very short sleep
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	// 3. Assert: Should receive exactly 1 event (or at most 2 if timing is loose, but definitely not 3-6)
+	// Ideally 1 if debounce > 50ms.
+	count := 0
+	timeout := time.After(500 * time.Millisecond)
+
+	for {
+		select {
+		case event := <-events:
+			if event.ID == "rapid" {
+				count++
+				t.Logf("Received rapid event: %v", event)
+			}
+		case <-timeout:
+			// If we implemented debounce correctly, we should get 1.
+			// Without debounce, fsnotify often sends 2 events per write (Create+Write or Write+Write),
+			// so 3 writes could generate 6 events.
+			if count > 1 {
+				t.Fatalf("Expected 1 debounced event, got %d", count)
+			}
+			if count == 0 {
+				t.Fatal("Expected 1 event, got 0")
 			}
 			return
 		}
