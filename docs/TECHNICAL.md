@@ -174,6 +174,16 @@ A fachada pública que simplifica o uso da biblioteca.
 - **Isolamento**: Em modo de desenvolvimento (`go run`, `go test`), o Loam redireciona automaticamente operações para um diretório temporário (`%TEMP%/loam-dev/`) para evitar sujar o repositório do usuário.
 - **ForceTemp**: Configurável via `loam.Config`.
 
+### 4. Interfaces de Capacidade (Capability Interfaces)
+
+**Decisão:** Utilizar interfaces granulares (`Watchable`, `Syncable`, `Reconcilable`) em vez de adicionar métodos ao contrato base `Repository`.
+
+**Racional:**
+
+- **Estabilidade:** Evita breaking changes em implementações existentes.
+- **Flexibilidade:** Adapters podem implementar apenas o que suportam (Interface Segregation Principle).
+- **Runtime Check:** O `Service` verifica capacidades em tempo de execução via *type assertion*.
+
 ## Estratégia de Testes
 
 ### 1. Unitários (`pkg/core`)
