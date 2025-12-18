@@ -226,6 +226,15 @@ fmt.Println(user.Data.Name) // Type-safe!
 - [Arquitetura Técnica](docs/TECHNICAL.md)
 - [Roadmap & Planning](docs/PLANNING.md)
 
+### Tuning de Performance
+
+Se sua aplicação lida com **rajadas massivas de eventos** (ex: `git checkout` em repositórios enormes) e você nota que o watcher "congela", pode ser necessário aumentar o buffer de eventos para evitar bloqueios:
+
+```go
+// Aumenta o buffer para 1000 eventos (Padrão: 100)
+srv, _ := loam.New("path/to/vault", loam.WithEventBuffer(1000))
+```
+
 ## Known Issues <a name="known-issues"></a>
 
 ### Linux/inotify

@@ -285,8 +285,11 @@ flowchart TD
     Resume -->|Trigger| ReconcileLogic[Startup Reconciliation]
     ReconcileLogic -->|Missed Events| Debouncer
 
-    Timer -->|Timeout| Dispatch[Emit Core Event]
+    Timer -->|Timeout| AdapterEmit[Emit Adapter Event]
     Merge --> Timer
+
+    AdapterEmit --> Broker{Service Broker}
+    Broker -->|Buffered Channel| User[User Application]
 ```
 
 ### Arquitetura do Watcher
