@@ -234,3 +234,70 @@ func TestWatch_Debounce(t *testing.T) {
 		}
 	}
 }
+
+// TestWatch_GitLock ensures that events are paused/ignored when git is locked.
+func TestWatch_GitLock(t *testing.T) {
+	// 1. Setup
+	tmp, svc, ctx, cancel := setupWatchTest(t)
+	defer cancel()
+
+	// Ensure .git directory exists for the test
+	gitDir := filepath.Join(tmp, ".git")
+	err := os.MkdirAll(gitDir, 0755)
+	require.NoError(t, err)
+
+	events, err := svc.Watch(ctx, "**/*")
+	require.NoError(t, err)
+	time.Sleep(200 * time.Millisecond) // Wait for watcher setup
+
+	// 2. Lock Git (Pause)
+	lockFile := filepath.Join(gitDir, "index.lock")
+	err = os.WriteFile(lockFile, []byte("LOCKED"), 0644)
+	require.NoError(t, err)
+	time.Sleep(100 * time.Millisecond) // Wait for logic to detect lock
+
+	// 3. Modifying file WHILE locked
+	hiddenFile := filepath.Join(tmp, "git-hidden.md")
+	resultChan := make(chan string, 1)
+
+	go func() {
+		// Write file
+		os.WriteFile(hiddenFile, []byte("I am invisible"), 0644)
+		// Wait to see if event comes through
+		select {
+		case e := <-events:
+			if e.ID == "git-hidden" {
+				resultChan <- "FAILURE: Event received during lock"
+			} else {
+				// Might get lock event itself if not filtered perfectly, but we care about content events
+				resultChan <- fmt.Sprintf("IGNORED: %s", e.ID)
+			}
+		case <-time.After(500 * time.Millisecond):
+			resultChan <- "SUCCESS: No event"
+		}
+	}()
+
+	res := <-resultChan
+	if res != "SUCCESS: No event" && res != "IGNORED: index.lock" {
+		// Note: depending on impl, user might see index.lock event or not.
+		// Strict test: We should NOT see "git-hidden".
+		if res == "FAILURE: Event received during lock" {
+			t.Fatal("Watcher did not pause during git lock")
+		}
+	}
+
+	// 4. Unlock Git (Resume -> Reconcile)
+	err = os.Remove(lockFile)
+	require.NoError(t, err)
+
+	// 5. Assert: We should receive the event NOW (via Reconcile)
+	select {
+	case event := <-events:
+		if event.ID == "git-hidden" {
+			// Success
+			return
+		}
+	case <-time.After(1 * time.Second):
+		t.Fatal("Timed out waiting for reconciled event after unlock")
+	}
+}
