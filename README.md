@@ -110,6 +110,9 @@ loam write --id docs/readme.md --content "Texto" --set title="Novo Readme" --set
 echo '{"title":"Logs", "content":"..."}' | loam write --id logs/1.json --raw
 ```
 
+> [!NOTE]
+> No modo `--raw`, se o ID não possuir extensão (ex: `--id nota`), a CLI assumirá `.md` por padrão para tentar parsear o conteúdo. Se estiver enviando JSON ou CSV sem extensão no ID, o parse falhará.
+
 ### Sincronizar (Sync)
 
 Sincroniza o cofre com o remoto configurado (se o adapter suportar).
