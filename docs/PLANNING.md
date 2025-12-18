@@ -29,7 +29,7 @@
   - [x] **Loop Prevention**: Implementar lógica para ignorar eventos gerados pelo próprio processo (evitar loop Save -> Event -> Logic -> Save).
   - [x] **Event Debouncing & Normalization**: Agrupar eventos rápidos e tratar "Atomic Saves" (Rename/Move patterns de editores) para evitar falsos positivos.
   - [x] **Caveats Documentation**: Documentar limitações de OS (inotify recursion, file limits).
-- [ ] **Startup Reconciliation**
+- [x] **Startup Reconciliation**
   - [x] **Design**: Create implementation plan with "Visited Map" strategy.
   - [x] **Core**: Update `Repository` interface and `Service` with `Reconcile`.
   - [x] **Impl**: Implement `Reconcile` in `fs` adapter (Cold Start/Offline diff).
