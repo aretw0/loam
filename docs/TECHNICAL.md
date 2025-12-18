@@ -247,21 +247,31 @@ Medem a performance do Adapter e eficácia do Cache.
 
 ## Watcher Engine & Event Loop
 
-O mecanismo de reatividade (`Service.Watch`) permite que aplicações reajam a mudanças no disco em tempo real. Ele opera acoplado ao `fsnotify` mas implementa camadas de proteção cruciais.
+O mecanismo de reatividade (`Service.Watch`) permite que aplicações reajam a mudanças no disco em tempo real. Ele opera acoplado ao `fsnotify` mas implementa camadas de proteção cruciais, incluindo **Git Awareness**.
 
 ```mermaid
 flowchart TD
     Start[Service.Watch] --> Setup[Recursive Setup]
     Setup -->|Add Watchers| OS[OS Watcher - fsnotify]
     
-    OS -->|Raw Event| Filter{Ignore?}
+    OS -->|Raw Event| Dispatcher{Event Dispatcher}
+
+    subgraph GitAwareness [Git Lock Monitor]
+        Dispatcher -- "index.lock" --> LockState{Git Status}
+        LockState -- "Created (Lock)" --> Pause[Pause Processing]
+        LockState -- "Removed (Unlock)" --> Resume[Resume & Reconcile]
+    end
+
+    Dispatcher -- "Other Files" --> Gate{Is Locked?}
+    Gate -- Yes --> Ignore[Ignore - Prevent Storm]
+    Gate -- No --> Filter{Ignore Pattern?}
     
     Filter -- Yes --> Drop[Drop]
     Filter -- No --> Mapper[Map to Domain Event]
     
     subgraph filtering [Pipeline de Filtros]
         Filter
-        Note1[Ignora: .git, .loam, loam-tmp-*, Self-Writes]
+        Note1[Ignora: .loam, loam-tmp-*, Self-Writes]
     end
 
     Mapper --> Debouncer{Debouncer}
@@ -272,6 +282,9 @@ flowchart TD
         Note2[Prioridade: CREATE > MODIFY]
     end
     
+    Resume -->|Trigger| ReconcileLogic[Startup Reconciliation]
+    ReconcileLogic -->|Missed Events| Debouncer
+
     Timer -->|Timeout| Dispatch[Emit Core Event]
     Merge --> Timer
 ```
@@ -279,6 +292,7 @@ flowchart TD
 ### Arquitetura do Watcher
 
 1. **Recursividade Estática**: Ao iniciar, o watcher percorre a árvore de diretórios e adiciona monitores.
-    - *Nota*: Em Linux (`inotify`), novos diretórios criados *após* o início **não** são monitorados automaticamente.
-2. **Event Debouncing**: Eventos rápidos são agrupados em janelas de 50ms.
-    - `CREATE` + `MODIFY` (comum em editores) são fundidos em um único `CREATE`.
+2. **Git Awareness**: O sistema monitora explicitamente o arquivo `.git/index.lock`.
+    - **Lock Detected**: O processamento de eventos é pausado para evitar "Event Storms" durante operações em lote do Git (`checkout`, `pull`, `rebase`).
+    - **Unlock Detected**: O sistema dispara uma **Reconciliação** imediata para detectar mudanças que ocorreram durante o bloqueio e emite os eventos acumulados.
+3. **Event Debouncing**: Eventos rápidos são agrupados em janelas de 50ms.
