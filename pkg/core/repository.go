@@ -41,6 +41,12 @@ type Watchable interface {
 	Watch(ctx context.Context, pattern string) (<-chan Event, error)
 }
 
+// Reconcilable defines an interface for repositories that can reconcile their internal state (cache) with valid storage.
+type Reconcilable interface {
+	// Reconcile compares the internal index with the actual storage and returns detected changes (diff).
+	Reconcile(ctx context.Context) ([]Event, error)
+}
+
 // Transaction represents a unit of work (batch of operations).
 type Transaction interface {
 	// Save stages a document for saving.

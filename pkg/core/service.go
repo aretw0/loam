@@ -98,3 +98,13 @@ func (s *Service) Watch(ctx context.Context, pattern string) (<-chan Event, erro
 	}
 	return w.Watch(ctx, pattern)
 }
+
+// Reconcile synchronizes internal state (cache) with valid storage.
+// Returns a list of events representing detected changes (offline edits).
+// If the repository does not support reconciliation, returns nil, nil.
+func (s *Service) Reconcile(ctx context.Context) ([]Event, error) {
+	if r, ok := s.repo.(Reconcilable); ok {
+		return r.Reconcile(ctx)
+	}
+	return nil, nil
+}
