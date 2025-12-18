@@ -97,7 +97,7 @@ Version 2 (Offline Edit)`), 0644)
 // TestReconcile_OfflineDelete verifies detection of deleted files.
 func TestReconcile_OfflineDelete(t *testing.T) {
 	dir := t.TempDir()
-	service, err := loam.New(dir, loam.WithAdapter("fs"), loam.WithAutoInit(true))
+	service, err := loam.New(dir)
 	require.NoError(t, err)
 	ctx := context.Background()
 
@@ -121,4 +121,55 @@ func TestReconcile_OfflineDelete(t *testing.T) {
 	require.Len(t, events, 1)
 	assert.Equal(t, core.EventDelete, events[0].Type)
 	assert.Equal(t, "todelete", events[0].ID)
+}
+
+// TestReconcile_OfflineDelete_Extensions verifies detection of deleted files
+// with extensions other than .md (e.g. .json, .csv).
+// This ensures the ID is correctly inferred (or retrieved) without the extension.
+func TestReconcile_OfflineDelete_Extensions(t *testing.T) {
+	dir := t.TempDir()
+	service, err := loam.New(dir)
+	require.NoError(t, err)
+	ctx := context.Background()
+
+	// 1. Setup: Create JSON file manually "Offline"
+	// This simulates a user creating a file that Loam should detect.
+	err = os.WriteFile(filepath.Join(dir, "config.json"), []byte(`{}`), 0644)
+	require.NoError(t, err)
+
+	// Run Reconcile to cache it
+	events, err := service.Reconcile(ctx)
+	require.NoError(t, err)
+	require.Len(t, events, 1)
+	require.Equal(t, core.EventCreate, events[0].Type)
+	createdID := events[0].ID
+	t.Logf("Created ID for config.json: %s", createdID)
+
+	// 2. Delete "Offline"
+	// On Windows, sometimes file locks or FS lag prevent immediate deletion.
+	targetPath := filepath.Join(dir, "config.json")
+
+	// Attempt removal
+	removeErr := os.Remove(targetPath)
+	if removeErr != nil && !os.IsNotExist(removeErr) {
+		t.Logf("Remove failed: %v", removeErr)
+		// Try strict check: if it still exists and we couldn't remove, fail.
+		if _, statErr := os.Stat(targetPath); statErr == nil {
+			t.Fatalf("Failed to remove file %s: %v", targetPath, removeErr)
+		}
+	}
+	// If IsNotExist, we are good.
+
+	// 3. Run Reconcile
+	events, err = service.Reconcile(ctx)
+	require.NoError(t, err)
+
+	// 4. Assertions
+	require.Len(t, events, 1)
+	assert.Equal(t, core.EventDelete, events[0].Type)
+
+	// The Bug: Reconcile Delete logic hardcodes .md trim.
+	// If createdID was "config" (smart), Delete ID will be "config.json". Mismatch.
+	// We expect the Delete event ID to match the Create event ID.
+	assert.Equal(t, createdID, events[0].ID, "Delete Event ID should match Create Event ID")
 }

@@ -211,11 +211,17 @@ func (r *Repository) Watch(ctx context.Context, pattern string) (<-chan core.Eve
 		return nil, err
 	}
 
+	// Monitor .git for index.lock (concurrency control)
+	// We ignore errors here because .git might not exist if it's not a git repo
+	_ = watcher.Add(filepath.Join(r.Path, ".git"))
+
 	// 2. Start Event Loop
 	go func() {
 		debouncer := newDebouncer(50 * time.Millisecond)
 		defer close(events)
 		defer debouncer.stop()
+
+		var gitLocked bool
 
 		for {
 			select {
@@ -224,6 +230,52 @@ func (r *Repository) Watch(ctx context.Context, pattern string) (<-chan core.Eve
 			case event, ok := <-watcher.Events:
 				if !ok {
 					return
+				}
+
+				// Global Git Lock Detection
+				// We detect .git/index.lock to pause processing during batch git operations
+				if filepath.Base(event.Name) == "index.lock" {
+					// Ensure it is indeed the git lock
+					dir := filepath.Dir(event.Name)
+					if filepath.Base(dir) == ".git" {
+						if event.Has(fsnotify.Create) {
+							gitLocked = true
+							if r.config.Logger != nil {
+								r.config.Logger.Debug("git operations detected, pausing watcher")
+							}
+							continue
+						} else if event.Has(fsnotify.Remove) || event.Has(fsnotify.Rename) {
+							gitLocked = false
+							if r.config.Logger != nil {
+								r.config.Logger.Debug("git operations finished, reconciling")
+							}
+							// Trigger Reconcile to catch up
+							go func() {
+								reconciledEvents, err := r.Reconcile(ctx)
+								if err != nil {
+									if r.config.Logger != nil {
+										r.config.Logger.Error("reconcile failed", "error", err)
+									}
+									return
+								}
+								for _, e := range reconciledEvents {
+									debouncer.add(e, func(finalE core.Event) {
+										select {
+										case events <- finalE:
+										case <-ctx.Done():
+										}
+									})
+								}
+							}()
+							continue
+						}
+					}
+				}
+
+				// If Git is locked, we ignore all other events to prevent storms.
+				// We rely on the Reconcile call (on unlock) to catch up.
+				if gitLocked {
+					continue
 				}
 
 				if r.config.Logger != nil {
@@ -404,9 +456,20 @@ func (r *Repository) Reconcile(ctx context.Context) ([]core.Event, error) {
 	for relPath, foundOnDisk := range visited {
 		if !foundOnDisk {
 			// It was in cache, but not found on walk -> DELETED.
-			// We infer the ID from the path as we can't easily access the old cache entry here.
+			// We retrieve the ID from the cache directly to support all file types (json, csv)
+			// instead of blindly trimming .md.
 			id := relPath
-			id = strings.TrimSuffix(id, ".md")
+			// The explicit cast/access to private fields works because we are in package fs.
+			if r.cache.index != nil {
+				if entry, ok := r.cache.index.Entries[relPath]; ok {
+					id = entry.ID
+				}
+			}
+			// Fallback (should be unreachable if cache is consistent)
+			if id == relPath {
+				ext := filepath.Ext(id)
+				id = strings.TrimSuffix(id, ext)
+			}
 
 			events = append(events, core.Event{
 				Type:      core.EventDelete,
