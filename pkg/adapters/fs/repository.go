@@ -550,8 +550,9 @@ func (r *Repository) resolveID(absPath string) (string, error) {
 	relPath = filepath.ToSlash(relPath)
 
 	id := relPath
-	if filepath.Ext(id) == ".md" {
-		id = strings.TrimSuffix(id, ".md")
+	ext := filepath.Ext(id)
+	if ext != "" {
+		id = strings.TrimSuffix(id, ext)
 	}
 	return id, nil
 }
