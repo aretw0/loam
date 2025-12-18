@@ -30,11 +30,11 @@
   - [x] **Event Debouncing & Normalization**: Agrupar eventos rápidos e tratar "Atomic Saves" (Rename/Move patterns de editores) para evitar falsos positivos.
   - [x] **Caveats Documentation**: Documentar limitações de OS (inotify recursion, file limits).
 - [ ] **Startup Reconciliation**
-  - [ ] **Design**: Create implementation plan with "Visited Map" strategy. <!-- id: 17 -->
-  - [ ] **Core**: Update `Repository` interface and `Service` with `Reconcile`. <!-- id: 18 -->
-  - [ ] **Impl**: Implement `Reconcile` in `fs` adapter (Cold Start/Offline diff). <!-- id: 19 -->
-  - [ ] **Test**: Verify Scenarios (Cold Start, Modified Offline, Deleted Offline). <!-- id: 20 -->
-
+  - [x] **Design**: Create implementation plan with "Visited Map" strategy.
+  - [x] **Core**: Update `Repository` interface and `Service` with `Reconcile`.
+  - [x] **Impl**: Implement `Reconcile` in `fs` adapter (Cold Start/Offline diff).
+  - [x] **Test**: Verify Scenarios (Cold Start, Modified Offline, Deleted Offline).
+  - [x] **Cache Evolution**: Migrar de schema fixo (Title/Tags) para esquemeless (Generic Metadata) para suportar TypedRepositories sem hidratação N+1.
 - [ ] **Concurrency & Hardening**:
   - [ ] **Git Awareness**: Detectar operações em lote (ex: `git checkout`) para evitar "Event Storms", pausando o watcher ou invalidando o cache em massa.
   - [ ] **Broker de Eventos**: Garantir que callbacks do Watcher não bloqueiem a thread principal de IO.
@@ -75,7 +75,7 @@ Objetivo: Permitir que ferramentas externas (não-Go) interajam com o Loam via r
 
 ## Futuro / Blue Sky
 
-- **Multi-Document Support**: Aumentar suporte a Coleções JSON/YAML (hoje é apenas CSV).
+- **Multi-Document Support**: Aumentar suporte a Coleções JSON/YAML e **implementar indexação de sub-documentos no cache** para resolver gargalos de performance no `List`.
 - **SDK**: Gerar clients (Polyglot) para integrar Loam com outras linguagens.
 - **Definir imagem mínima**: Containerização eficiente e segura.
 - **Multi-Tenant**: Suporte a múltiplos vaults simultâneos no servidor.

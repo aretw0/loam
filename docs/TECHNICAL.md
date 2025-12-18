@@ -168,6 +168,7 @@ A fachada pública que simplifica o uso da biblioteca.
 - **Solução:** Index Persistente (`.loam/index.json`) mantido pelo Adapter FS. O diretório (`.loam`) é configurável via `WithSystemDir`.
 - **Invalidação:** Baseada em timestamp (`mtime`).
 - **Performance:** Reduz tempo de listagem de segundos para milissegundos (ex: 6s -> 13ms para 1k documentos).
+- **Caveat (Coleções):** Arquivos compostos (ex: CSV/JSON array) *não* possuem suas sub-entradas indexadas no cache. Eles são parseados sob demanda no `List`, o que pode impactar a performance se houverem grandes coleções.
 
 ### 3. Segurança (Dev Safety)
 
@@ -183,6 +184,52 @@ A fachada pública que simplifica o uso da biblioteca.
 - **Estabilidade:** Evita breaking changes em implementações existentes.
 - **Flexibilidade:** Adapters podem implementar apenas o que suportam (Interface Segregation Principle).
 - **Runtime Check:** O `Service` verifica capacidades em tempo de execução via *type assertion*.
+
+### 5. Startup Reconciliation
+
+**Problema:** Quando a aplicação está parada (offline), arquivos podem ser modificados ou deletados externamente. Ao iniciar, o estado do Cache (`index.json`) está desatualizado (stale).
+
+**Solução:** Um mecanismo de reconciliação ("Cold Start Repair") que executa antes do Watcher.
+
+**Estratégia "Visited Map":**
+
+1. Carrega o cache anterior e marca todas as entradas como `Visited = False`.
+2. Percorre o disco atual. Se encontrar um arquivo:
+    - Se não estava no cache → **CREATE**.
+    - Se estava no cache mas `mtime` mudou → **MODIFY**.
+    - Marca `Visited = True`.
+3. Após percorrer tudo, itera sobre o mapa `Visited`.
+    - Qualquer entrada que permaneceu `False` significa que existia no cache mas não foi encontrada no disco → **DELETE**.
+
+```mermaid
+flowchart TD
+    Start[Service.Start / List] --> Load{Load Cache}
+    Load -- Success --> Visited[Init Visited Map]
+    Load -- Fail --> Empty[Empty Cache] --> Visited
+    
+    Visited --> Walk[Walk Filesystem]
+    
+    subgraph Walking
+        Walk --> Found{File Exists?}
+        Found -- Yes --> CheckCache{In Cache?}
+        
+        CheckCache -- No --> New[Mark Event: CREATE]
+        CheckCache -- Yes (Diff Mtime) --> Mod[Mark Event: MODIFY]
+        CheckCache -- Yes (Same Mtime) --> Ignore[No-op]
+        
+        New --> UpdateCache
+        Mod --> UpdateCache
+        Ignore --> MarkVisited[Mark Visited=True]
+    end
+    
+    Walk -- Done --> DetectDeletes[Check Visited Map]
+    
+    DetectDeletes --> NotVisited{Visited == False?}
+    NotVisited -- Yes --> Del[Mark Event: DELETE] --> RemoveCache[Remove from Cache]
+    
+    UpdateCache --> Save[Save Index]
+    RemoveCache --> Save
+```
 
 ## Estratégia de Testes
 
@@ -235,8 +282,3 @@ flowchart TD
     - *Nota*: Em Linux (`inotify`), novos diretórios criados *após* o início **não** são monitorados automaticamente.
 2. **Event Debouncing**: Eventos rápidos são agrupados em janelas de 50ms.
     - `CREATE` + `MODIFY` (comum em editores) são fundidos em um único `CREATE`.
-3. **Loop Prevention (Atomic Writes)**:
-    - O watcher ignora eventos gerados pelo próprio processo (`Repository.Save`) usando um `ignoreMap` temporário.
-    - Arquivos temporários internos (prefixo `loam-tmp-`) são ignorados.
-4. **Limites do SO**:
-    - Em repositórios muito grandes, o número de *file descriptors* (inotify watches) pode ser excedido. O Loam não faz sharding de watchers.
