@@ -20,7 +20,7 @@
   - [x] **Recipe Refinement**: Garantir que as receitas gerem Markdown válido com Frontmatter (YAML) a partir do CSV.
   - [x] **Safety Polish**: Implementar `git.Lock()` na criação do `.gitignore` e checagem de existência do repo em `Save`.
 
-## Fase 0.9.0: Reactivity & Hardening (Current)
+## Fase 0.9.0: Reactivity & Hardening (Completed)
 
 **Objetivo:** Transformar o Loam de um "Storage Passivo" para um "Motor Reativo", permitindo que aplicações reajam a mudanças no disco em tempo real, enquanto solidifica a estabilidade sob carga.
 
@@ -35,13 +35,13 @@
   - [x] **Impl**: Implement `Reconcile` in `fs` adapter (Cold Start/Offline diff).
   - [x] **Test**: Verify Scenarios (Cold Start, Modified Offline, Deleted Offline).
   - [x] **Cache Evolution**: Migrar de schema fixo (Title/Tags) para esquemeless (Generic Metadata) para suportar TypedRepositories sem hidratação N+1.
-- [ ] **Concurrency & Hardening**:
+- [x] **Concurrency & Hardening**:
   - [x] **Git Awareness**: Detectar operações em lote (ex: `git checkout`) para evitar "Event Storms", pausando o watcher ou invalidando o cache em massa.
-  - [ ] **Broker de Eventos**: Garantir que callbacks do Watcher não bloqueiem a thread principal de IO.
-  - [ ] **Stress Testing**: Criar testes que simulam concorrência agressiva (Edição Externa vs Escrita Interna) para validar File Locking.
-- [ ] **Scalability & Documentation**:
-  - [ ] Benchmark de Listagem/Leitura com 10k+ arquivos pequenos.
-  - [ ] **OS Limits Caveat**: Documentar limitações de `inotify`/`kqueue` em grandes repositórios e falhas silenciosas.
+  - [x] **Broker de Eventos**: Garantir que callbacks do Watcher não bloqueiem a thread principal de IO.
+  - [x] **Stress Testing**: Criar testes que simulam concorrência agressiva (Edição Externa vs Escrita Interna) para validar File Locking.
+- [x] **Scalability & Documentation**:
+  - [x] Benchmark de Listagem/Leitura com 10k+ arquivos pequenos.
+  - [x] **OS Limits Caveat**: Documentar limitações de `inotify`/`kqueue` em grandes repositórios e falhas silenciosas.
 
 ## RFC 0.X.X: Library-Level Sync Strategies (Backlog)
 
