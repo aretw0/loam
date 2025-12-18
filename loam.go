@@ -67,6 +67,11 @@ func WithSystemDir(name string) Option {
 	return platform.WithSystemDir(name)
 }
 
+// WithEventBuffer allows specifying the size of the event broker buffer.
+func WithEventBuffer(size int) Option {
+	return platform.WithEventBuffer(size)
+}
+
 // --- Factory ---
 
 // New creates a new Loam Service.

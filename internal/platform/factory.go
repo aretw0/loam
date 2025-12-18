@@ -21,7 +21,12 @@ func New(uri string, opts ...Option) (*core.Service, error) {
 	}
 
 	// Initialize Domain Service
-	service := core.NewService(repo)
+	var coreOpts []core.Option
+	if val, ok := o.config["event_buffer"].(int); ok {
+		coreOpts = append(coreOpts, core.WithEventBuffer(val))
+	}
+
+	service := core.NewService(repo, coreOpts...)
 
 	return service, nil
 }

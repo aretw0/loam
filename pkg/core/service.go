@@ -5,14 +5,31 @@ import (
 	"errors" // Added errors import
 )
 
+// Option defines a functional option for configuring the Service.
+type Option func(*Service)
+
+// WithEventBuffer sets the buffer size for the Watch event broker.
+func WithEventBuffer(size int) Option {
+	return func(s *Service) {
+		s.eventBufferSize = size
+	}
+}
+
 // Service handles the business logic for documents.
 type Service struct {
-	repo Repository
+	repo            Repository
+	eventBufferSize int
 }
 
 // NewService creates a new Service.
-func NewService(repo Repository) *Service {
-	return &Service{repo: repo}
+func NewService(repo Repository, opts ...Option) *Service {
+	s := &Service{
+		repo: repo,
+	}
+	for _, opt := range opts {
+		opt(s)
+	}
+	return s
 }
 
 // SaveDocument saves a document with business validation.
@@ -96,7 +113,41 @@ func (s *Service) Watch(ctx context.Context, pattern string) (<-chan Event, erro
 	if !ok {
 		return nil, errors.New("repository does not support watching")
 	}
-	return w.Watch(ctx, pattern)
+	upstream, err := w.Watch(ctx, pattern)
+	if err != nil {
+		return nil, err
+	}
+
+	// Broker Logic: Decouple upstream (Event Source) from downstream (user)
+	// Buffer size 100 allows for bursts of activity without blocking the watcher.
+	bufferSize := 100
+	if s.eventBufferSize > 0 {
+		bufferSize = s.eventBufferSize
+	}
+	out := make(chan Event, bufferSize)
+
+	go func() {
+		defer close(out)
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case evt, ok := <-upstream:
+				if !ok {
+					return
+				}
+				// Attempt to send to buffered channel
+				select {
+				case out <- evt:
+					// Sent
+				case <-ctx.Done():
+					return
+				}
+			}
+		}
+	}()
+
+	return out, nil
 }
 
 // Reconcile synchronizes internal state (cache) with valid storage.

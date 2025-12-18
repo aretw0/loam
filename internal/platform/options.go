@@ -88,3 +88,11 @@ func WithSystemDir(name string) Option {
 		o.config["system_dir"] = name
 	}
 }
+
+// WithEventBuffer allows specifying the size of the event broker buffer.
+// Zero means default (100).
+func WithEventBuffer(size int) Option {
+	return func(o *options) {
+		o.config["event_buffer"] = size
+	}
+}
