@@ -75,6 +75,14 @@ Por que usar o Loam em vez de `os.WriteFile` ou um Banco de Dados tradicional?
 - **File Locking**: Previne que dois processos editem o mesmo arquivo simultaneamente.
 - **Estrutura Híbrida**: Combina a flexibilidade de documentos schemaless (Frontmatter) com a segurança de leitura tipada em Go (`TypedRepository[T]`).
 
+### 4. Engine Reativa
+>
+> "O mundo muda, seu app reage."
+
+- **Tempo Real**: Monitore mudanças no disco e reaja instantaneamente (Hot Reload, Live Previews).
+- **Inteligência**: O Loam filtra ruídos, evita loops infinitos e normaliza eventos de diferentes sistemas operacionais.
+- **Robustez**: Um Broker de Eventos desacoplado garante que sua aplicação nunca trave, mesmo sob carga pesada.
+
 ## Objetivos
 
 1. **Centralizar a Persistência:** Abstrair operações de armazenamento e serialização para evitar duplicação de regras em diferentes ferramentas.

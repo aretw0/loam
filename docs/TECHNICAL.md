@@ -1,14 +1,9 @@
 # Arquitetura Técnica
 
-O **Loam** adota uma **Arquitetura Hexagonal (Ports & Adapters)** para garantir desacoplamento, testabilidade e extensibilidade. O núcleo do sistema opera independentemente do mecanismo de persistência, permitindo trocar o sistema de arquivos (FS + Git) por outras implementações (SQL, API, etc.) sem alterar as regras de negócio.
+O **Loam** adota uma **Arquitetura Hexagonal (Ports & Adapters)** híbrida com **Event-Driven Architecture**.
 
-## Tabela de Conteúdo
-
-- [Visão Geral](#visão-geral)
-- [Fluxos de Execução](#fluxos-de-execução)
-- [Componentes](#componentes)
-- [Decisões Arquiteturais Chave](#decisões-arquiteturais-chave)
-- [Estratégia de Testes](#estratégia-de-testes)
+1. **Hexagonal (Write Path)**: Garante desacoplamento na persistência (FS, Git, SQL).
+2. **Event-Driven (Read Path)**: Garante reatividade, notificando a aplicação sobre mudanças externas.
 
 ## Visão Geral
 
@@ -26,24 +21,31 @@ graph TD
 
     subgraph "Hexagon (Core Domain)"
         direction TB
-        Service[Core Service - Business Rules]
-        Model[Domain Model - Document / Metadata]
+        Service[Core Service]
+        Model[Domain Model]
+        Broker{Event Broker}
     end
 
     subgraph "Infrastructure (Secondary Adapters)"
-        FSAdapter[FS Adapter - File persist]
+        FSAdapter[FS Adapter]
         Git[Git Client]
         Cache[Index Cache]
+        Watcher[OS Watcher]
     end
 
-    CLI -->|Calls| Service
-    App -->|Calls| Service
+    CLI -->|Command| Service
+    App -->|Command| Service
     
+    Service -.->|Events - Channel| App
+
     Service -->|Uses| Model
     Service -->|Port Interface| FSAdapter
     
     FSAdapter -->|Impl| Git
     FSAdapter -->|Impl| Cache
+    Watcher -->|Raw Events| FSAdapter
+    FSAdapter -->|Domain Events| Broker
+    Broker -->|Decoupled Stream| Service
 ```
 
 ## Fluxos de Execução
@@ -96,6 +98,50 @@ stateDiagram-v2
     state "In Context (Dirty)" as Memory
     state "Filesystem (Pending)" as Staged
     state "Git History (Safe)" as Persisted
+```
+
+### Reactive Event Loop
+
+O mecanismo protege a aplicação de "Event Storms" (ex: `git checkout`) e garante que o processamento do usuário nunca bloqueie o watcher (via Buffer).
+
+```mermaid
+flowchart LR
+    OS[OS File System] -->|Raw Event| Watcher
+    Watcher -->|Check| GitLock{Git Locked?}
+    GitLock -- Yes --> Drop[Drop Event]
+    GitLock -- No --> Filter{Ignored?}
+    Filter -- Yes --> Drop
+    Filter -- No --> Debounce[Debouncer]
+    Debounce -->|Burst| Buffer[Event Buffer]
+    Buffer -->|Buffered Stream| App[User Application]
+```
+
+### Startup Reconciliation (Cold Start)
+
+Garante que mudanças ocorridas enquanto o aplicativo estava fechado (offline) sejam detectadas e emitidas como eventos na inicialização.
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Service
+    participant Adapter
+    participant Cache
+
+    User->>Service: New() -> Reconcile()
+    Service->>Adapter: Reconcile()
+    Adapter->>Cache: Load Index
+    
+    Note right of Adapter: 1. Walk Filesystem
+    Adapter->>Adapter: Comparar Cache vs Disco
+    alt Modified/New
+        Adapter->>User: Emit Event (Create/Modify)
+    end
+
+    Note right of Adapter: 2. Check Deleted
+    Adapter->>Adapter: Identify Unvisited entries
+    alt Deleted
+        Adapter->>User: Emit Event (Delete)
+    end
 ```
 
 ## Componentes
@@ -299,3 +345,4 @@ flowchart TD
     - **Lock Detected**: O processamento de eventos é pausado para evitar "Event Storms" durante operações em lote do Git (`checkout`, `pull`, `rebase`).
     - **Unlock Detected**: O sistema dispara uma **Reconciliação** imediata para detectar mudanças que ocorreram durante o bloqueio e emite os eventos acumulados.
 3. **Event Debouncing**: Eventos rápidos são agrupados em janelas de 50ms.
+4. **Event Broker (Desacoplamento)**: Um buffer configurável separa a recepção de eventos da entrega. Isso garante que se sua aplicação for lenta para processar um evento, o Watcher não trava (Backpressure Management).

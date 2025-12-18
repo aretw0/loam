@@ -1,13 +1,13 @@
 # Loam 🌱
 
-> An Embedded Transactional Engine for Content & Metadata.
+> An Embedded Reactive & Transactional Engine for Content & Metadata.
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/aretw0/loam)](https://goreportcard.com/report/github.com/aretw0/loam)
 [![Go Doc](https://godoc.org/github.com/aretw0/loam?status.svg)](https://godoc.org/github.com/aretw0/loam)
 [![License](https://img.shields.io/github/license/aretw0/loam.svg)](LICENSE)
 [![Release](https://img.shields.io/github/release/aretw0/loam.svg?branch=main)](https://github.com/aretw0/loam/releases)
 
-**Loam** é uma engine transacional de documentos embutida, desenhada para aplicações centradas em conteúdo e metadados.
+**Loam** é uma engine reativa e transacional de documentos embutida, desenhada para aplicações centradas em conteúdo e metadados.
 
 Por padrão, o Loam utiliza o **Sistema de Arquivos + Git** como banco de dados (`.md`, `.yaml`, `.json`, `.csv`), oferecendo controle de versão zero-config e legibilidade humana. No entanto, sua arquitetura *Core* é agnóstica, pronta para escalar para outros backends (S3, SQL) sem alterar o código do aplicativo.
 
