@@ -4,6 +4,7 @@
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/aretw0/loam)](https://goreportcard.com/report/github.com/aretw0/loam)
 [![Go Doc](https://godoc.org/github.com/aretw0/loam?status.svg)](https://godoc.org/github.com/aretw0/loam)
+[![License](https://img.shields.io/github/license/aretw0/loam.svg)](LICENSE)
 [![Release](https://img.shields.io/github/release/aretw0/loam.svg?branch=main)](https://github.com/aretw0/loam/releases)
 
 **Loam** é uma engine transacional de documentos embutida, desenhada para aplicações centradas em conteúdo e metadados.
