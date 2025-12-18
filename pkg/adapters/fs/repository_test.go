@@ -25,6 +25,7 @@ func setupRepo(t *testing.T, opts ...func(*fs.Config)) (*fs.Repository, string, 
 		AutoInit:  true,
 		Gitless:   true, // Default to gitless for simplicity unless overridden
 		MustExist: false,
+		SystemDir: ".loam",
 	}
 
 	for _, opt := range opts {

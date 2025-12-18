@@ -2,7 +2,6 @@ package typed_test
 
 import (
 	"context"
-	"path/filepath"
 	"testing"
 
 	"github.com/aretw0/loam/pkg/adapters/fs"
@@ -21,8 +20,9 @@ func setupRepo(t *testing.T) (core.Repository, string) {
 	tmpDir := t.TempDir()
 
 	fsConfig := fs.Config{
-		Path:    filepath.Join(tmpDir, "vault"),
-		Gitless: true,
+		Path:      tmpDir,
+		Gitless:   true,
+		SystemDir: ".loam",
 	}
 	repo := fs.NewRepository(fsConfig)
 	if err := repo.Initialize(context.Background()); err != nil {

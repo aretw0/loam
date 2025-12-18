@@ -86,6 +86,7 @@ func (r *Repository[T]) List(ctx context.Context) ([]*DocumentModel[T], error) {
 		return nil, err
 	}
 
+	// Hydration N+1 removed: Core List now returns full Metadata from Cache.
 	result := make([]*DocumentModel[T], 0, len(coreDocs))
 	for _, d := range coreDocs {
 		model, err := fromCore(d, r)

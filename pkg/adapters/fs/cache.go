@@ -11,10 +11,9 @@ import (
 
 // indexEntry represents collected metadata for a single file.
 type indexEntry struct {
-	ID           string    `json:"id"`
-	Title        string    `json:"title,omitempty"`
-	Tags         []string  `json:"tags,omitempty"`
-	LastModified time.Time `json:"lastLimit"` // Ensure typo is fixed: LastModified
+	ID           string                 `json:"id"`
+	Metadata     map[string]interface{} `json:"metadata,omitempty"`
+	LastModified time.Time              `json:"lastModified"`
 }
 
 // index represents the persistent cache state.
@@ -146,6 +145,28 @@ func (c *cache) Prune(keep map[string]bool) {
 		if !keep[path] {
 			delete(c.index.Entries, path)
 			c.index.dirty = true
+		}
+	}
+}
+
+// Delete removes a single entry from the cache.
+func (c *cache) Delete(relPath string) {
+	c.index.mu.Lock()
+	defer c.index.mu.Unlock()
+
+	delete(c.index.Entries, relPath)
+	c.index.dirty = true
+}
+
+// Range iterates over all entries in the cache.
+// callback returns true to continue, false to stop.
+func (c *cache) Range(callback func(relPath string, entry *indexEntry) bool) {
+	c.index.mu.RLock()
+	defer c.index.mu.RUnlock()
+
+	for k, v := range c.index.Entries {
+		if !callback(k, v) {
+			break
 		}
 	}
 }

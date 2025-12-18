@@ -166,15 +166,14 @@ func (t *Transaction) Commit(ctx context.Context, changeReason string) error {
 		}
 
 		// Update Cache
-		var title string
-		if t, ok := n.Metadata["title"].(string); ok {
-			title = t
-		}
-		// Tags... (omitted)
+		// Because we're inside a transaction, we might not have the full path easily accessible for relPath calculation without context of repo path.
+		// But fullPath is constructed above.
+		relPath, _ := filepath.Rel(t.repo.Path, fullPath)
+		relPath = filepath.ToSlash(relPath)
 
-		t.repo.cache.Set(filename, &indexEntry{
+		t.repo.cache.Set(relPath, &indexEntry{
 			ID:           id,
-			Title:        title,
+			Metadata:     n.Metadata,
 			LastModified: time.Now(),
 		})
 	}

@@ -31,12 +31,12 @@ func TestCache_Load(t *testing.T) {
 			"entries": {
 				"note1.md": {
 					"id": "note1",
-					"title": "Title 1"
+					"metadata": {
+						"title": "Title 1"
+					}
 				}
 			}
 		}`
-		os.WriteFile(filepath.Join(cacheDir, "index.json"), []byte(jsonContent), 0644)
-
 		os.WriteFile(filepath.Join(cacheDir, "index.json"), []byte(jsonContent), 0644)
 
 		c := newCache(tmpDir, ".cache")
@@ -48,8 +48,8 @@ func TestCache_Load(t *testing.T) {
 		if !ok {
 			t.Fatal("Expected entry note1.md not found")
 		}
-		if entry.Title != "Title 1" {
-			t.Errorf("Expected title 'Title 1', got '%s'", entry.Title)
+		if entry.Metadata["title"] != "Title 1" {
+			t.Errorf("Expected title 'Title 1', got '%s'", entry.Metadata["title"])
 		}
 	})
 
@@ -57,8 +57,6 @@ func TestCache_Load(t *testing.T) {
 		tmpDir := t.TempDir()
 		cacheDir := filepath.Join(tmpDir, ".cache")
 		os.MkdirAll(cacheDir, 0755)
-
-		os.WriteFile(filepath.Join(cacheDir, "index.json"), []byte("{ invalid json"), 0644)
 
 		os.WriteFile(filepath.Join(cacheDir, "index.json"), []byte("{ invalid json"), 0644)
 

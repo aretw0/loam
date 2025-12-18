@@ -215,7 +215,7 @@ func (r *Repository) Watch(ctx context.Context, pattern string) (<-chan core.Eve
 	go func() {
 		debouncer := newDebouncer(50 * time.Millisecond)
 		defer close(events)
-		defer debouncer.stop() // Ensure timers are stopped logic-wise
+		defer debouncer.stop()
 
 		for {
 			select {
@@ -288,6 +288,147 @@ func (r *Repository) recursiveAdd(watcher *fsnotify.Watcher) error {
 		}
 		return nil
 	})
+}
+
+// Reconcile implements core.Reconcilable.
+// It detects changes made while the service was offline by comparing the current state with the persistent cache/index.
+func (r *Repository) Reconcile(ctx context.Context) ([]core.Event, error) {
+	// 1. Load Cache
+	if err := r.cache.Load(); err != nil {
+		if r.config.Logger != nil {
+			r.config.Logger.Warn("failed to load cache for reconciliation", "err", err)
+		}
+	}
+
+	// 2. Prepare "Visited" Map to track deletions
+	// Key: RelPath (consistent with cache key)
+	visited := make(map[string]bool)
+	r.cache.Range(func(relPath string, entry *indexEntry) bool {
+		visited[relPath] = false
+		return true
+	})
+
+	var events []core.Event
+	dirty := false
+
+	// 3. Walk Filesystem (Detect Creates & Modifies)
+	err := filepath.WalkDir(r.Path, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			name := d.Name()
+			if name == ".git" || name == r.config.SystemDir {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+
+		// Skip temp files and hidden files (system files)
+		if strings.HasPrefix(d.Name(), TempFilePrefix) || strings.HasPrefix(d.Name(), ".") {
+			return nil
+		}
+
+		// Resolve ID for this file
+		id, err := r.resolveID(path)
+		if err != nil {
+			return nil // Skip unknown
+		}
+
+		// Calculate RelPath (Cache Key)
+		relPath, err := filepath.Rel(r.Path, path)
+		if err != nil {
+			return nil
+		}
+		relPath = filepath.ToSlash(relPath)
+
+		// Check if it was in cache (before marking visited)
+		_, wasInCache := visited[relPath]
+
+		// Mark as visited (found on disk)
+		visited[relPath] = true
+
+		info, err := d.Info()
+		if err != nil {
+			return nil
+		}
+		mtime := info.ModTime()
+
+		isHit := false
+		if entry, ok := r.cache.Get(relPath, mtime); ok {
+			isHit = true
+			_ = entry
+		}
+
+		if isHit {
+			// Perfect match, nothing to do.
+			return nil
+		}
+
+		// Cache Miss: Either NEW or MODIFIED.
+		// Distinguish based on whether the file was previously tracked (present in 'visited' map).
+
+		eventType := core.EventCreate
+		if wasInCache {
+			eventType = core.EventModify
+		}
+
+		events = append(events, core.Event{
+			Type:      eventType,
+			ID:        id,
+			Timestamp: mtime.Unix(),
+		})
+
+		// Update Cache
+		// We must parse the document to update metadata (Title/Tags) so the cache is fresh.
+
+		// Parse Doc to get Metadata
+		doc, err := r.Get(ctx, id)
+		if err == nil {
+			r.cache.Set(relPath, &indexEntry{
+				ID:           id,
+				Metadata:     doc.Metadata,
+				LastModified: mtime,
+			})
+			dirty = true
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	// 4. Detect Deletions (Unvisited Cache Entries)
+	for relPath, foundOnDisk := range visited {
+		if !foundOnDisk {
+			// It was in cache, but not found on walk -> DELETED.
+			// We infer the ID from the path as we can't easily access the old cache entry here.
+			id := relPath
+			id = strings.TrimSuffix(id, ".md")
+
+			events = append(events, core.Event{
+				Type:      core.EventDelete,
+				ID:        id,
+				Timestamp: time.Now().Unix(),
+			})
+			// Remove from cache
+			r.cache.Delete(relPath)
+			dirty = true
+		}
+	}
+
+	// 5. Persist Cache Updates
+	if dirty {
+		if err := r.cache.Save(); err != nil {
+			if r.config.Logger != nil {
+				r.config.Logger.Error("failed to save cache after reconciliation", "err", err)
+			}
+		}
+	}
+
+	return events, nil
 }
 
 // shouldIgnore checks if the event should be filtered out.
@@ -437,16 +578,14 @@ func (r *Repository) Save(ctx context.Context, doc core.Document) error {
 
 	ext := filepath.Ext(doc.ID)
 	// Smart Extension Detection
-	if ext == "" {
-		if val, ok := doc.Metadata["ext"].(string); ok && val != "" {
-			if strings.HasPrefix(val, ".") {
-				ext = val
-			} else {
-				ext = "." + val
-			}
+	if val, ok := doc.Metadata["ext"].(string); ok && val != "" {
+		if strings.HasPrefix(val, ".") {
+			ext = val
 		} else {
-			ext = ".md" // Default
+			ext = "." + val
 		}
+	} else if ext == "" {
+		ext = ".md" // Default
 	}
 
 	// Construct filename.
@@ -503,6 +642,22 @@ func (r *Repository) Save(ctx context.Context, doc core.Document) error {
 		if err := r.git.Commit(msg); err != nil {
 			return fmt.Errorf("failed to git commit: %w", err)
 		}
+	}
+
+	// Update Cache (Optimistic)
+	if info, err := os.Stat(fullPath); err == nil {
+		// Extract Generic Metadata from doc
+		relPath, _ := filepath.Rel(r.Path, fullPath)
+		relPath = filepath.ToSlash(relPath)
+		r.cache.Set(relPath, &indexEntry{
+			ID:           doc.ID,
+			Metadata:     doc.Metadata,
+			LastModified: info.ModTime(),
+		})
+		// We can save lazily or immediately.
+		// For consistency, let's just log error if save fails but not fail the operation?
+		// Or ignore.
+		_ = r.cache.Save()
 	}
 
 	return nil
@@ -770,139 +925,44 @@ func (r *Repository) saveToCollection(doc core.Document, collectionPath, collect
 }
 
 // List scans the directory for all documents.
-//
-// Strategy:
-//  1. Load existing Cache (metadata index) from disk.
-//  2. Walk the directory tree (skipping .git and system dirs).
-//  3. For each supported file:
-//     a. Check Cache Hit (based on mtime). If hit, use cached metadata (FAST).
-//     b. Cache Miss: Full Parse (Get). Update Cache.
-//  4. Save Cache back to disk.
+// It uses Reconcile to ensure the cache is up-to-date and then returns the cached state.
 func (r *Repository) List(ctx context.Context) ([]core.Document, error) {
-	var docs []core.Document
-
-	// Load Cache Logic
-	if err := r.cache.Load(); err != nil {
-		// Log? We don't have logger here yet.
-		// Ignore loading error for now, cache will start empty.
+	// Reconcile ensures cache is consistent with disk
+	if _, err := r.Reconcile(ctx); err != nil {
+		return nil, fmt.Errorf("reconcile failed during list: %w", err)
 	}
-	seen := make(map[string]bool)
 
-	err := filepath.WalkDir(r.Path, func(path string, d os.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if d.IsDir() {
-			// Skip system directories
-			if d.Name() == ".git" || d.Name() == r.config.SystemDir {
-				return filepath.SkipDir
-			}
+	var docs []core.Document
+	r.cache.Range(func(relPath string, entry *indexEntry) bool {
+		// Include file-based docs
+		docs = append(docs, core.Document{
+			ID:       entry.ID,
+			Metadata: entry.Metadata,
+		})
+		return true
+	})
+
+	// TODO: Collections (CSV/JSON rows) are not currently in the primary cache index.
+	// We scan them explicitly here to ensure sub-documents are returned (performance trade-off).
+
+	// Scan for collections to "flatten" them into the list
+	// This part is distinct from the cache index which tracks files.
+	// Ideally, the cache should track "documents" not "files", but for now it's file-based.
+	_ = filepath.WalkDir(r.Path, func(path string, d os.DirEntry, err error) error {
+		if err != nil || d.IsDir() {
 			return nil
 		}
-
-		ext := filepath.Ext(d.Name())
-		// Filter supported extensions
-		switch ext {
-		case ".md", ".json", ".yaml", ".yml", ".csv":
-			// OK
-		default:
-			return nil
-		}
-
-		relPath, err := filepath.Rel(r.Path, path)
-		if err != nil {
-			return err
-		}
+		relPath, _ := filepath.Rel(r.Path, path)
 		relPath = filepath.ToSlash(relPath)
 
 		// Check if it's a collection and flatten it
 		if colDocs, err := r.flattenCollection(path, relPath); err == nil {
-			// We don't verify cache for sub-docs yet (TODO)
-			// Directly append for prototype
 			docs = append(docs, colDocs...)
-			// If it was a collection, do we still return the file itself?
-			// Maybe yes, maybe no. For now, let's skip the file if it was successfully flattened?
-			// Or keep both. Keep both is safer.
 		}
-
-		// ID Strategy:
-		// If .md, strip extension (legacy behavior).
-		// If others, keep extension?
-		// For consistency with Get logic:
-		// If I List(), I want IDs that I can pass to Get().
-		// If I pass "foo.json" to Get(), it works.
-		// If I pass "foo" (for foo.md) to Get(), it works.
-		id := relPath
-		if ext == ".md" {
-			id = relPath[0 : len(relPath)-3]
-		}
-
-		// Get file info for mtime
-		info, err := d.Info()
-		if err != nil {
-			return nil
-		}
-		mtime := info.ModTime()
-
-		seen[relPath] = true
-
-		// Check Cache
-		if entry, hit := r.cache.Get(relPath, mtime); hit {
-			// Cache Hit
-			docs = append(docs, core.Document{
-				ID: entry.ID,
-				Metadata: map[string]interface{}{
-					"title": entry.Title,
-					"tags":  entry.Tags,
-				},
-			})
-			return nil
-		}
-
-		// Cache Miss
-		doc, err := r.Get(ctx, id)
-		if err != nil {
-			return nil // Skip unparseable
-		}
-
-		// Update Cache
-		var title string
-		var tags []string
-
-		if t, ok := doc.Metadata["title"].(string); ok {
-			title = t
-		}
-		if tArr, ok := doc.Metadata["tags"].([]interface{}); ok {
-			for _, t := range tArr {
-				if s, ok := t.(string); ok {
-					tags = append(tags, s)
-				}
-			}
-		}
-
-		r.cache.Set(relPath, &indexEntry{
-			ID:           id,
-			Title:        title,
-			Tags:         tags,
-			LastModified: mtime,
-		})
-
-		docs = append(docs, doc)
 		return nil
 	})
 
-	if err != nil {
-		return nil, err
-	}
-
-	// Save Cache
-	r.cache.Prune(seen)
-	if err := r.cache.Save(); err != nil {
-		// Ignore save error
-	}
-
 	return docs, nil
-
 }
 
 // flattenCollection reads a collection file and returns independent Document objects for each row.
