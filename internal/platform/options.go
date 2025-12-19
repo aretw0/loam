@@ -27,7 +27,7 @@ func defaultOptions() *options {
 	}
 }
 
-// WithAutoInit enables automatic initialization of the vault (git init).
+// WithAutoInit enables automatic initialization of the vault (creates directory and git init).
 func WithAutoInit(auto bool) Option {
 	return func(o *options) {
 		o.config["auto_init"] = auto

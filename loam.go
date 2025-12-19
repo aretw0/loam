@@ -27,7 +27,7 @@ type TypedService[T any] = typed.Service[T]
 // Option defines a functional option for configuring Loam.
 type Option = platform.Option
 
-// WithAutoInit enables automatic initialization of the vault (git init).
+// WithAutoInit enables automatic initialization of the vault (creates directory and git init).
 func WithAutoInit(auto bool) Option {
 	return platform.WithAutoInit(auto)
 }
