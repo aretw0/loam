@@ -243,6 +243,11 @@ srv, _ := loam.New("path/to/vault", loam.WithEventBuffer(1000))
 - Devido a limitações do `inotify`, novos diretórios criados *após* o início do watcher **não** são monitorados automaticamente (é necessário reiniciar o processo ou recriar o watcher). Em Windows e macOS, isso geralmente funciona nativamente.
 - Repositórios muito grandes (milhares de diretórios) podem exceder o limite de *file descriptors*. Aumente o limite via `sysctl fs.inotify.max_user_watches` se necessário.
 
+### CSV & Nested Data
+
+- O suporte a **CSV** é otimizado para dados planos (Flat Data). Estruturas aninhadas (`map`, `struct`, `array`) salvas em CSV sofrem **Type Erasure**: são convertidas para string (`fmt.Sprintf`) e não podem ser recuperadas atomicamente como objetos estruturados na leitura. Para dados hierárquicos, prefira **JSON** ou **YAML**.
+- **Concorrência**: A escrita em coleções (CSV) não possui locking de arquivo (flock). O uso concorrente por múltiplos processos pode resultar em perda de dados (Race Condition no ciclo Read-Modify-Write).
+
 ## Status
 
 🚧 **Alpha**.
