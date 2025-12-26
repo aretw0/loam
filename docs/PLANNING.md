@@ -9,14 +9,14 @@
 - [x] **Hardening**: Proteção contra condições de corrida (Atomic Writes) e testes de stress.
 - [x] **Caveats**: Limitações de OS (inotify) e necessidade de polling em casos extremos documentados.
 
-## Fase 0.9.1: Typed Reactivity (Next)
+## Fase 0.9.1: Typed Reactivity (Completed)
 
 **Objetivo:** Trazer as capacidades reativas para o nível da API tipada (`typed.Repository`), permitindo que aplicações que usam Generics também reajam a eventos.
 
-- [ ] **Typed Watcher**:
-  - [ ] Implementar `Watch(ctx)` em `typed.Repository[T]`.
-  - [ ] Converter eventos brutos (`core.Event`) para algo útil no contexto tipado (se necessário) ou apenas expor o sinal.
-- [ ] **Integration Tests**: Garantir que uma mudança no disco dispare um evento capturável por um consumidor `typed`.
+- [x] **Typed Watcher**:
+  - [x] Implementar `Watch(ctx)` em `typed.Repository[T]`.
+  - [x] Converter eventos brutos (`core.Event`) para algo útil no contexto tipado (se necessário) ou apenas expor o sinal.
+- [x] **Integration Tests**: Garantir que uma mudança no disco dispare um evento capturável por um consumidor `typed`.
 
 ## RFC 0.X.X: Library-Level Sync Strategies (Backlog)
 
