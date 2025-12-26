@@ -103,6 +103,14 @@ func (r *Repository[T]) Delete(ctx context.Context, id string) error {
 	return r.repo.Delete(ctx, id)
 }
 
+// Watch observes changes in the repository.
+func (r *Repository[T]) Watch(ctx context.Context, pattern string) (<-chan core.Event, error) {
+	if w, ok := r.repo.(core.Watchable); ok {
+		return w.Watch(ctx, pattern)
+	}
+	return nil, fmt.Errorf("repository does not support watching")
+}
+
 // Helper to convert core.Document to DocumentModel
 func fromCore[T any](coreDoc core.Document, saver Saver[T]) (*DocumentModel[T], error) {
 	dataBytes, err := json.Marshal(coreDoc.Metadata)
