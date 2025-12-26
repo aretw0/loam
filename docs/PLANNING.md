@@ -1,47 +1,22 @@
 # Planning & Roadmap
 
-## Fase 0.8.5: Multi-Platform Compliance & Build Simplicity (Completed)
-
-**Objetivo:** Garantir que o projeto seja totalmente compatível com ambientes Unix-like (Linux/WSL) e simplificar o processo de build para todos os desenvolvedores.
-
-- [x] **Cross-Platform Bug Fix**:
-  - [x] Investigar e corrigir a suíte de testes que falhava no Linux devido à manipulação incorreta de caminhos de arquivo.
-  - [x] Refatorar a lógica de `Get` e `findCollection` no `fs/adapter` para ser agnóstica de plataforma, tratando corretamente IDs de documentos que usam `/` como separador.
-- [x] **Build Simplification (`Makefile`)**:
-  - [x] Introduzir um `Makefile` para padronizar os comandos de build, teste e instalação.
-  - [x] Adicionar alvos para cross-compilation (Linux, Windows, Darwin), facilitando a distribuição.
-- [x] **Documentation & Recipes**:
-  - [x] Revisar `README.md` para incluir instruções de build e cross-compilation.
-  - [x] Revisar `README.md` para incluir link para a página de releases.
-  - [x] Refatorar `recipes/`: `etl_migration` agora é um Go Module demonstrando CSV Split.
-  - [x] Migrar `unix_pipes` para `cli_scripting` (folder) com scripts reais (`demo.sh`, `demo.ps1`).
-  - [x] **Advanced Recipe**: CSV Explosion com `mlr` (Miller) para demonstrar limpeza de headers e mapping sem "magia" no core.
-  - [x] **Bugfix**: `ensureIgnore` só deve criar `.gitignore` se estiver em um repositório Git.
-  - [x] **Recipe Refinement**: Garantir que as receitas gerem Markdown válido com Frontmatter (YAML) a partir do CSV.
-  - [x] **Safety Polish**: Implementar `git.Lock()` na criação do `.gitignore` e checagem de existência do repo em `Save`.
-
 ## Fase 0.9.0: Reactivity & Hardening (Completed)
 
-**Objetivo:** Transformar o Loam de um "Storage Passivo" para um "Motor Reativo", permitindo que aplicações reajam a mudanças no disco em tempo real, enquanto solidifica a estabilidade sob carga.
+**Objetivo:** Transformar o Loam de um "Storage Passivo" para um "Motor Reativo", capaz de detectar e reagir a mudanças no disco.
 
-- [x] **Reactive Engine (Watcher)**:
-  - [x] `Service.Watch(ctx, pattern, callback)`: API para observar mudanças em arquivos (via `fsnotify`).
-  - [x] **Loop Prevention**: Implementar lógica para ignorar eventos gerados pelo próprio processo (evitar loop Save -> Event -> Logic -> Save).
-  - [x] **Event Debouncing & Normalization**: Agrupar eventos rápidos e tratar "Atomic Saves" (Rename/Move patterns de editores) para evitar falsos positivos.
-  - [x] **Caveats Documentation**: Documentar limitações de OS (inotify recursion, file limits).
-- [x] **Startup Reconciliation**
-  - [x] **Design**: Create implementation plan with "Visited Map" strategy.
-  - [x] **Core**: Update `Repository` interface and `Service` with `Reconcile`.
-  - [x] **Impl**: Implement `Reconcile` in `fs` adapter (Cold Start/Offline diff).
-  - [x] **Test**: Verify Scenarios (Cold Start, Modified Offline, Deleted Offline).
-  - [x] **Cache Evolution**: Migrar de schema fixo (Title/Tags) para esquemeless (Generic Metadata) para suportar TypedRepositories sem hidratação N+1.
-- [x] **Concurrency & Hardening**:
-  - [x] **Git Awareness**: Detectar operações em lote (ex: `git checkout`) para evitar "Event Storms", pausando o watcher ou invalidando o cache em massa.
-  - [x] **Broker de Eventos**: Garantir que callbacks do Watcher não bloqueiem a thread principal de IO.
-  - [x] **Stress Testing**: Criar testes que simulam concorrência agressiva (Edição Externa vs Escrita Interna) para validar File Locking.
-- [x] **Scalability & Documentation**:
-  - [x] Benchmark de Listagem/Leitura com 10k+ arquivos pequenos.
-  - [x] **OS Limits Caveat**: Documentar limitações de `inotify`/`kqueue` em grandes repositórios e falhas silenciosas.
+- [x] **Reactive Engine**: Implementado `Service.Watch` com `fsnotify`, incluindo proteção contra loops (Self-Events) e Debouncing robusto.
+- [x] **Startup Reconciliation**: Detecta mudanças ocorridas offline na inicialização ("Cold Start").
+- [x] **Hardening**: Proteção contra condições de corrida (Atomic Writes) e testes de stress.
+- [x] **Caveats**: Limitações de OS (inotify) e necessidade de polling em casos extremos documentados.
+
+## Fase 0.9.1: Typed Reactivity (Next)
+
+**Objetivo:** Trazer as capacidades reativas para o nível da API tipada (`typed.Repository`), permitindo que aplicações que usam Generics também reajam a eventos.
+
+- [ ] **Typed Watcher**:
+  - [ ] Implementar `Watch(ctx)` em `typed.Repository[T]`.
+  - [ ] Converter eventos brutos (`core.Event`) para algo útil no contexto tipado (se necessário) ou apenas expor o sinal.
+- [ ] **Integration Tests**: Garantir que uma mudança no disco dispare um evento capturável por um consumidor `typed`.
 
 ## RFC 0.X.X: Library-Level Sync Strategies (Backlog)
 
