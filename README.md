@@ -207,6 +207,23 @@ user, _ := userRepo.Get(ctx, "users/alice")
 fmt.Println(user.Data.Name) // Type-safe!
 ```
 
+### Reactivity (Watch)
+
+Você pode observar mudanças em repositórios tipados para implementar "Hot Reload" de configurações ou interfaces reativas:
+
+```go
+// Retorna um canal de core.Event
+events, err := userRepo.Watch(ctx, "users/*")
+
+go func() {
+    for event := range events {
+        fmt.Printf("Mudança detectada em %s\n", event.ID)
+        // Recarregue o documento tipado se necessário
+        newUser, _ := userRepo.Get(ctx, event.ID)
+    }
+}()
+```
+
 ## 📂 Exemplos e Receitas <a name="examples"></a>
 
 ### Demos (Funcionalidades do Core)
