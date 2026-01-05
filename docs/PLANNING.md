@@ -18,6 +18,13 @@
   - [x] Converter eventos brutos (`core.Event`) para algo útil no contexto tipado (se necessário) ou apenas expor o sinal.
 - [x] **Integration Tests**: Garantir que uma mudança no disco dispare um evento capturável por um consumidor `typed`.
 
+## Fase 0.10.0: Data Fidelity & Serializers (Current)
+
+**Objetivo:** Melhorar a fidelidade dos dados serializados, especialmente para formatos como CSV que hoje sofrem com Type Erasure em estruturas aninhadas.
+
+- [ ] **CSV Wrapper/Marshaller**: Implementar lógica de Flattening/Unflattening transparente ou suporte a JSON-in-CSV para preservar estruturas aninhadas (`map`/`slice`) durante o round-trip.
+- [ ] **Custom Serializers**: Permitir que usuários definam marshallers customizados por extensão.
+
 ## RFC 0.X.X: Library-Level Sync Strategies (Backlog)
 
 **Objetivo:** Permitir que toolmakers definam estratégias de sincronização não-bloqueantes ou customizadas, crucial para adapters distribuídos (S3, SQL) ou clientes "Offline-First".
@@ -35,13 +42,6 @@
 - [ ] Suporte a `[]byte` ou `io.Reader` na interface `Repository`.
 - [ ] **Library**: Adicionar `SaveFromReader(io.Reader)` para streaming eficiente sem buffers gigantes.
 - [ ] Abstração de `git add/commit` para arquivos arbitrários fora do padrão "Conteúdo + Frontmatter".
-
-## RFC 0.X.X: Data Fidelity & Serializers (Backlog)
-
-**Objetivo:** Melhorar a fidelidade dos dados serializados, especialmente para formatos como CSV que hoje sofrem com Type Erasure em estruturas aninhadas.
-
-- [ ] **CSV Wrapper/Marshaller**: Implementar lógica de Flattening/Unflattening transparente ou suporte a JSON-in-CSV para preservar estruturas aninhadas (`map`/`slice`) durante o round-trip.
-- [ ] **Custom Serializers**: Permitir que usuários definam marshallers customizados por extensão.
 
 ## Fase 0.X.X: Server & Interoperability (Backlog)
 
