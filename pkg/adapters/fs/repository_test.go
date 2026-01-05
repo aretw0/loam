@@ -2,6 +2,7 @@ package fs_test
 
 import (
 	"context"
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
@@ -282,4 +283,48 @@ func TestDelete(t *testing.T) {
 // Helper to check string containment
 func contains(s, substr string) bool {
 	return len(s) >= len(substr) && len(substr) > 0 && s[0:len(substr)] == substr || (len(s) > len(substr) && contains(s[1:], substr))
+}
+
+// Mock serializer for testing registration
+type mockSerializer struct{}
+
+func (m *mockSerializer) Parse(r io.Reader, k string) (*core.Document, error) {
+	return &core.Document{Content: "mocked"}, nil
+}
+func (m *mockSerializer) Serialize(doc core.Document, k string) ([]byte, error) {
+	return []byte("mocked_data"), nil
+}
+
+func TestRegisterSerializer(t *testing.T) {
+	t.Run("Uses Custom Serializer for Extension", func(t *testing.T) {
+		repo, path, _ := setupRepo(t)
+		repo.Initialize(context.Background())
+
+		// Register custom serializer
+		repo.RegisterSerializer(".mock", &mockSerializer{})
+
+		// Save
+		doc := core.Document{ID: "test.mock", Content: "original"}
+		if err := repo.Save(context.Background(), doc); err != nil {
+			t.Fatalf("Save failed: %v", err)
+		}
+
+		// Verify file content logic (Serialize used mock)
+		content, err := os.ReadFile(filepath.Join(path, "test.mock"))
+		if err != nil {
+			t.Fatalf("ReadFile failed: %v", err)
+		}
+		if string(content) != "mocked_data" {
+			t.Errorf("Expected 'mocked_data', got %q", string(content))
+		}
+
+		// Verify Get logic (Parse used mock)
+		loaded, err := repo.Get(context.Background(), "test.mock")
+		if err != nil {
+			t.Fatalf("Get failed: %v", err)
+		}
+		if loaded.Content != "mocked" {
+			t.Errorf("Expected content 'mocked', got %q", loaded.Content)
+		}
+	})
 }

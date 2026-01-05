@@ -4,7 +4,7 @@
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/aretw0/loam)](https://goreportcard.com/report/github.com/aretw0/loam)
 [![Go Doc](https://godoc.org/github.com/aretw0/loam?status.svg)](https://godoc.org/github.com/aretw0/loam)
-[![License](https://img.shields.io/github/license/aretw0/loam.svg)](LICENSE)
+[![License](https://img.shields.io/github/license/aretw0/loam.svg)](LICENSE.txt)
 [![Release](https://img.shields.io/github/release/aretw0/loam.svg?branch=main)](https://github.com/aretw0/loam/releases)
 
 **Loam** é uma engine reativa e transacional de documentos embutida, desenhada para aplicações centradas em conteúdo e metadados.
@@ -262,7 +262,8 @@ srv, _ := loam.New("path/to/vault", loam.WithEventBuffer(1000))
 
 ### CSV & Nested Data
 
-- O suporte a **CSV** é otimizado para dados planos (Flat Data). Estruturas aninhadas (`map`, `struct`, `array`) salvas em CSV sofrem **Type Erasure**: são convertidas para string (`fmt.Sprintf`) e não podem ser recuperadas atomicamente como objetos estruturados na leitura. Para dados hierárquicos, prefira **JSON** ou **YAML**.
+- O Loam agora suporta **Smart CSV**, que detecta estruturas JSON aninhadas (`map`, `[]interface{}`) e as preserva automaticamente.
+- **Caveat (False Positives)**: Strings que parecem JSON (ex: `"{foo}"`) podem ser interpretadas como objetos se não estiverem escapadas (ex: `"\"{foo}\""`). Em casos de ambiguidade, o parser favorece a estrutura.
 - **Concorrência**: A escrita em coleções (CSV) não possui locking de arquivo (flock). O uso concorrente por múltiplos processos pode resultar em perda de dados (Race Condition no ciclo Read-Modify-Write).
 
 ## Status

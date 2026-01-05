@@ -15,8 +15,8 @@ graph TD
     end
 
     subgraph "Parsing Logic (Agnostic)"
-        PD[ParseDocument]
-        SD[SerializeDocument]
+        Serializer[Serializer Interface]
+        Impl[JSON/YAML/CSV/MD Impls]
     end
 
     subgraph "Hexagon (Core Domain)"

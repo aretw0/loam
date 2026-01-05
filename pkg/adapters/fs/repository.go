@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/csv"
-	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -20,7 +18,6 @@ import (
 
 	"github.com/aretw0/loam/pkg/core"
 	"github.com/aretw0/loam/pkg/git"
-	"gopkg.in/yaml.v3"
 )
 
 // Repository implements core.Repository using the filesystem and Git.
@@ -29,6 +26,9 @@ type Repository struct {
 	git    *git.Client
 	cache  *cache
 	config Config
+
+	// serializers maps extension (e.g. ".md") to a Serializer implementation.
+	serializers map[string]Serializer
 
 	// ignoreMap tracks files modified by this process to avoid event loops.
 	// Key: Absolute Path. Value: Timestamp of write.
@@ -50,11 +50,20 @@ type Config struct {
 // NewRepository creates a new filesystem-backed repository.
 func NewRepository(config Config) *Repository {
 	return &Repository{
-		Path:   config.Path,
-		git:    git.NewClient(config.Path, config.SystemDir+".lock", config.Logger),
-		config: config,
-		cache:  newCache(config.Path, config.SystemDir),
+		Path:        config.Path,
+		git:         git.NewClient(config.Path, config.SystemDir+".lock", config.Logger),
+		config:      config,
+		cache:       newCache(config.Path, config.SystemDir),
+		serializers: DefaultSerializers(),
 	}
+}
+
+// RegisterSerializer adds or overrides a serializer for a specific extension.
+func (r *Repository) RegisterSerializer(ext string, s Serializer) {
+	if !strings.HasPrefix(ext, ".") {
+		ext = "." + ext
+	}
+	r.serializers[ext] = s
 }
 
 // Begin starts a new transaction.
@@ -670,7 +679,12 @@ func (r *Repository) Save(ctx context.Context, doc core.Document) error {
 		return fmt.Errorf("failed to create directories: %w", err)
 	}
 
-	data, err := SerializeDocument(doc, ext, r.config.MetadataKey)
+	serializer, ok := r.serializers[ext]
+	if !ok {
+		return fmt.Errorf("no serializer registered for extension %s", ext)
+	}
+
+	data, err := serializer.Serialize(doc, r.config.MetadataKey)
 	if err != nil {
 		return fmt.Errorf("failed to serialize document: %w", err)
 	}
@@ -774,7 +788,15 @@ func (r *Repository) Get(ctx context.Context, id string) (core.Document, error) 
 	}
 	defer f.Close()
 
-	doc, err := ParseDocument(f, ext, r.config.MetadataKey)
+	serializer, ok := r.serializers[ext]
+	if !ok {
+		// Fallback to Markdown or error?
+		// Existing logic errored if ParseDocument failed, but ParseDocument had a default case for .md fallthrough.
+		// If ext is unknown to registry, we fail.
+		return core.Document{}, fmt.Errorf("no serializer registered for extension %s", ext)
+	}
+
+	doc, err := serializer.Parse(f, r.config.MetadataKey)
 	if err != nil {
 		return core.Document{}, fmt.Errorf("failed to parse document %s: %w", id, err)
 	}
@@ -868,7 +890,7 @@ func (r *Repository) getFromCollection(id string) (core.Document, error) {
 					if strings.ToLower(h) == "content" {
 						doc.Content = val
 					} else {
-						doc.Metadata[h] = val
+						doc.Metadata[h] = UnmarshalCSVValue(val)
 					}
 				}
 				return doc, nil
@@ -947,7 +969,7 @@ func (r *Repository) saveToCollection(doc core.Document, collectionPath, collect
 				continue
 			}
 			if val, ok := doc.Metadata[h]; ok {
-				newRow[i] = fmt.Sprintf("%v", val)
+				newRow[i] = MarshalCSVValue(val)
 			} else {
 				// If not in metadata...
 				// Logic A: Clear it (Replace semantics).
@@ -1091,7 +1113,7 @@ func (r *Repository) flattenCollection(fullPath, relPath string) ([]core.Documen
 			if strings.ToLower(h) == "content" {
 				doc.Content = val
 			} else {
-				doc.Metadata[h] = val
+				doc.Metadata[h] = UnmarshalCSVValue(val)
 			}
 		}
 		docs = append(docs, doc)
@@ -1154,7 +1176,7 @@ func (r *Repository) saveBatchToCollection(collectionPath, collectionExt string,
 					continue
 				}
 				if val, ok := doc.Metadata[h]; ok {
-					newRow[i] = fmt.Sprintf("%v", val)
+					newRow[i] = MarshalCSVValue(val)
 				} else {
 					newRow[i] = "" // Replace with empty if missing
 				}
@@ -1237,199 +1259,28 @@ func IsGitInstalled() bool {
 
 // ParseDocument parses raw content into a Core Document based on extension.
 // Exposed for use by CLI "raw mode".
+// DEPRECATED: Use Serializer interface instead. This is kept briefly or should be removed if no external consumers.
+// Refactoring: We will bridge this to use DefaultSerializers to maintain signature compat if needed,
+// OR just remove it if it's internal package. It is Exported.
+// To be safe, let's reimplement it using the new registry.
 func ParseDocument(r io.Reader, ext, metadataKey string) (*core.Document, error) {
-	data, err := io.ReadAll(r)
-	if err != nil {
-		return nil, err
+	defaults := DefaultSerializers()
+	s, ok := defaults[ext]
+	if !ok {
+		// Fallback to markdown if unknown, matching old behavior
+		s = defaults[".md"]
 	}
-
-	doc := &core.Document{
-		Metadata: make(core.Metadata),
-	}
-
-	switch ext {
-	case ".json":
-		var payload map[string]interface{}
-		if err := json.Unmarshal(data, &payload); err != nil {
-			return nil, fmt.Errorf("invalid json: %w", err)
-		}
-
-		if metadataKey != "" {
-			if meta, ok := payload[metadataKey].(map[string]interface{}); ok {
-				doc.Metadata = meta
-				delete(payload, metadataKey)
-			}
-		} else {
-			// Flat structure
-			doc.Metadata = payload // Assign all first, then extract content
-		}
-
-		if c, ok := payload["content"].(string); ok {
-			doc.Content = c
-			if metadataKey == "" {
-				delete(doc.Metadata, "content")
-			}
-		}
-		// If nested, we don't need to delete 'content' from metadata because metadata was extracted from sub-key
-
-	case ".yaml", ".yml":
-		var payload map[string]interface{}
-		if err := yaml.Unmarshal(data, &payload); err != nil {
-			return nil, fmt.Errorf("invalid yaml: %w", err)
-		}
-
-		if metadataKey != "" {
-			// YAML unmarshals maps as map[string]interface{} usually, but nested might be complex?
-			// yaml.v3 might return map[string]interface{} for dynamic.
-			if meta, ok := payload[metadataKey].(map[string]interface{}); ok {
-				doc.Metadata = meta
-				delete(payload, metadataKey)
-			} else {
-				// Maybe it's map[interface{}]interface{}?
-				// Let's convert if needed, but for now assume string keys for JSON compat
-			}
-		} else {
-			doc.Metadata = payload
-		}
-
-		if c, ok := payload["content"].(string); ok {
-			doc.Content = c
-			if metadataKey == "" {
-				delete(doc.Metadata, "content")
-			}
-		}
-
-	case ".csv":
-		reader := csv.NewReader(bytes.NewReader(data))
-		headers, err := reader.Read()
-		if err != nil {
-			return nil, fmt.Errorf("failed to read csv header: %w", err)
-		}
-		row, err := reader.Read()
-		if err != nil {
-			return nil, fmt.Errorf("failed to read csv row: %w", err)
-		}
-
-		if len(row) != len(headers) {
-			return nil, fmt.Errorf("csv row length mismatch")
-		}
-
-		for i, h := range headers {
-			if strings.ToLower(h) == "content" {
-				doc.Content = row[i]
-			} else {
-				doc.Metadata[h] = row[i]
-			}
-		}
-
-	case ".md":
-		fallthrough
-	default:
-		if !bytes.HasPrefix(data, []byte("---\n")) && !bytes.HasPrefix(data, []byte("---\r\n")) {
-			doc.Content = string(data)
-			return doc, nil
-		}
-
-		rest := data[3:]
-		parts := bytes.SplitN(rest, []byte("---"), 2)
-		if len(parts) == 1 {
-			return nil, errors.New("frontmatter started but no closing delimiter found")
-		}
-
-		yamlData := parts[0]
-		contentData := parts[1]
-
-		if err := yaml.Unmarshal(yamlData, &doc.Metadata); err != nil {
-			return nil, fmt.Errorf("failed to parse frontmatter: %w", err)
-		}
-
-		doc.Content = strings.TrimPrefix(string(contentData), "\n")
-		doc.Content = strings.TrimPrefix(doc.Content, "\r\n")
-	}
-
-	return doc, nil
+	return s.Parse(r, metadataKey)
 }
 
 // SerializeDocument converts a Document to bytes based on extension.
 // Exposed for reuse if needed.
+// DEPRECATED: Use Serializer interface instead.
 func SerializeDocument(doc core.Document, ext, metadataKey string) ([]byte, error) {
-	switch ext {
-	case ".json":
-		payload := make(map[string]interface{})
-
-		if metadataKey != "" {
-			payload[metadataKey] = doc.Metadata
-		} else {
-			for k, v := range doc.Metadata {
-				payload[k] = v
-			}
-		}
-
-		if doc.Content != "" || metadataKey == "" {
-			payload["content"] = doc.Content
-		}
-
-		return json.MarshalIndent(payload, "", "  ")
-
-	case ".yaml", ".yml":
-		payload := make(map[string]interface{})
-
-		if metadataKey != "" {
-			payload[metadataKey] = doc.Metadata
-		} else {
-			for k, v := range doc.Metadata {
-				payload[k] = v
-			}
-		}
-
-		if doc.Content != "" || metadataKey == "" {
-			payload["content"] = doc.Content
-		}
-
-		return yaml.Marshal(payload)
-
-	case ".csv":
-		keys := []string{"content"}
-		for k := range doc.Metadata {
-			keys = append(keys, k)
-		}
-
-		var row []string
-		row = append(row, doc.Content)
-		for _, k := range keys[1:] {
-			val := ""
-			if v := doc.Metadata[k]; v != nil {
-				val = fmt.Sprintf("%v", v)
-			}
-			row = append(row, val)
-		}
-
-		var buf bytes.Buffer
-		w := csv.NewWriter(&buf)
-		if err := w.Write(keys); err != nil {
-			return nil, err
-		}
-		if err := w.Write(row); err != nil {
-			return nil, err
-		}
-		w.Flush()
-		return buf.Bytes(), nil
-
-	case ".md":
-		fallthrough
-	default:
-		var buf bytes.Buffer
-		if len(doc.Metadata) > 0 {
-			buf.WriteString("---\n")
-			encoder := yaml.NewEncoder(&buf)
-			encoder.SetIndent(2)
-			if err := encoder.Encode(doc.Metadata); err != nil {
-				return nil, err
-			}
-			encoder.Close()
-			buf.WriteString("---\n")
-		}
-		buf.WriteString(doc.Content)
-		return buf.Bytes(), nil
+	defaults := DefaultSerializers()
+	s, ok := defaults[ext]
+	if !ok {
+		s = defaults[".md"]
 	}
+	return s.Serialize(doc, metadataKey)
 }
