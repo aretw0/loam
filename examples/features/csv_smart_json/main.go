@@ -73,9 +73,9 @@ func main() {
 	_, isMap := loadedUser.(map[string]interface{})
 	_, isSlice := loadedTags.([]interface{}) // or []string
 
-	if !isMap && !isSlice {
-		fmt.Printf("\n[!] LIMITATION CONFIRMED: Nested structures lost type information and became Strings.\n")
+	if isMap && isSlice {
+		fmt.Printf("\n[OK] SUCCESS: Nested structures were preserved!\n")
 	} else {
-		fmt.Printf("\n[?] Unexpected: Types were preserved?\n")
+		fmt.Printf("\n[!] FAILURE: Nested structures lost type information.\n")
 	}
 }
