@@ -77,6 +77,18 @@ make cross-build
 make install
 ```
 
+### Executando Testes
+
+Para rodar a suíte de testes (excluindo testes de stress que podem ser lentos no Windows):
+
+```bash
+# Windows (PowerShell)
+go test -v ./pkg/... ./cmd/... ./internal/... ./tests/e2e ./tests/reactivity ./tests/typed
+
+# Linux/Mac (via Makefile)
+make test-fast
+```
+
 ## 🛠️ CLI: Uso Básico <a name="cli-usage"></a>
 
 O Loam CLI funciona como um "Gerenciador de Conteúdo", abstraindo a persistência.

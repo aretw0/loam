@@ -22,8 +22,15 @@
 
 **Objetivo:** Melhorar a fidelidade dos dados serializados, especialmente para formatos como CSV que hoje sofrem com Type Erasure em estruturas aninhadas.
 
-- [ ] **CSV Wrapper/Marshaller**: Implementar lógica de Flattening/Unflattening transparente ou suporte a JSON-in-CSV para preservar estruturas aninhadas (`map`/`slice`) durante o round-trip.
-- [ ] **Custom Serializers**: Permitir que usuários definam marshallers customizados por extensão.
+- [x] **CSV Wrapper/Marshaller**: Implementar lógica de Flattening/Unflattening transparente ou suporte a JSON-in-CSV para preservar estruturas aninhadas (`map`/`slice`) durante o round-trip.
+- [x] **Custom Serializers**: Permitir que usuários definam marshallers customizados por extensão.
+
+## RFC 0.X.X: CSV Improvements (Backlog)
+
+**Objetivo:** Resolver ambiguidades na detecção de tipos do CSV (False Positives de JSON).
+
+- [ ] **Strict Mode / Schema Hints**: Permitir definir explicitamente se uma coluna deve ser tratada como JSON ou String, evitando heurísticas.
+- [ ] **Escape Mechanism**: Definir padrão para forçar string (ex: `'{"foo": "bar"}'`).
 
 ## RFC 0.X.X: Library-Level Sync Strategies (Backlog)
 
@@ -34,6 +41,13 @@
   - [ ] Strategies: `Manual` (Atual), `Background/Periodic` (Goroutine), `OnSave` (Hook).
 - [ ] **Monitoramento**:
   - [ ] Expor status de sync (LastSyncedAt, PendingChanges).
+
+## RFC 0.X.X: Reliability Engineering (Backlog)
+
+**Objetivo:** Investigar e resolver instabilidades em testes e comportamento do watcher em ambientes Windows.
+
+- [ ] **Investigar `TestTypedWatch` Flakiness**: Teste apresenta timeouts persistentes no Windows, possivelmente devido à latência do filesystem ou lock de antivírus/indexadores.
+- [ ] **Testes de Stress no Windows**: Avaliar impacto de testes intensivos (`tests/stress`) na estabilidade da suíte global.
 
 ## RFC 0.X.X: Binary/Blob Support (Librarian)
 

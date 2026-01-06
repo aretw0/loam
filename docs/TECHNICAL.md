@@ -173,7 +173,8 @@ A estrutura de diretórios do projeto reflete diretamente a arquitetura hexagona
 Implementações concretas dos Ports definidos no Core.
 
 - **FS Adapter (`pkg/adapters/fs`)**: Implementa `core.Repository`. A "Estante Física".
-  - Gerencia a **persistência física** de Documentos (serializando como Markdown/YAML/JSON).
+  - Gerencia a **persistência física** de Documentos.
+  - **Serializers Plugáveis**: Utiliza a interface `Serializer` para suportar múltiplos formatos (Markdown, JSON, YAML, CSV) de forma extensível. Novos formatos podem ser registrados via `RegisterSerializer`.
   - Utiliza `pkg/git` para controle de versão.
   - Mantém um **Cache (.loam/index.json)** para listagens rápidas (Otimização).
 
