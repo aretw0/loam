@@ -18,9 +18,13 @@ build:
 	$(GOBUILD) -v -o $(BINARY_NAME) ./cmd/loam
 
 # Run tests
-test:
 	@echo "Running tests..."
 	$(GOTEST) -v ./...
+
+# Run tests excluding stress/benchmarks (Fast Feedback)
+test-fast:
+	@echo "Running fast tests (skipping stress/benchmarks)..."
+	$(GOTEST) -v ./pkg/... ./cmd/... ./internal/... ./tests/e2e ./tests/reactivity ./tests/typed
 
 # Clean build artifacts
 clean:
