@@ -1,16 +1,14 @@
 package loam_test
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"os"
 	"path/filepath"
 
 	"github.com/aretw0/loam"
+	"github.com/aretw0/loam/pkg/adapters/fs"
 	"github.com/aretw0/loam/pkg/core"
 )
 
@@ -155,39 +153,7 @@ func Example_csvNestedData() {
 	// Load: [10 20 15]
 }
 
-// StrictJSONSerializer is a custom serializer that treats numbers as json.Number
-// instead of float64, preventing loss of precision for large integers.
-type StrictJSONSerializer struct{}
-
-func (s *StrictJSONSerializer) Parse(r io.Reader, metadataKey string) (*core.Document, error) {
-	data, err := io.ReadAll(r)
-	if err != nil {
-		return nil, err
-	}
-	var payload map[string]interface{}
-	decoder := json.NewDecoder(bytes.NewReader(data))
-	decoder.UseNumber() // The specific feature we want
-	if err := decoder.Decode(&payload); err != nil {
-		return nil, err
-	}
-
-	doc := &core.Document{Metadata: payload}
-	if c, ok := payload["content"].(string); ok {
-		doc.Content = c
-	}
-	return doc, nil
-}
-
-func (s *StrictJSONSerializer) Serialize(doc core.Document, metadataKey string) ([]byte, error) {
-	// Simple serialization for demo
-	payload := doc.Metadata
-	if doc.Content != "" {
-		payload["content"] = doc.Content
-	}
-	return json.MarshalIndent(payload, "", "  ")
-}
-
-// Example_customSerializer shows how to inject a custom serializer using constraints options.
+// Example_customSerializer shows how to inject a custom serializer using built-in factories.
 func Example_customSerializer() {
 	// Setup
 	tmpDir, err := os.MkdirTemp("", "loam-custom-*")
@@ -196,11 +162,11 @@ func Example_customSerializer() {
 	}
 	defer os.RemoveAll(tmpDir)
 
-	// Initialize with Custom Serializer for .json
-	// This replaces the default JSON serializer
+	// Initialize with Strict JSON Serializer provided by the FS adapter
+	// This replaces the default JSON serializer with one that preserves large integers.
 	repo, err := loam.Init(filepath.Join(tmpDir, "vault"),
 		loam.WithAutoInit(true),
-		loam.WithSerializer(".json", &StrictJSONSerializer{}),
+		loam.WithSerializer(".json", fs.NewJSONSerializer(true)),
 	)
 	if err != nil {
 		log.Fatal(err)
@@ -209,8 +175,6 @@ func Example_customSerializer() {
 	ctx := context.Background()
 
 	// Save a document with a large number that might lose precision in float64
-	// (Note: In Go map[string]interface{}, manual assignment is still tricky without Number type,
-	// but this demonstrates the Read path which is often the issue)
 	jsonContent := `{"big_id": 9223372036854775807, "content": "Large Int"}`
 	err = os.WriteFile(filepath.Join(tmpDir, "vault", "strict.json"), []byte(jsonContent), 0644)
 	if err != nil {
