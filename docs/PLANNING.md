@@ -25,6 +25,13 @@
 - [x] **CSV Wrapper/Marshaller**: Implementar lógica de Flattening/Unflattening transparente ou suporte a JSON-in-CSV para preservar estruturas aninhadas (`map`/`slice`) durante o round-trip.
 - [x] **Custom Serializers**: Permitir que usuários definam marshallers customizados por extensão.
 
+## Fase 0.10.1: Documentation & Examples (Completed)
+
+**Objetivo:** Garantir que a documentação e exemplos reflitam as capacidades reativas e de serialização adicionadas nas versões recentes (Smart CSV).
+
+- [x] **Data Fidelity Examples**: Adicionar exemplos claros de estruturas aninhadas em CSV (`example_test.go`).
+- [x] **Docs Update**: Atualizar `PRODUCT.md` e `TECHNICAL.md` com detalhes sobre Smart CSV e Limitações.
+
 ## RFC 0.X.X: CSV Improvements (Backlog)
 
 **Objetivo:** Resolver ambiguidades na detecção de tipos do CSV (False Positives de JSON).
