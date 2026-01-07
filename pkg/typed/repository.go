@@ -1,6 +1,7 @@
 package typed
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -48,9 +49,11 @@ func (r *Repository[T]) Save(ctx context.Context, doc *DocumentModel[T]) error {
 		return fmt.Errorf("failed to marshal typed data: %w", err)
 	}
 
-	// 2. Unmarshal to map
+	// 2. Unmarshal to map (Use strict decoding to preserve numbers)
 	var metadata map[string]interface{}
-	if err := json.Unmarshal(dataBytes, &metadata); err != nil {
+	decoder := json.NewDecoder(bytes.NewReader(dataBytes))
+	decoder.UseNumber()
+	if err := decoder.Decode(&metadata); err != nil {
 		return fmt.Errorf("failed to convert typed data to map: %w", err)
 	}
 
