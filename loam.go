@@ -67,9 +67,14 @@ func WithSystemDir(name string) Option {
 	return platform.WithSystemDir(name)
 }
 
-// WithEventBuffer allows specifying the size of the event broker buffer.
 func WithEventBuffer(size int) Option {
 	return platform.WithEventBuffer(size)
+}
+
+// WithSerializer registers a custom serializer for a specific extension.
+// The serializer must implement the adapter's Serializer interface.
+func WithSerializer(ext string, s any) Option {
+	return platform.WithSerializer(ext, s)
 }
 
 // --- Factory ---

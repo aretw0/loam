@@ -8,10 +8,11 @@ import (
 
 // options holds the internal configuration for the Loam service.
 type options struct {
-	repository core.Repository
-	logger     *slog.Logger
-	adapter    string
-	config     map[string]interface{}
+	repository  core.Repository
+	logger      *slog.Logger
+	adapter     string
+	config      map[string]interface{}
+	serializers map[string]any
 }
 
 // Option defines a functional option for configuring Loam.
@@ -20,10 +21,20 @@ type Option func(*options)
 // defaultOptions returns the default configuration.
 func defaultOptions() *options {
 	return &options{
-		repository: nil,
-		logger:     nil,
-		adapter:    "fs",
-		config:     make(map[string]interface{}),
+		repository:  nil,
+		logger:      nil,
+		adapter:     "fs",
+		config:      make(map[string]interface{}),
+		serializers: make(map[string]any),
+	}
+}
+
+// WithSerializer registers a custom serializer for a specific extension.
+// The serializer 's' must implement the adapter's Serializer interface (e.g. fs.Serializer).
+// Using 'any' keeps the public API clean, but validation happens at runtime during Init.
+func WithSerializer(ext string, s any) Option {
+	return func(o *options) {
+		o.serializers[ext] = s
 	}
 }
 

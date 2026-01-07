@@ -115,7 +115,21 @@ func initFS(path string, o *options) (core.Repository, error) {
 		SystemDir: systemDir,
 	}
 
-	return fs.NewRepository(repoConfig), nil
+	repo := fs.NewRepository(repoConfig)
+
+	// Register Custom Serializers
+	for ext, s := range o.serializers {
+		if serializer, ok := s.(fs.Serializer); ok {
+			repo.RegisterSerializer(ext, serializer)
+		} else {
+			if o.logger != nil {
+				o.logger.Warn("invalid serializer type ignored", "ext", ext, "expected", "fs.Serializer")
+			}
+			return nil, fmt.Errorf("serializer for %s must implement fs.Serializer", ext)
+		}
+	}
+
+	return repo, nil
 }
 
 // Sync synchronizes the vault at the given URI with its remote.
