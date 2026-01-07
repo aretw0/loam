@@ -278,6 +278,12 @@ srv, _ := loam.New("path/to/vault", loam.WithEventBuffer(1000))
 - **Caveat (False Positives)**: Strings que parecem JSON (ex: `"{foo}"`) podem ser interpretadas como objetos se não estiverem escapadas (ex: `"\"{foo}\""`). Em casos de ambiguidade, o parser favorece a estrutura.
 - **Concorrência**: A escrita em coleções (CSV) não possui locking de arquivo (flock). O uso concorrente por múltiplos processos pode resultar em perda de dados (Race Condition no ciclo Read-Modify-Write).
 
+### Strict JSON & Large Integers
+
+- O modo estrito (`strict: true`) preserva inteiros grandes usando `json.Number`.
+- **Limitação**: Ao usar Repositórios Tipados com modo estrito, **evite usar storage Markdown ou YAML**. O motivo é que os parsers desses formatos podem interpretar o tipo `json.Number` intermediário como string, causando erros de tipo (`expected int, got string`).
+- **Recomendação**: Para dados com alta fidelidade numérica (IDs, financeiro), use sempre a extensão **`.json`**.
+
 ## Status
 
 🚧 **Alpha**.

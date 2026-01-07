@@ -223,6 +223,15 @@ A fachada pública que simplifica o uso da biblioteca.
 - **Performance:** Reduz tempo de listagem de segundos para milissegundos (ex: 6s -> 13ms para 1k documentos).
 - **Caveat (Coleções):** Arquivos compostos (ex: CSV/JSON array) *não* possuem suas sub-entradas indexadas no cache. Eles são parseados sob demanda no `List`, o que pode impactar a performance se houverem grandes coleções.
 
+### 3. Strict JSON & Fidelidade de Tipos
+
+- **Problema:** O padrão JSON decodifica números como `float64`, causando perda de precisão em inteiros grandes (ex: IDs de 64-bits).
+- **Solução (Strict Mode):** O Adapter FS permite configurar `WithSerializer(".json", fs.NewJSONSerializer(true))`. Isso instrui o parser a usar `json.Number`.
+- **Interoperabilidade (Caveat):**
+  - **Native .json:** O `TypedRepository` lida transparentemente com `json.Number` <-> `int64`.
+  - **YAML/Markdown:** O decoder YAML padrão não entende `json.Number` preservado no mapa de metadados, convertendo-o frequentemente para `string`.
+  - **Best Practice:** Se sua aplicação exige **Fidelidade Estrita** (ex: Financeira, IDs grandes), prefira usar arquivos **`.json`** nativos em vez de Markdown/YAML para evitar ambiguidades de conversão.
+
 ### 3. Segurança (Dev Safety)
 
 - **Isolamento**: Em modo de desenvolvimento (`go run`, `go test`), o Loam redireciona automaticamente operações para um diretório temporário (`%TEMP%/loam-dev/`) para evitar sujar o repositório do usuário.
