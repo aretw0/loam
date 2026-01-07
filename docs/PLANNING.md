@@ -48,6 +48,13 @@
 - [ ] **Strict Mode / Schema Hints**: Permitir definir explicitamente se uma coluna deve ser tratada como JSON ou String, evitando heurísticas.
 - [ ] **Escape Mechanism**: Definir padrão para forçar string (ex: `'{"foo": "bar"}'`).
 
+## RFC 0.X.X: Smart YAML Serializer (Backlog)
+
+**Objetivo:** Suportar "Strict Fidelity" em arquivos YAML e Markdown, permitindo que `TypedRepository` funcione com `json.Number` sem erros de tipo.
+
+- [ ] **Sanitizer Middleware**: Implementar um passo de pré-processamento no Serializer YAML que percorre recursivamente mapas `map[string]any` e converte `json.Number` para `int64` ou `float64` *antes* de passar para o encoder YAML.
+- [ ] **Benefits**: Permite usar YAML/Markdown com Typed Repositories em modo estrito sem forçar o uso de `.json`.
+
 ## RFC 0.X.X: Library-Level Sync Strategies (Backlog)
 
 **Objetivo:** Permitir que toolmakers definam estratégias de sincronização não-bloqueantes ou customizadas, crucial para adapters distribuídos (S3, SQL) ou clientes "Offline-First".
