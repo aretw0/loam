@@ -34,7 +34,17 @@ func DefaultSerializers() map[string]Serializer {
 
 // --- JSON Serializer ---
 
-type JSONSerializer struct{}
+// JSONSerializer handles reading and writing JSON files.
+type JSONSerializer struct {
+	// Strict enables strict number parsing (as json.Number) to avoid precision loss.
+	Strict bool
+}
+
+// NewJSONSerializer creates a new JSON serializer.
+// Optional strict mode prevents float64 conversion for large integers.
+func NewJSONSerializer(strict bool) *JSONSerializer {
+	return &JSONSerializer{Strict: strict}
+}
 
 func (s *JSONSerializer) Parse(r io.Reader, metadataKey string) (*core.Document, error) {
 	data, err := io.ReadAll(r)
@@ -43,7 +53,11 @@ func (s *JSONSerializer) Parse(r io.Reader, metadataKey string) (*core.Document,
 	}
 
 	var payload map[string]interface{}
-	if err := json.Unmarshal(data, &payload); err != nil {
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	if s.Strict {
+		decoder.UseNumber()
+	}
+	if err := decoder.Decode(&payload); err != nil {
 		return nil, fmt.Errorf("invalid json: %w", err)
 	}
 
