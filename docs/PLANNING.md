@@ -41,6 +41,18 @@
 - [x] **Example: Strict JSON**: Atualizar exemplo para usar o modo built-in.
 - [x] **Validation**: Garantir type-check amigável se a interface incorreta for passada.
 
+## Fase 0.10.3: Strict Mode & Regression Tests (Completed)
+
+**Objetivo:** Garantir a fidelidade de dados numéricos em JSON via Strict Mode e documentar limitações de interoperabilidade.
+
+- [x] **Regression Tests**:
+  - [x] `TestJSONSerializer_Strict`: Verificar parsing de inteiros grandes.
+  - [x] `TestTypedRepository_StrictFidelity`: Verificar round-trip em Repositórios Tipados.
+- [x] **Documentation**:
+  - [x] Documentar limitação de Strict Mode com YAML/Markdown.
+  - [x] Criar exemplo reproduzível (`examples/limitations/strict_yaml_fidelity`).
+- [x] **Backlog**: Adicionar RFC para Smart YAML Serializer.
+
 ## RFC 0.X.X: CSV Improvements (Backlog)
 
 **Objetivo:** Resolver ambiguidades na detecção de tipos do CSV (False Positives de JSON).
