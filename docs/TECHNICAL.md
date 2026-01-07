@@ -209,6 +209,12 @@ A fachada pública que simplifica o uso da biblioteca.
 - **Smart Gitless:** O sistema detecta automaticamente se deve usar Git. Se `.git` não existir, mas `.loam` (system dir) existir, ele opera em modo "Gitless" (apenas FS), permitindo uso flexível em ambientes contêinerizados ou efêmeros.
 - **Semântica de Commit:** O adapter `fs` lê `commit_message` do `context.Context` (se Git estiver ativo).
 
+### 2. Smart CSV & Data Fidelity
+
+- **Problema:** O formato CSV é plano, mas aplicações modernas usam dados estruturados (JSON). Perder essa estrutura ao salvar em CSV (Type Erasure) quebra o conceito de "Fidelidade".
+- **Solução (Smart CSV):** O serializer CSV do Loam detecta automaticamente campos complexos (`map`, `slice`, `struct`) e os serializa como JSON stringificado dentro da célula CSV. Na leitura, ele faz o processo inverso (Unflattening) de forma transparente.
+- **Benefício:** Permite usar CSV para facilitar análise de dados (Excel/Pandas) sem perder a riqueza do modelo de domínio da aplicação.
+
 ### 2. Cache de Metadados
 
 - **Problema:** Listar milhares de arquivos lendo do disco é lento.

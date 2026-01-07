@@ -83,6 +83,13 @@ Por que usar o Loam em vez de `os.WriteFile` ou um Banco de Dados tradicional?
 - **Inteligência**: O Loam filtra ruídos, evita loops infinitos e normaliza eventos de diferentes sistemas operacionais.
 - **Robustez**: Um Broker de Eventos desacoplado garante que sua aplicação nunca trave, mesmo sob carga pesada.
 
+### 5. Data Fidelity (Smart Serializers)
+>
+> "O formato não define o dado."
+
+- **Smart CSV**: O Loam preserva automaticamente estruturas complexas (JSON aninhado em colunas CSV) sem que você precise gerenciar marshaling manual.
+- **Customização**: Estenda o sistema com seus próprios serializers se precisar de suporte a formatos proprietários.
+
 ## Objetivos
 
 1. **Centralizar a Persistência:** Abstrair operações de armazenamento e serialização para evitar duplicação de regras em diferentes ferramentas.
