@@ -3,3 +3,6 @@ loam.exe
 coverage
 examples/**/*.exe
 examples/recipes/cli_scripting/*/*.*
+
+.gemini/
+gha-creds-*.json
