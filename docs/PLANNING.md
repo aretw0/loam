@@ -32,6 +32,14 @@
 - [x] **Data Fidelity Examples**: Adicionar exemplos claros de estruturas aninhadas em CSV (`example_test.go`).
 - [x] **Docs Update**: Atualizar `PRODUCT.md` e `TECHNICAL.md` com detalhes sobre Smart CSV e Limitações.
 
+## Fase 0.10.2: DX & Custom Serializers (Completed)
+
+**Objetivo:** Facilitar a injeção de Serializers Customizados via Options (`loam.WithSerializer`) e documentar como criar "Strict Serializers" (ex: JSON numbers).
+
+- [x] **WithSerializer Option**: Adicionar suporte a `loam.WithSerializer` no builder.
+- [x] **Example: Strict JSON**: Criar exemplo/demo de um serializer customizado.
+- [x] **Validation**: Garantir type-check amigável se a interface incorreta for passada.
+
 ## RFC 0.X.X: CSV Improvements (Backlog)
 
 **Objetivo:** Resolver ambiguidades na detecção de tipos do CSV (False Positives de JSON).
