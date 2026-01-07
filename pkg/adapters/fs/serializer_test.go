@@ -2,6 +2,7 @@ package fs
 
 import (
 	"bytes"
+	"encoding/json"
 	"strings"
 	"testing"
 
@@ -142,4 +143,36 @@ foo,"[invalid_json"`
 			}
 		}
 	})
+}
+
+func TestJSONSerializer_Strict(t *testing.T) {
+	jsonContent := `{"big_id": 9223372036854775807}` // Max Int64
+	reader := strings.NewReader(jsonContent)
+
+	// 1. Strict Mode
+	strictSerializer := NewJSONSerializer(true)
+	doc, err := strictSerializer.Parse(reader, "")
+	if err != nil {
+		t.Fatalf("Strict Parse failed: %v", err)
+	}
+
+	val := doc.Metadata["big_id"]
+	// Should be json.Number
+	if _, ok := val.(json.Number); !ok {
+		t.Errorf("Strict Mode: Expected json.Number, got %T", val)
+	}
+
+	// 2. Loose Mode (Default)
+	reader.Reset(jsonContent)
+	looseSerializer := NewJSONSerializer(false)
+	docLoose, err := looseSerializer.Parse(reader, "")
+	if err != nil {
+		t.Fatalf("Loose Parse failed: %v", err)
+	}
+
+	valLoose := docLoose.Metadata["big_id"]
+	// Should be float64
+	if _, ok := valLoose.(float64); !ok {
+		t.Errorf("Loose Mode: Expected float64, got %T", valLoose)
+	}
 }

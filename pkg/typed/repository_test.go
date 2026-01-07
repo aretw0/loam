@@ -41,7 +41,7 @@ func TestTypedRepository(t *testing.T) {
 
 	// 1. Test Save
 	user := &typed.DocumentModel[UserProfile]{
-		ID:      "users/alice",
+		ID:      "users/alice.json",
 		Content: "Bio: generic profile",
 		Data: UserProfile{
 			Name:  "Alice",
@@ -55,7 +55,7 @@ func TestTypedRepository(t *testing.T) {
 	}
 
 	// 2. Test Get
-	retrieved, err := userRepo.Get(ctx, "users/alice")
+	retrieved, err := userRepo.Get(ctx, "users/alice.json")
 	if err != nil {
 		t.Fatalf("Get failed: %v", err)
 	}
@@ -70,7 +70,7 @@ func TestTypedRepository(t *testing.T) {
 	// 3. Test List
 	// Add another user
 	bob := &typed.DocumentModel[UserProfile]{
-		ID: "users/bob",
+		ID: "users/bob.json",
 		Data: UserProfile{
 			Name: "Bob",
 			Age:  25,
@@ -101,5 +101,52 @@ func TestTypedRepository(t *testing.T) {
 
 	if !foundAlice || !foundBob {
 		t.Errorf("List missing users. Found: %+v", list)
+	}
+}
+
+type FidelityData struct {
+	BigID int64 `json:"big_id"`
+}
+
+func TestTypedRepository_StrictFidelity(t *testing.T) {
+	// Custom setup to inject Strict Serializer
+	tmpDir := t.TempDir()
+	fsConfig := fs.Config{
+		Path:      tmpDir,
+		Gitless:   true,
+		SystemDir: ".loam",
+	}
+
+	repo := fs.NewRepository(fsConfig)
+	// Register Strict JSON
+	repo.RegisterSerializer(".json", fs.NewJSONSerializer(true))
+
+	if err := repo.Initialize(context.Background()); err != nil {
+		t.Fatalf("failed to init repo: %v", err)
+	}
+
+	typedRepo := typed.NewRepository[FidelityData](repo)
+	ctx := context.Background()
+
+	original := &typed.DocumentModel[FidelityData]{
+		ID: "data/fidelity.json",
+		Data: FidelityData{
+			BigID: 9223372036854775807, // Max Int64
+		},
+	}
+
+	// Save
+	if err := typedRepo.Save(ctx, original); err != nil {
+		t.Fatalf("Save failed: %v", err)
+	}
+
+	// Retrieve
+	got, err := typedRepo.Get(ctx, "data/fidelity.json")
+	if err != nil {
+		t.Fatalf("Get failed: %v", err)
+	}
+
+	if got.Data.BigID != original.Data.BigID {
+		t.Errorf("Fidelity Loss! Want %d, Got %d", original.Data.BigID, got.Data.BigID)
 	}
 }
