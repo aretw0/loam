@@ -97,3 +97,57 @@ func ExampleNewTypedRepository() {
 	// Output:
 	// User Name: Alice
 }
+
+// Example_csvNestedData demonstrates Loam's "Smart CSV" capability,
+// which automatically handles nested structures (like maps or slices)
+// by serializing them as JSON within the CSV column.
+func Example_csvNestedData() {
+	// Setup: Temporary repository
+	tmpDir, err := os.MkdirTemp("", "loam-csv-example-*")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	repo, err := loam.Init(filepath.Join(tmpDir, "vault"), loam.WithAutoInit(true))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	type Metrics struct {
+		Host string            `json:"host"`
+		Tags map[string]string `json:"tags"` // Nested Map
+		Load []int             `json:"load"` // Nested Slice
+	}
+
+	metricsRepo := loam.NewTypedRepository[Metrics](repo)
+	ctx := context.Background()
+
+	// 1. Save complex data to CSV
+	err = metricsRepo.Save(ctx, &loam.DocumentModel[Metrics]{
+		ID: "metrics/server-01.csv", // .csv extension triggers CSV adapter
+		Data: Metrics{
+			Host: "server-01",
+			Tags: map[string]string{"env": "prod", "region": "us-east"},
+			Load: []int{10, 20, 15},
+		},
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// 2. Read it back
+	// Loam automatically parses the JSON strings inside the CSV back into Maps and Slices.
+	doc, err := metricsRepo.Get(ctx, "metrics/server-01.csv")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Printf("Host: %s\n", doc.Data.Host)
+	fmt.Printf("Tag Region: %s\n", doc.Data.Tags["region"])
+	fmt.Printf("Load: %v\n", doc.Data.Load)
+	// Output:
+	// Host: server-01
+	// Tag Region: us-east
+	// Load: [10 20 15]
+}
