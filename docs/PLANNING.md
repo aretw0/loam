@@ -18,7 +18,7 @@
   - [x] Converter eventos brutos (`core.Event`) para algo útil no contexto tipado (se necessário) ou apenas expor o sinal.
 - [x] **Integration Tests**: Garantir que uma mudança no disco dispare um evento capturável por um consumidor `typed`.
 
-## Fase 0.10.0: Data Fidelity & Serializers (Current)
+## Fase 0.10.0: Data Fidelity & Serializers (Completed)
 
 **Objetivo:** Melhorar a fidelidade dos dados serializados, especialmente para formatos como CSV que hoje sofrem com Type Erasure em estruturas aninhadas.
 
