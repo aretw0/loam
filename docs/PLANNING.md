@@ -37,7 +37,8 @@
 **Objetivo:** Facilitar a injeção de Serializers Customizados via Options (`loam.WithSerializer`) e documentar como criar "Strict Serializers" (ex: JSON numbers).
 
 - [x] **WithSerializer Option**: Adicionar suporte a `loam.WithSerializer` no builder.
-- [x] **Example: Strict JSON**: Criar exemplo/demo de um serializer customizado.
+- [x] **Built-in Strict JSON Mode**: Refatorar `fs` para suportar `NewJSONSerializer(true)`.
+- [x] **Example: Strict JSON**: Atualizar exemplo para usar o modo built-in.
 - [x] **Validation**: Garantir type-check amigável se a interface incorreta for passada.
 
 ## RFC 0.X.X: CSV Improvements (Backlog)
