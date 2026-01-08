@@ -25,7 +25,7 @@ The project is structured into several main parts:
   * `adapters/`: The `fs` adapter, which implements the storage logic on top of the file system and Git.
   * `git/`: A Git client wrapper.
   * `typed/`: The generic (typed) repository and service.
-* `cmd/loam/`: The CLI implementation, using the Cobra library. Each command is in its own file.
+* `cmd/loam/`: The CLI implementation.
 * `internal/`: Internal platform-specific code.
 * `examples/`: A rich collection of examples demonstrating various features and use cases.
 * `tests/`: End-to-end, integration, and stress tests.
@@ -78,8 +78,7 @@ go install github.com/aretw0/loam/cmd/loam@latest
 
 ## Development Conventions
 
-* **CLI:** The CLI is built with [Cobra](https://github.com/spf13/cobra). Commands are organized into separate files in the `cmd/loam` directory.
-* **Logging:** The project uses the standard `log/slog` library for structured logging.
-* **Testing:** The project has a comprehensive test suite using the standard `testing` package and [testify](https://github.com/stretchr/testify) for assertions. Tests are located in the same package as the code they test (`_test.go` files) and also in the `/tests` directory for end-to-end and integration tests.
-* **Versioning:** Changes are versioned using Git. The library's `Save` operations create a commit for each change. Commit messages are structured and can be customized.
-* **Dependencies:** Go modules are used for dependency management.
+* **CLI:** Built with [Cobra](https://github.com/spf13/cobra). Maintain one file per command.
+* **Logging:** Use `log/slog` for structured logging.
+* **Testing:** Use standard `testing` and [testify](https://github.com/stretchr/testify). Unit tests go in `_test.go` files; integration tests go in `tests/`.
+* **Git:** Commits must be **atomic** and **semantic**. Ensure each commit focuses on a single logical change with a descriptive message.
