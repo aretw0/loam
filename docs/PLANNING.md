@@ -62,26 +62,25 @@
 - [x] **Smart Accessors**: (Opcional) Helpers para acesso seguro a `map[string]any` em Documentos Tipados.
 - [x] **YAML Serializer Compatibility**: Garantir que gravar `json.Number` em YAML funcione corretamente (Sanitizer).
 
-## RFC 0.X.X: Hardening & Scalability (Backlog)
+## RFC 0.X.X: Robust Watcher & Error Handling (Backlog)
 
- **Objetivo:** Endereçar riscos de "esqueletos no armário" identificados em auditorias (race conditions e heurísticas frágeis).
+ **Objetivo:** Endereçar riscos de concorrência e visibilidade de erros identificados na auditoria (Sober Review).
 
 - [ ] **Robust Watcher (Concurrency)**:
   - [ ] Remover janela de `ignoreMap` (2s) fixa e usar IDs de transação ou hashes para ignorar self-writes com precisão.
   - [ ] Mitigar risco de "echo" em sistemas lentos.
-- [ ] **Strict CSV Field Control**:
-  - [ ] Permitir desabilitar a heurística agressiva de JSON-in-CSV por coluna.
-  - [ ] Evitar que textos como `"{ nota: ... }"` quebrem o parser silenciosamente.
 - [ ] **Error Visibility**:
   - [ ] Expor erros de resolução de path no Watcher (hoje engolidos) via canal de erros opcional.
 
-## RFC 0.X.X: CSV Improvements (Backlog)
+## RFC 0.X.X: Robust CSV & Schema Control (Backlog)
 
-**Objetivo:** Resolver ambiguidades na detecção de tipos do CSV (False Positives de JSON).
+ **Objetivo:** Resolver ambiguidades na detecção de tipos do CSV e permitir controle explícito (Hardening).
 
-- [ ] **Strict Mode / Schema Hints**: Permitir definir explicitamente se uma coluna deve ser tratada como JSON ou String, evitando heurísticas.
-  - *Nota*: O `Strict Mode` global (0.10.4) já garante que números dentro de objetos JSON aninhados sejam preservados (`int64` vs `float64`), mas não resolve a ambiguidade de *parsing* inicial (strings que parecem JSON).
-- [ ] **Escape Mechanism**: Definir padrão para forçar string (ex: `'{"foo": "bar"}'`).
+- [ ] **Disable Heuristics (Strict Field Control)**:
+  - [ ] Permitir desabilitar o parsing automático de JSON por coluna (evita falsos positivos como `"{ nota: ... }"`).
+  - [ ] Mecanismo de Escape padrão para forçar string (ex: `'{"foo": "bar"}'`).
+- [ ] **Schema Hints (Explicit Types)**:
+  - [ ] Permitir definir explicitamente se uma coluna deve ser tratada como JSON ou String.
 
 ## RFC 0.X.X: Library-Level Sync Strategies (Backlog)
 
