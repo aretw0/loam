@@ -115,11 +115,10 @@ func TestTypedRepository_StrictFidelity(t *testing.T) {
 		Path:      tmpDir,
 		Gitless:   true,
 		SystemDir: ".loam",
+		Strict:    true,
 	}
 
 	repo := fs.NewRepository(fsConfig)
-	// Register Strict JSON
-	repo.RegisterSerializer(".json", fs.NewJSONSerializer(true))
 
 	if err := repo.Initialize(context.Background()); err != nil {
 		t.Fatalf("failed to init repo: %v", err)
@@ -141,7 +140,7 @@ func TestTypedRepository_StrictFidelity(t *testing.T) {
 	}
 
 	// Retrieve
-	got, err := typedRepo.Get(ctx, "data/fidelity.json")
+	got, err := typedRepo.Get(ctx, "data/fidelity")
 	if err != nil {
 		t.Fatalf("Get failed: %v", err)
 	}
