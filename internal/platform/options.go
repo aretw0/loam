@@ -107,3 +107,12 @@ func WithEventBuffer(size int) Option {
 		o.config["event_buffer"] = size
 	}
 }
+
+// WithStrict enables strict mode for all default serializers.
+// When enabled, numbers in JSON/YAML/Markdown will be parsed as json.Number (string based)
+// to preserve precision of large integers.
+func WithStrict(strict bool) Option {
+	return func(o *options) {
+		o.config["strict"] = strict
+	}
+}
