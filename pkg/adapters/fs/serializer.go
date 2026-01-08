@@ -22,13 +22,13 @@ type Serializer interface {
 }
 
 // DefaultSerializers returns the standard set of serializers.
-func DefaultSerializers() map[string]Serializer {
+func DefaultSerializers(strict bool) map[string]Serializer {
 	return map[string]Serializer{
-		".json": &JSONSerializer{},
-		".yaml": &YAMLSerializer{},
-		".yml":  &YAMLSerializer{},
-		".csv":  &CSVSerializer{},
-		".md":   &MarkdownSerializer{},
+		".json": NewJSONSerializer(strict),
+		".yaml": NewYAMLSerializer(strict),
+		".yml":  NewYAMLSerializer(strict),
+		".csv":  NewCSVSerializer(strict),
+		".md":   NewMarkdownSerializer(strict),
 	}
 }
 
@@ -101,7 +101,16 @@ func (s *JSONSerializer) Serialize(doc core.Document, metadataKey string) ([]byt
 
 // --- YAML Serializer ---
 
-type YAMLSerializer struct{}
+type YAMLSerializer struct {
+	// Strict enables strict number parsing (as json.Number) to avoid precision loss.
+	Strict bool
+}
+
+// NewYAMLSerializer creates a new YAML serializer.
+// Optional strict mode prevents float64 conversion for large integers.
+func NewYAMLSerializer(strict bool) *YAMLSerializer {
+	return &YAMLSerializer{Strict: strict}
+}
 
 func (s *YAMLSerializer) Parse(r io.Reader, metadataKey string) (*core.Document, error) {
 	data, err := io.ReadAll(r)
@@ -131,6 +140,10 @@ func (s *YAMLSerializer) Parse(r io.Reader, metadataKey string) (*core.Document,
 		}
 	}
 
+	if s.Strict {
+		doc.Metadata = recursiveNormalize(doc.Metadata).(core.Metadata)
+	}
+
 	return doc, nil
 }
 
@@ -154,7 +167,16 @@ func (s *YAMLSerializer) Serialize(doc core.Document, metadataKey string) ([]byt
 
 // --- Markdown Serializer ---
 
-type MarkdownSerializer struct{}
+type MarkdownSerializer struct {
+	// Strict enables strict number parsing (as json.Number) to avoid precision loss.
+	Strict bool
+}
+
+// NewMarkdownSerializer creates a new Markdown serializer.
+// Optional strict mode prevents float64 conversion for large integers.
+func NewMarkdownSerializer(strict bool) *MarkdownSerializer {
+	return &MarkdownSerializer{Strict: strict}
+}
 
 func (s *MarkdownSerializer) Parse(r io.Reader, metadataKey string) (*core.Document, error) {
 	data, err := io.ReadAll(r)
@@ -185,6 +207,10 @@ func (s *MarkdownSerializer) Parse(r io.Reader, metadataKey string) (*core.Docum
 	doc.Content = strings.TrimPrefix(string(contentData), "\n")
 	doc.Content = strings.TrimPrefix(doc.Content, "\r\n")
 
+	if s.Strict {
+		doc.Metadata = recursiveNormalize(doc.Metadata).(core.Metadata)
+	}
+
 	return doc, nil
 }
 
@@ -206,7 +232,16 @@ func (s *MarkdownSerializer) Serialize(doc core.Document, metadataKey string) ([
 
 // --- CSV Serializer ---
 
-type CSVSerializer struct{}
+type CSVSerializer struct {
+	// Strict enables strict number parsing (as json.Number) to avoid precision loss.
+	Strict bool
+}
+
+// NewCSVSerializer creates a new CSV serializer.
+// Optional strict mode prevents float64 conversion for large integers.
+func NewCSVSerializer(strict bool) *CSVSerializer {
+	return &CSVSerializer{Strict: strict}
+}
 
 func (s *CSVSerializer) Parse(r io.Reader, metadataKey string) (*core.Document, error) {
 	// CSV parsing for a SINGLE document usually implies reading the *first row*?
@@ -240,12 +275,15 @@ func (s *CSVSerializer) Parse(r io.Reader, metadataKey string) (*core.Document, 
 		if strings.EqualFold(h, "content") {
 			doc.Content = val
 		} else {
-			// Smart JSON Detection
-			// If it looks like JSON, try to unmarshal it.
 			valTrimmed := strings.TrimSpace(val)
-			doc.Metadata[h] = UnmarshalCSVValue(valTrimmed)
+			doc.Metadata[h] = UnmarshalCSVValue(valTrimmed, s.Strict)
 		}
 	}
+
+	if s.Strict {
+		doc.Metadata = recursiveNormalize(doc.Metadata).(core.Metadata)
+	}
+
 	return doc, nil
 }
 
@@ -289,12 +327,16 @@ func (s *CSVSerializer) Serialize(doc core.Document, metadataKey string) ([]byte
 // CAVEAT: This uses a heuristic (starts/ends with {} or []). It is possible for a raw string
 // that happens to be valid JSON (e.g. "{foo}") to be interpreted as an object.
 // Use with caution if your domain allows strings that mimic JSON structure.
-func UnmarshalCSVValue(val string) interface{} {
+func UnmarshalCSVValue(val string, strict bool) interface{} {
 	valTrimmed := strings.TrimSpace(val)
 	if (strings.HasPrefix(valTrimmed, "{") && strings.HasSuffix(valTrimmed, "}")) ||
 		(strings.HasPrefix(valTrimmed, "[") && strings.HasSuffix(valTrimmed, "]")) {
 		var parsed interface{}
-		if err := json.Unmarshal([]byte(val), &parsed); err == nil {
+		decoder := json.NewDecoder(strings.NewReader(val))
+		if strict {
+			decoder.UseNumber()
+		}
+		if err := decoder.Decode(&parsed); err == nil {
 			return parsed
 		}
 	}
@@ -313,4 +355,43 @@ func MarshalCSVValue(v interface{}) string {
 	}
 	// Fallback
 	return fmt.Sprintf("%v", v)
+}
+
+// recursiveNormalize traverses the map/slice and converts numeric types to json.Number.
+// This ensures consistency with JSON Strict mode.
+func recursiveNormalize(val interface{}) interface{} {
+	switch v := val.(type) {
+	case core.Metadata:
+		// Convert to map[string]interface{} for processing, then cast back if needed?
+		// Actually core.Metadata IS map[string]interface{}
+		m := make(core.Metadata)
+		for k, val := range v {
+			m[k] = recursiveNormalize(val)
+		}
+		return m
+	case map[string]interface{}:
+		m := make(map[string]interface{})
+		for k, val := range v {
+			m[k] = recursiveNormalize(val)
+		}
+		return m
+	case []interface{}:
+		l := make([]interface{}, len(v))
+		for i, val := range v {
+			l[i] = recursiveNormalize(val)
+		}
+		return l
+	case int:
+		return json.Number(fmt.Sprintf("%d", v))
+	case int64:
+		return json.Number(fmt.Sprintf("%d", v))
+	case float64:
+		// Format without scientific notation if possible for integers, but with decimals for floats.
+		// -1 precision uses the smallest number of digits necessary.
+		return json.Number(fmt.Sprintf("%v", v))
+	case int32:
+		return json.Number(fmt.Sprintf("%d", v))
+	default:
+		return v
+	}
 }

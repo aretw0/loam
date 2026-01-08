@@ -45,6 +45,7 @@ type Config struct {
 	SystemDir   string            // e.g. ".loam"
 	IDMap       map[string]string // Map filename -> ID column name (e.g. "users.csv": "email"). User must ensure uniqueness of values in this column.
 	MetadataKey string            // If set, metadata will be nested under this key in JSON/YAML (e.g. "meta" or "frontmatter"). Contents will be in "content" (unless empty).
+	Strict      bool              // If true, enforces strict type fidelity (e.g. json.Number) across all serializers.
 }
 
 // NewRepository creates a new filesystem-backed repository.
@@ -54,7 +55,7 @@ func NewRepository(config Config) *Repository {
 		git:         git.NewClient(config.Path, config.SystemDir+".lock", config.Logger),
 		config:      config,
 		cache:       newCache(config.Path, config.SystemDir),
-		serializers: DefaultSerializers(),
+		serializers: DefaultSerializers(config.Strict),
 	}
 }
 
@@ -890,7 +891,7 @@ func (r *Repository) getFromCollection(id string) (core.Document, error) {
 					if strings.ToLower(h) == "content" {
 						doc.Content = val
 					} else {
-						doc.Metadata[h] = UnmarshalCSVValue(val)
+						doc.Metadata[h] = UnmarshalCSVValue(val, r.config.Strict)
 					}
 				}
 				return doc, nil
@@ -1113,7 +1114,7 @@ func (r *Repository) flattenCollection(fullPath, relPath string) ([]core.Documen
 			if strings.ToLower(h) == "content" {
 				doc.Content = val
 			} else {
-				doc.Metadata[h] = UnmarshalCSVValue(val)
+				doc.Metadata[h] = UnmarshalCSVValue(val, r.config.Strict)
 			}
 		}
 		docs = append(docs, doc)
@@ -1264,7 +1265,7 @@ func IsGitInstalled() bool {
 // OR just remove it if it's internal package. It is Exported.
 // To be safe, let's reimplement it using the new registry.
 func ParseDocument(r io.Reader, ext, metadataKey string) (*core.Document, error) {
-	defaults := DefaultSerializers()
+	defaults := DefaultSerializers(false)
 	s, ok := defaults[ext]
 	if !ok {
 		// Fallback to markdown if unknown, matching old behavior
@@ -1277,7 +1278,7 @@ func ParseDocument(r io.Reader, ext, metadataKey string) (*core.Document, error)
 // Exposed for reuse if needed.
 // DEPRECATED: Use Serializer interface instead.
 func SerializeDocument(doc core.Document, ext, metadataKey string) ([]byte, error) {
-	defaults := DefaultSerializers()
+	defaults := DefaultSerializers(false)
 	s, ok := defaults[ext]
 	if !ok {
 		s = defaults[".md"]

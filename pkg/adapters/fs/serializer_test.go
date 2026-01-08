@@ -23,7 +23,7 @@ func TestSerializers(t *testing.T) {
 		},
 	}
 
-	serializers := DefaultSerializers()
+	serializers := DefaultSerializers(false)
 
 	tests := []struct {
 		ext string
@@ -174,5 +174,134 @@ func TestJSONSerializer_Strict(t *testing.T) {
 	// Should be float64
 	if _, ok := valLoose.(float64); !ok {
 		t.Errorf("Loose Mode: Expected float64, got %T", valLoose)
+	} else if valLoose.(float64) != 9223372036854775807 {
+		t.Errorf("Loose Mode: Precision loss in JSON! Want %d, got %f", 9223372036854775807, valLoose.(float64))
+	}
+}
+
+func TestYAMLSerializer_Strict(t *testing.T) {
+	yamlContent := "big_id: 9223372036854775807\nprice: 10.50"
+	reader := strings.NewReader(yamlContent)
+
+	// 1. Strict Mode
+	s := NewYAMLSerializer(true)
+	doc, err := s.Parse(reader, "")
+	if err != nil {
+		t.Fatalf("Strict Parse failed: %v", err)
+	}
+
+	// Verify Int64 -> json.Number
+	val := doc.Metadata["big_id"]
+	if n, ok := val.(json.Number); !ok {
+		t.Errorf("Strict Mode (Int): Expected json.Number, got %T", val)
+	} else if n.String() != "9223372036854775807" {
+		t.Errorf("Strict Mode (Int): Precision loss! Want %s, got %s", "9223372036854775807", n.String())
+	}
+
+	// Verify Float -> json.Number
+	valFloat := doc.Metadata["price"]
+	if _, ok := valFloat.(json.Number); !ok {
+		t.Errorf("Strict Mode (Float): Expected json.Number, got %T", valFloat)
+	} else if valFloat.(json.Number).String() != "10.5" {
+		t.Errorf("Strict Mode (Float): Precision loss! Want %s, got %s", "10.5", valFloat.(json.Number).String())
+	}
+
+	// 2. Loose Mode (Default)
+	reader.Reset(yamlContent)
+	sLoose := NewYAMLSerializer(false)
+	docLoose, err := sLoose.Parse(reader, "")
+	if err != nil {
+		t.Fatalf("Loose Parse failed: %v", err)
+	}
+
+	// Verify Int -> int/int64 (YAML parser specific, likely int or int64)
+	valLoose := docLoose.Metadata["big_id"]
+	switch valLoose.(type) {
+	case int:
+		// OK
+	case int64:
+		// OK
+	case float64:
+		// OK but check value
+		if valLoose != 9223372036854775807 {
+			t.Errorf("Loose Mode (Int): Precision loss! Want %d, got %d", 9223372036854775807, valLoose)
+		}
+	default:
+		t.Errorf("Loose Mode: Expected native number type, got %T", valLoose)
+	}
+}
+
+func TestMarkdownSerializer_Strict(t *testing.T) {
+	mdContent := `---
+count: 9223372036854775807
+score: 99.9
+---
+# Hello
+`
+	reader := strings.NewReader(mdContent)
+
+	// 1. Strict Mode
+	s := NewMarkdownSerializer(true)
+	doc, err := s.Parse(reader, "")
+	if err != nil {
+		t.Fatalf("Strict Parse failed: %v", err)
+	}
+
+	if n, ok := doc.Metadata["count"].(json.Number); !ok {
+		t.Errorf("Strict Mode: Expected json.Number for 'count', got %T", doc.Metadata["count"])
+	} else if n.String() != "9223372036854775807" {
+		t.Errorf("Strict Mode: Precision loss in Markdown! Want %s, got %s", "9223372036854775807", n.String())
+	}
+
+	if _, ok := doc.Metadata["score"].(json.Number); !ok {
+		t.Errorf("Strict Mode: Expected json.Number for 'score', got %T", doc.Metadata["score"])
+	} else if doc.Metadata["score"].(json.Number).String() != "99.9" {
+		t.Errorf("Strict Mode: Precision loss in Markdown! Want %s, got %s", "99.9", doc.Metadata["score"].(json.Number).String())
+	}
+}
+
+func TestCSVSerializer_Strict(t *testing.T) {
+	// Value is MaxInt64 (9223372036854775807), which loses precision as float64
+	csvContent := `content,val
+foo,"{""big_id"": 9223372036854775807}"`
+
+	reader := strings.NewReader(csvContent)
+
+	// 1. Strict Mode
+	s := NewCSVSerializer(true)
+	doc, err := s.Parse(reader, "")
+	if err != nil {
+		t.Fatalf("Strict Parse failed: %v", err)
+	}
+
+	// Verify the nested JSON was parsed with number fidelity
+	valMap, ok := doc.Metadata["val"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("Expected map[string]interface{}, got %T", doc.Metadata["val"])
+	}
+
+	bigID := valMap["big_id"]
+	if n, ok := bigID.(json.Number); !ok {
+		t.Errorf("Strict Mode: Expected json.Number for nested 'big_id', got %T (Value: %v)", bigID, bigID)
+	} else if n.String() != "9223372036854775807" {
+		t.Errorf("Strict Mode: Precision loss in CSV! Want %s, got %s", "9223372036854775807", n.String())
+	}
+
+	// 2. Loose Mode (Default)
+	reader.Reset(csvContent)
+	sLoose := NewCSVSerializer(false)
+	docLoose, err := sLoose.Parse(reader, "")
+	if err != nil {
+		t.Fatalf("Loose Parse failed: %v", err)
+	}
+
+	valMapLoose := docLoose.Metadata["val"].(map[string]interface{})
+	bigIDLoose := valMapLoose["big_id"]
+
+	// Should be float64 in loose mode
+	if _, ok := bigIDLoose.(float64); !ok {
+		t.Errorf("Loose Mode: Expected float64, got %T", bigIDLoose)
+	} else if bigIDLoose.(float64) != 9223372036854775807 {
+		t.Errorf("Loose Mode: Precision loss in CSV! Want %d, got %f", 9223372036854775807, bigIDLoose.(float64))
 	}
 }
