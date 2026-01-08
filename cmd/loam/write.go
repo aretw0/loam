@@ -74,6 +74,7 @@ var writeCmd = &cobra.Command{
 		opts := []loam.Option{
 			loam.WithAdapter(adapter),
 			loam.WithLogger(slog.Default()),
+			loam.WithStrict(strict),
 		}
 
 		// Only force versioning config if the flag was explicitly set.

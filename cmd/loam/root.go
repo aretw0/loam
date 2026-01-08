@@ -12,6 +12,7 @@ var (
 	verbose bool
 	nover   bool
 	adapter string
+	strict  bool
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -47,4 +48,5 @@ func init() {
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Enable verbose logging")
 	rootCmd.PersistentFlags().BoolVar(&nover, "nover", false, "Run in no-versioning mode (no git operations)")
 	rootCmd.PersistentFlags().StringVar(&adapter, "adapter", "fs", "Storage adapter to use (fs)")
+	rootCmd.PersistentFlags().BoolVar(&strict, "strict", false, "Enable strict type checking (preserves numeric fidelity)")
 }

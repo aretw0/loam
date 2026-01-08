@@ -48,6 +48,7 @@ var readCmd = &cobra.Command{
 			loam.WithAdapter(adapter),
 			loam.WithVersioning(useVersioning),
 			loam.WithMustExist(true),
+			loam.WithStrict(strict),
 			loam.WithLogger(slog.Default()),
 		)
 		if err != nil {
