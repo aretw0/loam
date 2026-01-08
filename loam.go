@@ -71,6 +71,13 @@ func WithEventBuffer(size int) Option {
 	return platform.WithEventBuffer(size)
 }
 
+// WithStrict enables strict mode for all default serializers.
+// When enabled, numbers in JSON/YAML/Markdown will be parsed as json.Number (string based)
+// to preserve precision of large integers.
+func WithStrict(strict bool) Option {
+	return platform.WithStrict(strict)
+}
+
 // WithSerializer registers a custom serializer for a specific extension.
 // The serializer must implement the adapter's Serializer interface.
 func WithSerializer(ext string, s any) Option {
