@@ -116,3 +116,12 @@ func WithStrict(strict bool) Option {
 		o.config["strict"] = strict
 	}
 }
+
+// WithWatcherErrorHandler registers a callback to handle errors occurring during the Watch loop.
+// This allows applications to log or react to runtime watcher failures (e.g. permission denied)
+// which are otherwise only logged.
+func WithWatcherErrorHandler(fn func(error)) Option {
+	return func(o *options) {
+		o.config["watcher_error_handler"] = fn
+	}
+}

@@ -57,6 +57,7 @@ func initFS(path string, o *options) (core.Repository, error) {
 	mustExist, _ := o.config["must_exist"].(bool)
 	strict, _ := o.config["strict"].(bool)
 	systemDir, _ := o.config["system_dir"].(string)
+	errorHandler, _ := o.config["watcher_error_handler"].(func(error))
 
 	// Safety & Path Resolution
 	useTemp := tempDir || IsDevRun()
@@ -108,13 +109,14 @@ func initFS(path string, o *options) (core.Repository, error) {
 	}
 
 	repoConfig := fs.Config{
-		Path:      resolvedPath,
-		AutoInit:  autoInit,
-		Gitless:   gitless,
-		MustExist: mustExist || (!autoInit && !useTemp),
-		Strict:    strict,
-		Logger:    o.logger,
-		SystemDir: systemDir,
+		Path:         resolvedPath,
+		AutoInit:     autoInit,
+		Gitless:      gitless,
+		MustExist:    mustExist || (!autoInit && !useTemp),
+		Strict:       strict,
+		Logger:       o.logger,
+		SystemDir:    systemDir,
+		ErrorHandler: errorHandler,
 	}
 
 	repo := fs.NewRepository(repoConfig)

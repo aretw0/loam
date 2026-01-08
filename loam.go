@@ -84,6 +84,11 @@ func WithSerializer(ext string, s any) Option {
 	return platform.WithSerializer(ext, s)
 }
 
+// WithWatcherErrorHandler registers a callback to handle errors occurring during the Watch loop.
+func WithWatcherErrorHandler(fn func(error)) Option {
+	return platform.WithWatcherErrorHandler(fn)
+}
+
 // --- Factory ---
 
 // New creates a new Loam Service.

@@ -3,7 +3,9 @@ package fs
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/csv"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"log/slog"
@@ -37,15 +39,16 @@ type Repository struct {
 
 // Config holds the configuration for the filesystem repository.
 type Config struct {
-	Path        string
-	AutoInit    bool
-	Gitless     bool
-	MustExist   bool
-	Logger      *slog.Logger
-	SystemDir   string            // e.g. ".loam"
-	IDMap       map[string]string // Map filename -> ID column name (e.g. "users.csv": "email"). User must ensure uniqueness of values in this column.
-	MetadataKey string            // If set, metadata will be nested under this key in JSON/YAML (e.g. "meta" or "frontmatter"). Contents will be in "content" (unless empty).
-	Strict      bool              // If true, enforces strict type fidelity (e.g. json.Number) across all serializers.
+	Path         string
+	AutoInit     bool
+	Gitless      bool
+	MustExist    bool
+	Logger       *slog.Logger
+	SystemDir    string            // e.g. ".loam"
+	IDMap        map[string]string // Map filename -> ID column name (e.g. "users.csv": "email"). User must ensure uniqueness of values in this column.
+	MetadataKey  string            // If set, metadata will be nested under this key in JSON/YAML (e.g. "meta" or "frontmatter"). Contents will be in "content" (unless empty).
+	Strict       bool              // If true, enforces strict type fidelity (e.g. json.Number) across all serializers.
+	ErrorHandler func(error)       // Optional callback for handling runtime watcher errors.
 }
 
 // NewRepository creates a new filesystem-backed repository.
@@ -305,6 +308,13 @@ func (r *Repository) Watch(ctx context.Context, pattern string) (<-chan core.Eve
 
 				id, err := r.resolveID(event.Name)
 				if err != nil {
+					if r.config.ErrorHandler != nil {
+						r.config.ErrorHandler(fmt.Errorf("failed to resolve ID for %s: %w", event.Name, err))
+					} else if r.config.Logger != nil {
+						// Existing Logger fallback (already does debug above, but maybe error here?)
+						// resolveID error usually means path is outside vault, which shouldn't happen if watcher set up right.
+						r.config.Logger.Debug("resolveID failed", "path", event.Name, "err", err)
+					}
 					continue
 				}
 
@@ -326,6 +336,10 @@ func (r *Repository) Watch(ctx context.Context, pattern string) (<-chan core.Eve
 				}
 				if r.config.Logger != nil {
 					r.config.Logger.Error("fsnotify error", "error", err)
+				}
+				// Callback
+				if r.config.ErrorHandler != nil {
+					r.config.ErrorHandler(err)
 				}
 			}
 		}
@@ -530,8 +544,47 @@ func (r *Repository) shouldIgnore(event fsnotify.Event, pattern string) bool {
 	}
 
 	// 3. Check Ignore Map (Self-Modification)
-	if _, ok := r.ignoreMap.Load(event.Name); ok {
-		return true
+	if val, ok := r.ignoreMap.Load(event.Name); ok {
+		// It's in the map. Attempt to verify if it is indeed the same content.
+		// If we can't read the file (e.g. deleted), we assume it matched (event about deletion/rename of ignored file).
+		// But here we are mostly concerned with Write events (echoes).
+
+		if event.Has(fsnotify.Write) || event.Has(fsnotify.Create) {
+			expectedHash, ok := val.(string)
+			if ok {
+				// Read file to verify hash
+				content, err := os.ReadFile(event.Name)
+				if err == nil {
+					currentHash := sha256.Sum256(content)
+					currentHashStr := hex.EncodeToString(currentHash[:])
+
+					if currentHashStr == expectedHash {
+						// It matches! It is our write.
+						// Remove from map (job done) and Ignore.
+						r.ignoreMap.Delete(event.Name)
+						return true
+					}
+					// If hash mismatch, it might be a subsequent external write!
+					// Do NOT ignore.
+				} else {
+					// If we can't read, maybe it was deleted rapidly?
+					// Or permission error.
+					// If we can't verify, fallback to "ignore if inside window" logic?
+					// For now, if we can't read, we probably can't process it anyway.
+					// But let's log debug.
+					if r.config.Logger != nil {
+						r.config.Logger.Debug("failed to verify ignore hash", "path", event.Name, "err", err)
+					}
+					// Conservative: If explicitly in ignore map, we ignore it to prevent loop.
+					return true
+				}
+			}
+		} else {
+			// For non-write events (e.g. Rename/Chmod), we just trust the map presence?
+			// The original logic was time-based. "If present, ignore".
+			// Let's keep it simple: If present, ignore.
+			return true
+		}
 	}
 
 	return false
@@ -690,10 +743,14 @@ func (r *Repository) Save(ctx context.Context, doc core.Document) error {
 		return fmt.Errorf("failed to serialize document: %w", err)
 	}
 
-	// Ignore subsequent events for this file (debounce self)
-	// We store BEFORE writing to avoid race condition where event arrives before map is updated.
-	r.ignoreMap.Store(fullPath, time.Now())
-	// Clean up after window
+	// Robust Ignore: Store content hash instead of just timestamp.
+	// We calculate hash of data about to be written.
+	hash := sha256.Sum256(data)
+	hashStr := hex.EncodeToString(hash[:])
+
+	// Store in ignoreMap with expiration
+	r.ignoreMap.Store(fullPath, hashStr)
+	// Clean up after window (safety net, though successful ignore will delete it earlier)
 	time.AfterFunc(2*time.Second, func() {
 		r.ignoreMap.Delete(fullPath)
 	})
