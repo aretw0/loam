@@ -88,6 +88,7 @@ Por que usar o Loam em vez de `os.WriteFile` ou um Banco de Dados tradicional?
 > "O formato não define o dado."
 
 - **Smart CSV**: O Loam preserva automaticamente estruturas complexas (JSON aninhado em colunas CSV) sem que você precise gerenciar marshaling manual.
+- **Strict Mode (Polyglot)**: Garante consistência de tipos numéricos (int64/float64) entre diferentes formatos (JSON, YAML, Markdown), evitando surpresas ao trocar de formato.
 - **Customização**: Estenda o sistema com seus próprios serializers se precisar de suporte a formatos proprietários.
 
 ## Objetivos

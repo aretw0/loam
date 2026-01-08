@@ -53,20 +53,34 @@
   - [x] Criar exemplo reproduzível (`examples/limitations/strict_yaml_fidelity`).
 - [x] **Backlog**: Adicionar RFC para Smart YAML Serializer.
 
-## Fase 0.10.4: Polyglot Consistency (Current)
+## Fase 0.10.4: Polyglot Consistency (Completed)
 
-**Objetivo:** Resolver inconsistências de tipos numéricos entre adapters (JSON Strict vs YAML/Markdown) e garantir interoperabilidade robusta ("Polyglot Vaults"). Referência: Issue #1.
+ **Objetivo:** Resolver inconsistências de tipos numéricos entre adapters (JSON Strict vs YAML/Markdown) e garantir interoperabilidade robusta ("Polyglot Vaults"). Referência: Issue #1.
 
-- [ ] **Reproduction / Test Case**: Criar teste que carrega mesmo dado via JSON e Markdown/YAML e falha na asserção de tipo.
-- [ ] **Normalization Middleware**: Implementar estratégia para normalizar números (ex: unificar em `json.Number` ou converter para nativos de forma segura) em todos os adapters.
-- [ ] **Smart Accessors**: (Opcional) Helpers para acesso seguro a `map[string]any` em Documentos Tipados.
-- [ ] **YAML Serializer Compatibility**: Garantir que gravar `json.Number` em YAML funcione corretamente (Sanitizer).
+- [x] **Reproduction / Test Case**: Criar teste que carrega mesmo dado via JSON e Markdown/YAML e falha na asserção de tipo.
+- [x] **Normalization Middleware**: Implementar estratégia para normalizar números (ex: unificar em `json.Number` ou converter para nativos de forma segura) em todos os adapters.
+- [x] **Smart Accessors**: (Opcional) Helpers para acesso seguro a `map[string]any` em Documentos Tipados.
+- [x] **YAML Serializer Compatibility**: Garantir que gravar `json.Number` em YAML funcione corretamente (Sanitizer).
+
+## RFC 0.X.X: Hardening & Scalability (Backlog)
+
+ **Objetivo:** Endereçar riscos de "esqueletos no armário" identificados em auditorias (race conditions e heurísticas frágeis).
+
+- [ ] **Robust Watcher (Concurrency)**:
+  - [ ] Remover janela de `ignoreMap` (2s) fixa e usar IDs de transação ou hashes para ignorar self-writes com precisão.
+  - [ ] Mitigar risco de "echo" em sistemas lentos.
+- [ ] **Strict CSV Field Control**:
+  - [ ] Permitir desabilitar a heurística agressiva de JSON-in-CSV por coluna.
+  - [ ] Evitar que textos como `"{ nota: ... }"` quebrem o parser silenciosamente.
+- [ ] **Error Visibility**:
+  - [ ] Expor erros de resolução de path no Watcher (hoje engolidos) via canal de erros opcional.
 
 ## RFC 0.X.X: CSV Improvements (Backlog)
 
 **Objetivo:** Resolver ambiguidades na detecção de tipos do CSV (False Positives de JSON).
 
 - [ ] **Strict Mode / Schema Hints**: Permitir definir explicitamente se uma coluna deve ser tratada como JSON ou String, evitando heurísticas.
+  - *Nota*: O `Strict Mode` global (0.10.4) já garante que números dentro de objetos JSON aninhados sejam preservados (`int64` vs `float64`), mas não resolve a ambiguidade de *parsing* inicial (strings que parecem JSON).
 - [ ] **Escape Mechanism**: Definir padrão para forçar string (ex: `'{"foo": "bar"}'`).
 
 ## RFC 0.X.X: Library-Level Sync Strategies (Backlog)

@@ -215,7 +215,7 @@ A fachada pública que simplifica o uso da biblioteca.
 - **Solução (Smart CSV):** O serializer CSV do Loam detecta automaticamente campos complexos (`map`, `slice`, `struct`) e os serializa como JSON stringificado dentro da célula CSV. Na leitura, ele faz o processo inverso (Unflattening) de forma transparente.
 - **Benefício:** Permite usar CSV para facilitar análise de dados (Excel/Pandas) sem perder a riqueza do modelo de domínio da aplicação.
 
-### 2. Cache de Metadados
+### 3. Cache de Metadados
 
 - **Problema:** Listar milhares de arquivos lendo do disco é lento.
 - **Solução:** Index Persistente (`.loam/index.json`) mantido pelo Adapter FS. O diretório (`.loam`) é configurável via `WithSystemDir`.
@@ -223,21 +223,42 @@ A fachada pública que simplifica o uso da biblioteca.
 - **Performance:** Reduz tempo de listagem de segundos para milissegundos (ex: 6s -> 13ms para 1k documentos).
 - **Caveat (Coleções):** Arquivos compostos (ex: CSV/JSON array) *não* possuem suas sub-entradas indexadas no cache. Eles são parseados sob demanda no `List`, o que pode impactar a performance se houverem grandes coleções.
 
-### 3. Strict JSON & Fidelidade de Tipos
+### 4. Strict Mode & Fidelidade de Tipos (Polyglot Consistency)
 
-- **Problema:** O padrão JSON decodifica números como `float64`, causando perda de precisão em inteiros grandes (ex: IDs de 64-bits).
-- **Solução (Strict Mode):** O Adapter FS permite configurar `WithSerializer(".json", fs.NewJSONSerializer(true))`. Isso instrui o parser a usar `json.Number`.
-- **Interoperabilidade (Caveat):**
-  - **Native .json:** O `TypedRepository` lida transparentemente com `json.Number` <-> `int64`.
-  - **YAML/Markdown:** O decoder YAML padrão não entende `json.Number` preservado no mapa de metadados, convertendo-o frequentemente para `string`.
-  - **Best Practice:** Se sua aplicação exige **Fidelidade Estrita** (ex: Financeira, IDs grandes), prefira usar arquivos **`.json`** nativos em vez de Markdown/YAML para evitar ambiguidades de conversão.
+- **Problema:** Backends diferentes possuem comportamentos de serialização distintos. O JSON padrão decodifica números como `float64` (perda de precisão em IDs grandes), enquanto YAML e Markdown podem variar.
+- **Solução (Strict Mode):** O Adapter FS permite configurar `WithStrict(true)`. Isso ativa um modo de alta fidelidade que normaliza o parsing de números para `json.Number` em **todos** os adaptadores suportados (JSON, YAML, Markdown, CSV).
+- **Interoperabilidade:** Garante que um dado salvo como `int64` em um formato seja lido como tal em outro, crucial para sistemas financeiros ou que usam IDs tipo Snowflake.
+- **Trade-offs (Por que é opcional?):**
+  1. **Go Idioms:** Retornar `json.Number` quebra asserções de tipo comuns (`val.(float64)`). O padrão `strict: false` mantém o comportamento "surpresa zero" para código Go idiomático.
+  2. **Performance:** A normalização recursiva (`recursiveNormalize`) incorre em overhead de CPU e alocação (cópia de mapas).
 
-### 3. Segurança (Dev Safety)
+#### Estratégia de Normalização (Recursive Normalize)
+
+Para garantir consistência poliglota, o Loam aplica uma normalização recursiva pós-parsing quando `Strict Mode` está ativo.
+
+```mermaid
+flowchart LR
+    Input[Raw Map/Slice] --> Check{Type Switch}
+    
+    Check -- "int, int64, int32" --> Convert[json.Number]
+    Check -- "float64" --> Convert
+    Check -- "Map/Slice" --> Recurse[Recursive Call]
+    Check -- "Other" --> Keep[Keep As Is]
+    
+    Recurse --> Check
+```
+
+**Caveats:**
+
+1. **Performance:** A recursão tem custo CPU linear ao tamanho do documento. Para documentos gigantescos com deep nesting, isso pode ser perceptível.
+2. **Overhead de Alocação:** Recria mapas e slices para garantir a tipagem correta.
+
+### 5. Segurança (Dev Safety)
 
 - **Isolamento**: Em modo de desenvolvimento (`go run`, `go test`), o Loam redireciona automaticamente operações para um diretório temporário (`%TEMP%/loam-dev/`) para evitar sujar o repositório do usuário.
 - **ForceTemp**: Configurável via `loam.Config`.
 
-### 4. Interfaces de Capacidade (Capability Interfaces)
+### 6. Interfaces de Capacidade (Capability Interfaces)
 
 **Decisão:** Utilizar interfaces granulares (`Watchable`, `Syncable`, `Reconcilable`) em vez de adicionar métodos ao contrato base `Repository`.
 
@@ -247,7 +268,7 @@ A fachada pública que simplifica o uso da biblioteca.
 - **Flexibilidade:** Adapters podem implementar apenas o que suportam (Interface Segregation Principle).
 - **Runtime Check:** O `Service` verifica capacidades em tempo de execução via *type assertion*.
 
-### 5. Startup Reconciliation
+### 7. Startup Reconciliation
 
 **Problema:** Quando a aplicação está parada (offline), arquivos podem ser modificados ou deletados externamente. Ao iniciar, o estado do Cache (`index.json`) está desatualizado (stale).
 
@@ -362,3 +383,20 @@ flowchart TD
     - **Unlock Detected**: O sistema dispara uma **Reconciliação** imediata para detectar mudanças que ocorreram durante o bloqueio e emite os eventos acumulados.
 3. **Event Debouncing**: Eventos rápidos são agrupados em janelas de 50ms.
 4. **Event Broker (Desacoplamento)**: Um buffer configurável separa a recepção de eventos da entrega. Isso garante que se sua aplicação for lenta para processar um evento, o Watcher não trava (Backpressure Management).
+
+## Limitações Técnicas Conhecidas (Caveats)
+
+### 1. Concorrência: Janela de "Ignore" do Watcher
+
+Para evitar loops infinitos (Self-Healing Loops) onde o Loam reage à própria escrita, o `Repository.Save` utiliza uma mecânica temporária: ele suprime eventos para o arquivo modificado por **2 segundos** (`ignoreMap`).
+
+- **Risco:** Em sistemas sob carga extrema ou disco lento, o evento do SO pode chegar *após* a janela de 2s, causando um processamento duplicado ("Echo Ghost").
+- **Mitigação:** Debouncing de 50ms ajuda, mas não elimina o risco teórico de condição de corrida.
+
+### 2. CSV Smart Parsing (Heurística)
+
+O parser CSV tenta ser inteligente para recuperar estruturas aninhadas (`map`/`slice`) que foram achatadas.
+
+- **Mecânica:** Se uma célula começa com `{` e termina com `}`, o Loam tenta `json.Unmarshal`.
+- **Risco:** Dados legítimos que *parecem* JSON mas não são (ex: `"{ nota: rascunho }"`) falharão na decodificação silenciosamente (fallback para string) ou, pior, serão convertidos quando não deveriam.
+- **Contorno:** Utilize `Strict Mode` para garantir fidelidade de tipos numéricos dentro desses JSONs, mas esteja ciente da ambiguidade estrutural.

@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 
 	"github.com/aretw0/loam"
-	"github.com/aretw0/loam/pkg/adapters/fs"
 	"github.com/aretw0/loam/pkg/core"
 )
 
@@ -153,20 +152,22 @@ func Example_csvNestedData() {
 	// Load: [10 20 15]
 }
 
-// Example_customSerializer shows how to inject a custom serializer using built-in factories.
-func Example_customSerializer() {
+// Example_strictMode demonstrates how to enable global strict mode for type fidelity.
+// This ensures that large integers (int64) are not lost as float64 during parsing
+// across ALL supported formats (JSON, YAML, Markdown).
+func Example_strictMode() {
 	// Setup
-	tmpDir, err := os.MkdirTemp("", "loam-custom-*")
+	tmpDir, err := os.MkdirTemp("", "loam-strict-*")
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer os.RemoveAll(tmpDir)
 
-	// Initialize with Strict JSON Serializer provided by the FS adapter
-	// This replaces the default JSON serializer with one that preserves large integers.
+	// Initialize with Global Strict Mode
+	// This applies strict parsing (json.Number) to all serializers.
 	repo, err := loam.Init(filepath.Join(tmpDir, "vault"),
 		loam.WithAutoInit(true),
-		loam.WithSerializer(".json", fs.NewJSONSerializer(true)),
+		loam.WithStrict(true),
 	)
 	if err != nil {
 		log.Fatal(err)
@@ -174,25 +175,26 @@ func Example_customSerializer() {
 
 	ctx := context.Background()
 
-	// Save a document with a large number that might lose precision in float64
-	jsonContent := `{"big_id": 9223372036854775807, "content": "Large Int"}`
-	err = os.WriteFile(filepath.Join(tmpDir, "vault", "strict.json"), []byte(jsonContent), 0644)
-	if err != nil {
-		log.Fatal(err)
-	}
+	// 1. JSON Example (Large Int)
+	jsonContent := `{"big_id": 9223372036854775807, "type": "json"}`
+	_ = os.WriteFile(filepath.Join(tmpDir, "vault", "strict.json"), []byte(jsonContent), 0644)
 
-	// Read it back via Loam
-	doc, err := repo.Get(ctx, "strict.json")
-	if err != nil {
-		log.Fatal(err)
-	}
+	// 2. YAML Example (Large Int)
+	yamlContent := "big_id: 9223372036854775807\ntype: yaml"
+	_ = os.WriteFile(filepath.Join(tmpDir, "vault", "strict.yaml"), []byte(yamlContent), 0644)
 
-	// Check type of big_id
-	val := doc.Metadata["big_id"]
-	fmt.Printf("Type: %T\n", val)
-	fmt.Printf("Value: %v\n", val)
+	// Read back and verify types
+	for _, file := range []string{"strict.json", "strict.yaml"} {
+		doc, err := repo.Get(ctx, file)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		val := doc.Metadata["big_id"]
+		fmt.Printf("[%s] Type: %T\n", doc.Metadata["type"], val)
+	}
 
 	// Output:
-	// Type: json.Number
-	// Value: 9223372036854775807
+	// [json] Type: json.Number
+	// [yaml] Type: json.Number
 }
