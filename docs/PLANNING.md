@@ -53,19 +53,21 @@
   - [x] Criar exemplo reproduzível (`examples/limitations/strict_yaml_fidelity`).
 - [x] **Backlog**: Adicionar RFC para Smart YAML Serializer.
 
+## Fase 0.10.4: Polyglot Consistency (Current)
+
+**Objetivo:** Resolver inconsistências de tipos numéricos entre adapters (JSON Strict vs YAML/Markdown) e garantir interoperabilidade robusta ("Polyglot Vaults"). Referência: Issue #1.
+
+- [ ] **Reproduction / Test Case**: Criar teste que carrega mesmo dado via JSON e Markdown/YAML e falha na asserção de tipo.
+- [ ] **Normalization Middleware**: Implementar estratégia para normalizar números (ex: unificar em `json.Number` ou converter para nativos de forma segura) em todos os adapters.
+- [ ] **Smart Accessors**: (Opcional) Helpers para acesso seguro a `map[string]any` em Documentos Tipados.
+- [ ] **YAML Serializer Compatibility**: Garantir que gravar `json.Number` em YAML funcione corretamente (Sanitizer).
+
 ## RFC 0.X.X: CSV Improvements (Backlog)
 
 **Objetivo:** Resolver ambiguidades na detecção de tipos do CSV (False Positives de JSON).
 
 - [ ] **Strict Mode / Schema Hints**: Permitir definir explicitamente se uma coluna deve ser tratada como JSON ou String, evitando heurísticas.
 - [ ] **Escape Mechanism**: Definir padrão para forçar string (ex: `'{"foo": "bar"}'`).
-
-## RFC 0.X.X: Smart YAML Serializer (Backlog)
-
-**Objetivo:** Suportar "Strict Fidelity" em arquivos YAML e Markdown, permitindo que `TypedRepository` funcione com `json.Number` sem erros de tipo.
-
-- [ ] **Sanitizer Middleware**: Implementar um passo de pré-processamento no Serializer YAML que percorre recursivamente mapas `map[string]any` e converte `json.Number` para `int64` ou `float64` *antes* de passar para o encoder YAML.
-- [ ] **Benefits**: Permite usar YAML/Markdown com Typed Repositories em modo estrito sem forçar o uso de `.json`.
 
 ## RFC 0.X.X: Library-Level Sync Strategies (Backlog)
 
