@@ -55,6 +55,7 @@ func initFS(path string, o *options) (core.Repository, error) {
 	gitless, _ := o.config["gitless"].(bool)
 	tempDir, _ := o.config["temp_dir"].(bool)
 	mustExist, _ := o.config["must_exist"].(bool)
+	strict, _ := o.config["strict"].(bool)
 	systemDir, _ := o.config["system_dir"].(string)
 
 	// Safety & Path Resolution
@@ -111,6 +112,7 @@ func initFS(path string, o *options) (core.Repository, error) {
 		AutoInit:  autoInit,
 		Gitless:   gitless,
 		MustExist: mustExist || (!autoInit && !useTemp),
+		Strict:    strict,
 		Logger:    o.logger,
 		SystemDir: systemDir,
 	}
