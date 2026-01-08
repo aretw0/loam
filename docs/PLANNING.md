@@ -62,7 +62,7 @@
 - [x] **Smart Accessors**: (Opcional) Helpers para acesso seguro a `map[string]any` em Documentos Tipados.
 - [x] **YAML Serializer Compatibility**: Garantir que gravar `json.Number` em YAML funcione corretamente (Sanitizer).
 
-## RFC 0.X.X: Robust Watcher & Error Handling (Backlog)
+## Fase 0.10.5: Robust Watcher & Error Handling (Current)
 
  **Objetivo:** Endereçar riscos de concorrência e visibilidade de erros identificados na auditoria (Sober Review).
 
