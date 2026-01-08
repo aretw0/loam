@@ -337,6 +337,10 @@ flowchart TD
     Start[Service.Watch] --> Setup[Recursive Setup]
     Setup -->|Add Watchers| OS[OS Watcher - fsnotify]
     
+    OS -->|Error| ErrorHandler{ErrorHandler?}
+    ErrorHandler -- Yes --> Callback[Invoke Callback]
+    ErrorHandler -- No --> Log[Log Error]
+
     OS -->|Raw Event| Dispatcher{Event Dispatcher}
 
     subgraph GitAwareness [Git Lock Monitor]
@@ -350,11 +354,14 @@ flowchart TD
     Gate -- No --> Filter{Ignore Pattern?}
     
     Filter -- Yes --> Drop[Drop]
-    Filter -- No --> Mapper[Map to Domain Event]
+    Filter -- No --> SelfWrite{Is Self-Write?}
     
+    SelfWrite -- Yes (Checksum Match) --> Drop
+    SelfWrite -- No --> Mapper[Map to Domain Event]
+
     subgraph filtering [Pipeline de Filtros]
         Filter
-        Note1[Ignora: .loam, loam-tmp-*, Self-Writes]
+        SelfWrite
     end
 
     Mapper --> Debouncer{Debouncer}
