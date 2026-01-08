@@ -225,7 +225,10 @@ Você pode observar mudanças em repositórios tipados para implementar "Hot Rel
 
 ```go
 // Retorna um canal de core.Event
-events, err := userRepo.Watch(ctx, "users/*")
+// Opcional: Use WithWatcherErrorHandler para capturar falhas de acesso a arquivos durante o monitoramento.
+events, err := userRepo.Watch(ctx, "users/*", loam.WithWatcherErrorHandler(func(err error) {
+    fmt.Printf("Erro no watcher: %v\n", err)
+}))
 
 go func() {
     for event := range events {

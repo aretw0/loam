@@ -384,16 +384,25 @@ flowchart TD
 3. **Event Debouncing**: Eventos rápidos são agrupados em janelas de 50ms.
 4. **Event Broker (Desacoplamento)**: Um buffer configurável separa a recepção de eventos da entrega. Isso garante que se sua aplicação for lenta para processar um evento, o Watcher não trava (Backpressure Management).
 
+### Estratégias de Robustez
+
+#### Robust Ignore (Self-Healing)
+
+Para evitar loops infinitos onde o Loam reage à própria escrita (Self-Writes), o `Repository.Save` utiliza uma estratégia híbrida de **Janela Temporal + Checksum**.
+
+- **Mecânica:** Ao salvar, calculamos o SHA256 do conteúdo e associamos ao caminho do arquivo em um mapa temporário (TTL 2s).
+- **Verificação:** Ao detectar um evento `WRITE`, o Watcher re-calcula o hash do arquivo no disco. Se coincidir com o hash salvo, o evento é descartado como "Eco". Se diferir, é propagado como uma mudança externa legítima (mesmo que ocorra frações de segundo após o save).
+
+#### Error Visibility
+
+Erros de runtime no watcher (ex: falha ao resolver um path relativo ou perda de permissão) não encerram o loop de observação. Eles são:
+
+1. Logados via `slog.Logger` (se configurado).
+2. Emitidos via callback `WithWatcherErrorHandler`, permitindo que a aplicação reaja (ex: exiba um toast de erro na UI).
+
 ## Limitações Técnicas Conhecidas (Caveats)
 
-### 1. Concorrência: Janela de "Ignore" do Watcher
-
-Para evitar loops infinitos (Self-Healing Loops) onde o Loam reage à própria escrita, o `Repository.Save` utiliza uma mecânica temporária: ele suprime eventos para o arquivo modificado por **2 segundos** (`ignoreMap`).
-
-- **Risco:** Em sistemas sob carga extrema ou disco lento, o evento do SO pode chegar *após* a janela de 2s, causando um processamento duplicado ("Echo Ghost").
-- **Mitigação:** Debouncing de 50ms ajuda, mas não elimina o risco teórico de condição de corrida.
-
-### 2. CSV Smart Parsing (Heurística)
+### 1. CSV Smart Parsing (Heurística)
 
 O parser CSV tenta ser inteligente para recuperar estruturas aninhadas (`map`/`slice`) que foram achatadas.
 

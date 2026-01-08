@@ -66,11 +66,11 @@
 
  **Objetivo:** Endereçar riscos de concorrência e visibilidade de erros identificados na auditoria (Sober Review).
 
-- [ ] **Robust Watcher (Concurrency)**:
-  - [ ] Remover janela de `ignoreMap` (2s) fixa e usar IDs de transação ou hashes para ignorar self-writes com precisão.
-  - [ ] Mitigar risco de "echo" em sistemas lentos.
-- [ ] **Error Visibility**:
-  - [ ] Expor erros de resolução de path no Watcher (hoje engolidos) via canal de erros opcional.
+- [x] **Robust Watcher (Concurrency)**:
+  - [x] Remover janela de `ignoreMap` (2s) fixa e usar IDs de transação ou hashes para ignorar self-writes com precisão.
+  - [x] Mitigar risco de "echo" em sistemas lentos.
+- [x] **Error Visibility**:
+  - [x] Expor erros de resolução de path no Watcher (hoje engolidos) via callback opcional (`WithWatcherErrorHandler`).
 
 ## RFC 0.X.X: Robust CSV & Schema Control (Backlog)
 
