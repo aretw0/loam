@@ -32,6 +32,13 @@ Este diretório contém exemplos de uso e provas de conceito do projeto Loam.
 | **[Typed](./demos/typed)** | Demonstração de suporte a TypedRetrieval (Typed Repository). |
 | **[Stress Test](./demos/stress-test)** | Demonstra a segurança de concorrência do Loam (100+ threads). |
 | **[Benchmark](./demos/benchmark)** | Compara performance de escritas individuais vs Batch Transactions. |
+| **[Read-Only](./demos/readonly)** | Demonstra o acesso seguro a arquivos reais em modo `go run`. |
+| **[Typed Watch](./demos/typed-watch)** | Demonstra reatividade em repositórios tipados. |
+
+## Limitations (Edge Cases)
+
+- **[Smart CSV JSON](./limitations/csv_smart_json_edge_case)**: Demo de parsing de JSON aninhado em CSV.
+- **[Strict YAML](./limitations/strict_yaml_fidelity)**: Demo de fidelidade de tipos em YAML.
 
 ## Como Executar
 
