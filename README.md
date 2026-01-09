@@ -177,6 +177,13 @@ func main() {
   panic(err)
  }
 
+ // NOTA DE SEGURANÇA (Dev Experience):
+ // Ao rodar via "go run" (Dev Mode), o Loam isola escritas em um diretório temporário para proteger seus dados.
+ // Para ferramentas que apenas lêem (como CLIs de análise), use WithReadOnly(true) para acessar os arquivos reais com segurança:
+ //
+ // service, err := loam.New(".", loam.WithReadOnly(true)) // Bypass Sandbox (Read-Only)
+
+
  ctx := context.Background()
 
  // 2. Escrever (Save)
@@ -243,10 +250,12 @@ go func() {
 
 ### Demos (Funcionalidades do Core)
 
-- **[Hello World](examples/basics/hello-world)**: O exemplo mais básico possível.
+- **[Hello World](examples/basics/hello-world)**: O ponto de partida.
 - **[CRUD Básico](examples/basics/crud)**: Create, Read, Update, Delete.
-- **[formats](examples/demos/formats)**: Suporte nativo a JSON, YAML, CSV e Markdown.
-- **[Typed API](examples/demos/typed)**: Exemplo de uso de Generics.
+- **[Formats](examples/demos/formats)**: Suporte nativo a JSON, YAML, CSV e Markdown.
+- **[Read-Only Mode](examples/demos/readonly)**: Acesso seguro em desenvolvimento.
+
+> 📚 **[Ver todos os exemplos e receitas](./examples/README.md)** (incluindo Calendar, Ledger, e automações avançadas).
 
 ### Recipes (Casos de Uso)
 

@@ -253,10 +253,13 @@ flowchart LR
 1. **Performance:** A recursão tem custo CPU linear ao tamanho do documento. Para documentos gigantescos com deep nesting, isso pode ser perceptível.
 2. **Overhead de Alocação:** Recria mapas e slices para garantir a tipagem correta.
 
-### 5. Segurança (Dev Safety)
+### 5. Segurança (Dev Safety) & Read-Only
 
-- **Isolamento**: Em modo de desenvolvimento (`go run`, `go test`), o Loam redireciona automaticamente operações para um diretório temporário (`%TEMP%/loam-dev/`) para evitar sujar o repositório do usuário.
-- **ForceTemp**: Configurável via `loam.Config`.
+O Loam prioriza a segurança dos dados do usuário, prevenindo acidentes durante o desenvolvimento.
+
+- **Sandbox (Default Safety)**: Em modo de desenvolvimento (`go run`, `go test`), se a aplicação tentar acessar um caminho real (ex: `./vault`), o Loam redireciona automaticamente para um diretório temporário (`%TEMP%/loam-dev/`).
+- **Read-Only Mode (`WithReadOnly(true)`)**: Permite operações de **leitura** no diretório real (bypassing sandbox), mas bloqueia qualquer escrita (`Save`, `Delete`, `Sync`) retornando erro `ErrReadOnly`. Ideal para ferramentas de visualização (Trellis) ou análise.
+- **Unsafe Override (`WithDevSafety(false)`)**: Permite que desenvolvedores desabilitem explicitamente a sandbox para testar escritas reais via `go run`. **Use com cautela**.
 
 ### 6. Interfaces de Capacidade (Capability Interfaces)
 

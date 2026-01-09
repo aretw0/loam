@@ -62,7 +62,7 @@
 - [x] **Smart Accessors**: (Opcional) Helpers para acesso seguro a `map[string]any` em Documentos Tipados.
 - [x] **YAML Serializer Compatibility**: Garantir que gravar `json.Number` em YAML funcione corretamente (Sanitizer).
 
-## Fase 0.10.5: Robust Watcher & Error Handling (Current)
+## Fase 0.10.5: Robust Watcher & Error Handling (Completed)
 
  **Objetivo:** Endereçar riscos de concorrência e visibilidade de erros identificados na auditoria (Sober Review).
 
@@ -71,6 +71,21 @@
   - [x] Mitigar risco de "echo" em sistemas lentos.
 - [x] **Error Visibility**:
   - [x] Expor erros de resolução de path no Watcher (hoje engolidos) via callback opcional (`WithWatcherErrorHandler`).
+
+## Fase 0.10.6: Read-Only & Dev Safety Improvements (Completed)
+
+ **Objetivo:** Melhorar DX para consumidores (como Trellis) permitindo bypass seguro da sandbox via Read-Only Mode.
+
+- [x] **New Options**:
+  - [x] `WithDevSafety(bool)`: Controle manual da sandbox de desenvolvimento.
+  - [x] `WithReadOnly(bool)`: Modo seguro para leitura em caminhos reais (bypass sandbox).
+- [x] **Implementation**:
+  - [x] Atualizar `fs` adapter para respeitar `ReadOnly` (bloquear escritas).
+  - [x] Garantir que `Read-Only` bypassa sandbox apenas para leitura.
+- [x] **Documentation**:
+  - [x] Atualizar `TECHNICAL.md` com as novas opções de segurança.
+- [x] **Automated Tests**:
+  - [x] Integration test (`readonly_test.go`) currently failing on ghost file detection. Debugging.
 
 ## RFC 0.X.X: Robust CSV & Schema Control (Backlog)
 
