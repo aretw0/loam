@@ -59,9 +59,31 @@ func initFS(path string, o *options) (core.Repository, error) {
 	systemDir, _ := o.config["system_dir"].(string)
 	errorHandler, _ := o.config["watcher_error_handler"].(func(error))
 
+	isReadOnly, _ := o.config["read_only"].(bool)
+	// Check if dev_safety is explicitly set. Use boolean assertion AND check existence.
+	// Default to true (safe) if not present.
+	devSafety := true
+	if val, ok := o.config["dev_safety"].(bool); ok {
+		devSafety = val
+	}
+
+	// Bypass Safety if:
+	// 1. ReadOnly is active (inherently safe)
+	// 2. User explicitly disabled DevSafety
+	bypassSafety := isReadOnly || !devSafety
+
 	// Safety & Path Resolution
-	useTemp := tempDir || IsDevRun()
+	useTemp := tempDir || (IsDevRun() && !bypassSafety)
 	resolvedPath := ResolveVaultPath(path, useTemp)
+
+	// Log warning if running unsafely in Dev
+	if IsDevRun() && !bypassSafety && o.logger != nil {
+		if isReadOnly {
+			o.logger.Debug("running in READ-ONLY mode (bypassing dev sandbox)", "path", resolvedPath)
+		} else {
+			o.logger.Warn("running in UNSAFE mode (bypassing dev sandbox)", "path", resolvedPath)
+		}
+	}
 
 	// Smart Gitless Detection
 	// If "gitless" is not explicitly configured, we detect the environment.
@@ -117,6 +139,7 @@ func initFS(path string, o *options) (core.Repository, error) {
 		Logger:       o.logger,
 		SystemDir:    systemDir,
 		ErrorHandler: errorHandler,
+		ReadOnly:     isReadOnly,
 	}
 
 	repo := fs.NewRepository(repoConfig)

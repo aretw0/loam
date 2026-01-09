@@ -89,6 +89,16 @@ func WithWatcherErrorHandler(fn func(error)) Option {
 	return platform.WithWatcherErrorHandler(fn)
 }
 
+// WithReadOnly enables read-only mode (bypasses safety lock, prevents writes).
+func WithReadOnly(enabled bool) Option {
+	return platform.WithReadOnly(enabled)
+}
+
+// WithDevSafety controls the "Sandbox" safety mechanism (go run temp dir).
+func WithDevSafety(enabled bool) Option {
+	return platform.WithDevSafety(enabled)
+}
+
 // --- Factory ---
 
 // New creates a new Loam Service.

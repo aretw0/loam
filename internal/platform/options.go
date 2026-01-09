@@ -125,3 +125,26 @@ func WithWatcherErrorHandler(fn func(error)) Option {
 		o.config["watcher_error_handler"] = fn
 	}
 }
+
+// WithReadOnly enables read-only mode.
+// In this mode:
+// 1. Write operations (Save, Delete, Sync) return ErrReadOnly.
+// 2. Initialization (Mkdir, Git Init) is skipped.
+// 3. Cache updates are not persisted to disk.
+// 4. Dev Safety Lock (go run temp dir) is BYPASSED (uses real path).
+func WithReadOnly(enabled bool) Option {
+	return func(o *options) {
+		o.config["read_only"] = enabled
+	}
+}
+
+// WithDevSafety controls the "Sandbox" safety mechanism when running via `go run`.
+// By default (true), Loam forces a temporary directory to prevent accidental data loss.
+// Setting this to false allows operating on the real filesystem even during `go run`.
+//
+// CAUTION: Only disable this if you are sure your code is safe.
+func WithDevSafety(enabled bool) Option {
+	return func(o *options) {
+		o.config["dev_safety"] = enabled
+	}
+}
