@@ -35,6 +35,9 @@ type Repository struct {
 	// ignoreMap tracks files modified by this process to avoid event loops.
 	// Key: Absolute Path. Value: Timestamp of write.
 	ignoreMap sync.Map
+
+	// readOnly indicates if the repository is in read-only mode.
+	readOnly bool
 }
 
 // Config holds the configuration for the filesystem repository.
@@ -49,6 +52,7 @@ type Config struct {
 	MetadataKey  string            // If set, metadata will be nested under this key in JSON/YAML (e.g. "meta" or "frontmatter"). Contents will be in "content" (unless empty).
 	Strict       bool              // If true, enforces strict type fidelity (e.g. json.Number) across all serializers.
 	ErrorHandler func(error)       // Optional callback for handling runtime watcher errors.
+	ReadOnly     bool              // If true, disables all write operations.
 }
 
 // NewRepository creates a new filesystem-backed repository.
@@ -59,6 +63,7 @@ func NewRepository(config Config) *Repository {
 		config:      config,
 		cache:       newCache(config.Path, config.SystemDir),
 		serializers: DefaultSerializers(config.Strict),
+		readOnly:    config.ReadOnly,
 	}
 }
 
@@ -72,6 +77,9 @@ func (r *Repository) RegisterSerializer(ext string, s Serializer) {
 
 // Begin starts a new transaction.
 func (r *Repository) Begin(ctx context.Context) (core.Transaction, error) {
+	if r.config.ReadOnly {
+		return nil, core.ErrReadOnly
+	}
 	return NewTransaction(r), nil
 }
 
@@ -86,6 +94,21 @@ func (r *Repository) Initialize(ctx context.Context) error {
 		if !info.IsDir() {
 			return fmt.Errorf("vault path is not a directory: %s", r.Path)
 		}
+	} else if r.config.ReadOnly {
+		// In ReadOnly mode, we do NOT create the directory if it doesn't exist.
+		// However, if MustExist wasn't set, we might just proceed?
+		// Better to fail if it doesn't exist, OR just do nothing and let subsequent reads fail.
+		// Standard: If ReadOnly, we just check if it exists implicitly.
+		// But we definitely skip MkdirAll.
+		if _, err := os.Stat(r.Path); os.IsNotExist(err) {
+			// If not MustExist, we might just be opening a potential location?
+			// But for ReadOnly, opening a non-existent vault is useless.
+			// Let's assume it's fine to do nothing here but subsequent Get/List will fail or return empty?
+			// Actually, let's warn.
+			if r.config.Logger != nil {
+				r.config.Logger.Warn("vault path does not exist (read-only mode)", "path", r.Path)
+			}
+		}
 	} else {
 		if err := os.MkdirAll(r.Path, 0755); err != nil {
 			return fmt.Errorf("failed to create vault directory: %w", err)
@@ -93,6 +116,11 @@ func (r *Repository) Initialize(ctx context.Context) error {
 	}
 
 	// 2. Git Initialization
+	if r.config.ReadOnly {
+		// Skip Git Init
+		return nil
+	}
+
 	if !r.config.Gitless {
 		if !git.IsInstalled() {
 			return fmt.Errorf("git is not installed")
@@ -185,6 +213,10 @@ func (r *Repository) ensureIgnore() (bool, error) {
 
 // Sync synchronizes the repository with its remote.
 func (r *Repository) Sync(ctx context.Context) error {
+	if r.config.ReadOnly {
+		return core.ErrReadOnly
+	}
+
 	if r.config.Gitless {
 		return fmt.Errorf("cannot sync in gitless mode")
 	}
@@ -508,9 +540,18 @@ func (r *Repository) Reconcile(ctx context.Context) ([]core.Event, error) {
 
 	// 5. Persist Cache Updates
 	if dirty {
-		if err := r.cache.Save(); err != nil {
+		if r.config.ReadOnly {
+			// In ReadOnly, we update the IN-MEMORY cache (done above), but we DO NOT persist to disk.
+			// This allows the default List() behavior to work with the updated state for this session,
+			// without touching the filesystem.
 			if r.config.Logger != nil {
-				r.config.Logger.Error("failed to save cache after reconciliation", "err", err)
+				r.config.Logger.Debug("skipping cache persistence (read-only mode)")
+			}
+		} else {
+			if err := r.cache.Save(); err != nil {
+				if r.config.Logger != nil {
+					r.config.Logger.Error("failed to save cache after reconciliation", "err", err)
+				}
 			}
 		}
 	}
@@ -699,6 +740,10 @@ func (d *debouncer) add(newEvent core.Event, send func(core.Event)) {
 //  4. Serialize content (Markdown/JSON/YAML) and write atomically to disk.
 //  5. (If Git enabled) 'git add' and 'git commit' with context metadata.
 func (r *Repository) Save(ctx context.Context, doc core.Document) error {
+	if r.config.ReadOnly {
+		return core.ErrReadOnly
+	}
+
 	if doc.ID == "" {
 		return fmt.Errorf("document has no ID")
 	}
@@ -1271,6 +1316,10 @@ func (r *Repository) getIDColumn(filename string) string {
 
 // Delete removes a document.
 func (r *Repository) Delete(ctx context.Context, id string) error {
+	if r.config.ReadOnly {
+		return core.ErrReadOnly
+	}
+
 	filename := id
 	ext := filepath.Ext(id)
 	if ext == "" {
