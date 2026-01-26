@@ -34,6 +34,15 @@
 - [x] **Automated Tests**:
   - [x] Integration test (`readonly_test.go`) currently failing on ghost file detection. Debugging.
 
+## Fase 0.10.7: Generic Data Support (Configurable Content)
+
+ **Objetivo:** Permitir que o Loam seja usado para carregar "Dados Puros" (Configs, Manifests) sem sequestrar a chave `content`.
+
+- [ ] **Feature**: `WithContentExtraction(bool)`
+  - [ ] Default `true` (Comportamento atual, CMS-like).
+  - [ ] Se `false`, o arquivo JSON/YAML é carregado 1:1 para o Metadata, e `doc.Content` fica vazio (ou raw).
+  - [ ] Essencial para `config.yaml`, `tools.yaml` e outros arquivos de configuração.
+
 ## RFC 0.X.X: Robust CSV & Schema Control (Backlog)
 
  **Objetivo:** Resolver ambiguidades na detecção de tipos do CSV e permitir controle explícito (Hardening).
