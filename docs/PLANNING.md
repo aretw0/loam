@@ -69,6 +69,7 @@
 
 - [ ] **Investigar `TestTypedWatch` Flakiness**: Teste apresenta timeouts persistentes no Windows, possivelmente devido à latência do filesystem ou lock de antivírus/indexadores.
 - [ ] **Testes de Stress no Windows**: Avaliar impacto de testes intensivos (`tests/stress`) na estabilidade da suíte global.
+- [ ] **Lifecycle Integration**: Adotar `lifecycle/SignalContext` e `lifecycle/termio` para garantir shutdown limpo do Watcher e da CLI (cancelamento de goroutines).
 
 ## RFC 0.X.X: Binary/Blob Support (Librarian)
 
