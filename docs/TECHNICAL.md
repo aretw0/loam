@@ -419,3 +419,15 @@ O parser CSV tenta ser inteligente para recuperar estruturas aninhadas (`map`/`s
 - **Mecânica:** Se uma célula começa com `{` e termina com `}`, o Loam tenta `json.Unmarshal`.
 - **Risco:** Dados legítimos que *parecem* JSON mas não são (ex: `"{ nota: rascunho }"`) falharão na decodificação silenciosamente (fallback para string) ou, pior, serão convertidos quando não deveriam.
 - **Contorno:** Utilize `Strict Mode` para garantir fidelidade de tipos numéricos dentro desses JSONs, mas esteja ciente da ambiguidade estrutural.
+
+## Estratégia de Lifecycle
+
+A CLI do Loam (`loam`) utiliza a biblioteca [lifecycle](https://github.com/aretw0/lifecycle) para gerenciamento robusto de execução.
+
+### Graceful Shutdown
+
+Todos os comandos da CLI são executados dentro de um `lifecycle.Run`, que provê:
+
+1. **Contexto de Sinal (`SignalContext`)**: Captura `SIGINT` (Ctrl+C) e `SIGTERM` para cancelar o contexto. Comandos long-running (como `watch`) devem respeitar `ctx.Done()`.
+2. **Panic Recovery**: Panics não tratados são capturados e logados com stack trace, evitando crashes silenciosos.
+3. **Shutdown Hooks**: Permite registrar callbacks de limpeza (`OnShutdown`) que são executados antes da aplicação encerrar.

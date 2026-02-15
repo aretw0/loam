@@ -3,6 +3,7 @@ package core
 import (
 	"context"
 	"errors" // Added errors import
+	"sync"
 )
 
 // Option defines a functional option for configuring the Service.
@@ -19,6 +20,7 @@ func WithEventBuffer(size int) Option {
 type Service struct {
 	repo            Repository
 	eventBufferSize int
+	mu              sync.RWMutex // protects fields for observability
 }
 
 // NewService creates a new Service.

@@ -1,8 +1,10 @@
 # Planning & Roadmap
 
+> **Nota:** Para análise detalhada do ecossistema `lifecycle`, `introspection` e `procio`, consulte [ECOSYSTEM.md](ECOSYSTEM.md).
+
 ## Fase 0.10.4: Polyglot Consistency (Completed)
 
- **Objetivo:** Resolver inconsistências de tipos numéricos entre adapters (JSON Strict vs YAML/Markdown) e garantir interoperabilidade robusta ("Polyglot Vaults"). Referência: Issue #1.
+**Objetivo:** Resolver inconsistências de tipos numéricos entre adapters (JSON Strict vs YAML/Markdown) e garantir interoperabilidade robusta ("Polyglot Vaults"). Referência: Issue #1.
 
 - [x] **Reproduction / Test Case**: Criar teste que carrega mesmo dado via JSON e Markdown/YAML e falha na asserção de tipo.
 - [x] **Normalization Middleware**: Implementar estratégia para normalizar números (ex: unificar em `json.Number` ou converter para nativos de forma segura) em todos os adapters.
@@ -11,7 +13,7 @@
 
 ## Fase 0.10.5: Robust Watcher & Error Handling (Completed)
 
- **Objetivo:** Endereçar riscos de concorrência e visibilidade de erros identificados na auditoria (Sober Review).
+**Objetivo:** Endereçar riscos de concorrência e visibilidade de erros identificados na auditoria (Sober Review).
 
 - [x] **Robust Watcher (Concurrency)**:
   - [x] Remover janela de `ignoreMap` (2s) fixa e usar IDs de transação ou hashes para ignorar self-writes com precisão.
@@ -21,7 +23,7 @@
 
 ## Fase 0.10.6: Read-Only & Dev Safety Improvements (Completed)
 
- **Objetivo:** Melhorar DX para consumidores (como Trellis) permitindo bypass seguro da sandbox via Read-Only Mode.
+**Objetivo:** Melhorar DX para consumidores (como Trellis) permitindo bypass seguro da sandbox via Read-Only Mode.
 
 - [x] **New Options**:
   - [x] `WithDevSafety(bool)`: Controle manual da sandbox de desenvolvimento.
@@ -34,7 +36,48 @@
 - [x] **Automated Tests**:
   - [x] Integration test (`readonly_test.go`) currently failing on ghost file detection. Debugging.
 
-## Fase 0.10.7: Generic Data Support (Configurable Content)
+## Fase 0.10.7: Lifecycle Ecosystem Integration (Completed)
+
+**Objetivo:** Integrar componentes do ecossistema `lifecycle`, `introspection` e `procio` no Loam para melhorar resiliência e observabilidade.
+
+**Referência Detalhada:** [ECOSYSTEM.md](ECOSYSTEM.md)
+
+### Pesquisa & Análise
+
+- [x] Mapear API completa de `introspection`, `procio`, `lifecycle`
+- [x] Comparar watchers (Loam vs lifecycle.FileWatchSource)
+- [x] Identificar patterns reutilizáveis do Loam para contribuição upstream
+- [x] Priorizar integrações por esforço/valor
+- [x] Documentar dependências e riscos de acoplamento
+
+### Implementações (Quick Wins)
+
+- [x] **Goroutines Gerenciadas (`lifecycle.Go()`):**
+  - [x] Watcher loop com panic recovery
+  - [x] Reconcile goroutine com error handling
+  - [x] Dependência: `github.com/aretw0/lifecycle@v1.5.1`
+- [x] **Observabilidade (`introspection`):**
+  - [x] `Service` implementa `Introspectable` + `Component`
+  - [x] `Repository` (fs) implementa `Introspectable` + `Component`
+  - [x] Rastreamento de watcher status e reconcile timestamp
+  - [x] Método `cache.Len()` para expor tamanho
+  - [x] Exemplo: [examples/features/observability/](../examples/features/observability/)
+  - [x] Dependência: `github.com/aretw0/introspection@v0.1.3`
+- [x] **Git Client (`procio`):**
+  - [x] Análise: integração adiada (sem processos git assíncronos hoje)
+  - [x] Dependência preparatória: `github.com/aretw0/procio@v0.1.2`
+
+### Pendências (Backlog)
+
+- [x] CLI com `lifecycle.Run()` para graceful shutdown
+- [x] Bridge `ChannelSource` para consumidores lifecycle-aware (Trellis)
+- [ ] `lifecycle.Supervisor` para watcher auto-healing
+- [ ] Diagramas Mermaid do vault via `introspection.TreeDiagram()`
+- [ ] `lifecycle.Group` em transações
+- [ ] Documentar integrações no `TECHNICAL.md`
+- [ ] Contribuir RFCs upstream ao lifecycle (DirWatchSource, Debouncing Middleware)
+
+## Fase 0.10.8: Generic Data Support (Configurable Content)
 
  **Objetivo:** Permitir que o Loam seja usado para carregar "Dados Puros" (Configs, Manifests) sem sequestrar a chave `content`.
 

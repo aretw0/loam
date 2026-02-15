@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"context"
 	"log/slog"
 	"os"
 
@@ -37,11 +37,8 @@ It orchestrates filesystem writes and version control to ensure transactional in
 
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main().
-func Execute() {
-	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
+func Execute(ctx context.Context) error {
+	return rootCmd.ExecuteContext(ctx)
 }
 
 func init() {

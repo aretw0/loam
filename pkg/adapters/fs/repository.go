@@ -18,6 +18,7 @@ import (
 	"github.com/bmatcuk/doublestar/v4"
 	"github.com/fsnotify/fsnotify"
 
+	"github.com/aretw0/lifecycle"
 	"github.com/aretw0/loam/pkg/core"
 	"github.com/aretw0/loam/pkg/git"
 )
@@ -38,6 +39,11 @@ type Repository struct {
 
 	// readOnly indicates if the repository is in read-only mode.
 	readOnly bool
+
+	// Observability fields (protected by mu)
+	mu             sync.RWMutex
+	watcherActive  bool
+	lastReconcile  *time.Time
 }
 
 // Config holds the configuration for the filesystem repository.
@@ -260,21 +266,26 @@ func (r *Repository) Watch(ctx context.Context, pattern string) (<-chan core.Eve
 	// We ignore errors here because .git might not exist if it's not a git repo
 	_ = watcher.Add(filepath.Join(r.Path, ".git"))
 
-	// 2. Start Event Loop
-	go func() {
+	// Mark watcher as active
+	r.setWatcherActive(true)
+
+	// 2. Start Event Loop with lifecycle.Go() for panic recovery and tracking
+	task := lifecycle.Go(ctx, func(ctx context.Context) error {
 		debouncer := newDebouncer(50 * time.Millisecond)
 		defer close(events)
 		defer debouncer.stop()
+		defer watcher.Close()
+		defer r.setWatcherActive(false)
 
 		var gitLocked bool
 
 		for {
 			select {
 			case <-ctx.Done():
-				return
+				return nil
 			case event, ok := <-watcher.Events:
 				if !ok {
-					return
+					return nil
 				}
 
 				// Global Git Lock Detection
@@ -294,14 +305,14 @@ func (r *Repository) Watch(ctx context.Context, pattern string) (<-chan core.Eve
 							if r.config.Logger != nil {
 								r.config.Logger.Debug("git operations finished, reconciling")
 							}
-							// Trigger Reconcile to catch up
-							go func() {
+							// Trigger Reconcile to catch up using lifecycle.Go() for panic recovery
+							lifecycle.Go(ctx, func(ctx context.Context) error {
 								reconciledEvents, err := r.Reconcile(ctx)
 								if err != nil {
 									if r.config.Logger != nil {
 										r.config.Logger.Error("reconcile failed", "error", err)
 									}
-									return
+									return err
 								}
 								for _, e := range reconciledEvents {
 									debouncer.add(e, func(finalE core.Event) {
@@ -311,7 +322,14 @@ func (r *Repository) Watch(ctx context.Context, pattern string) (<-chan core.Eve
 										}
 									})
 								}
-							}()
+								return nil
+							}, lifecycle.WithErrorHandler(func(err error) {
+								if r.config.ErrorHandler != nil {
+									r.config.ErrorHandler(fmt.Errorf("reconcile panic: %w", err))
+								} else if r.config.Logger != nil {
+									r.config.Logger.Error("reconcile panic", "error", err)
+								}
+							}))
 							continue
 						}
 					}
@@ -364,7 +382,7 @@ func (r *Repository) Watch(ctx context.Context, pattern string) (<-chan core.Eve
 
 			case err, ok := <-watcher.Errors:
 				if !ok {
-					return
+					return nil
 				}
 				if r.config.Logger != nil {
 					r.config.Logger.Error("fsnotify error", "error", err)
@@ -375,7 +393,16 @@ func (r *Repository) Watch(ctx context.Context, pattern string) (<-chan core.Eve
 				}
 			}
 		}
-	}()
+	}, lifecycle.WithErrorHandler(func(err error) {
+		if r.config.ErrorHandler != nil {
+			r.config.ErrorHandler(fmt.Errorf("watcher panic: %w", err))
+		} else if r.config.Logger != nil {
+			r.config.Logger.Error("watcher panic", "error", err)
+		}
+	}))
+
+	// Don't wait for task completion - it runs in background until ctx cancels
+	_ = task
 
 	return events, nil
 }
@@ -555,6 +582,9 @@ func (r *Repository) Reconcile(ctx context.Context) ([]core.Event, error) {
 			}
 		}
 	}
+
+	// Record reconcile completion for observability
+	r.recordReconcile()
 
 	return events, nil
 }

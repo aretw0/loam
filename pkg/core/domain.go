@@ -1,6 +1,8 @@
 // Document is the central entity of the domain.
 package core
 
+import "fmt"
+
 // Metadata represents the flexible key-value pairs associated with a document.
 type Metadata map[string]any
 
@@ -26,6 +28,10 @@ type Event struct {
 	Type      EventType
 	ID        string
 	Timestamp int64 // Unix timestamp
+}
+
+func (e Event) String() string {
+	return fmt.Sprintf("%s %s", e.Type, e.ID)
 }
 
 // ChangeReasonKey is the context key for passing the commit message/change reason.

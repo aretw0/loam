@@ -170,3 +170,10 @@ func (c *cache) Range(callback func(relPath string, entry *indexEntry) bool) {
 		}
 	}
 }
+
+// Len returns the number of entries in the cache.
+func (c *cache) Len() int {
+	c.index.mu.RLock()
+	defer c.index.mu.RUnlock()
+	return len(c.index.Entries)
+}

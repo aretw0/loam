@@ -1,12 +1,19 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
+
+	"github.com/aretw0/lifecycle"
 )
 
 func main() {
-	Execute()
+	if err := lifecycle.Run(lifecycle.Job(func(ctx context.Context) error {
+		return Execute(ctx)
+	})); err != nil {
+		fatal("application error", err)
+	}
 }
 
 func fatal(msg string, err error) {
