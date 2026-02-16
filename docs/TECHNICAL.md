@@ -410,6 +410,60 @@ Erros de runtime no watcher (ex: falha ao resolver um path relativo ou perda de 
 1. Logados via `slog.Logger` (sempre disponível, com fallback stderr se não configurado).
 2. Emitidos via callback `WithWatcherErrorHandler`, permitindo que a aplicação reaja (ex: exiba um toast de erro na UI).
 
+#### Protected Resource Cleanup Pattern
+
+Um dos desafios críticos ao implementar watchers e debouncing é evitar **race conditions entre callbacks assincronos e fechamento de canais**. O Loam implementa o padrão **Protected Resource Cleanup** para garantir sincronização segura.
+
+**Padrão Base (3 Etapas):**
+
+```
+1. STOP accepting new work       (flag: debouncer.closed = true)
+2. WAIT for in-flight work       (sync.WaitGroup tracking timers)
+3. THEN close the resource       (events channel)
+```
+
+**Implementação no Debouncer:**
+
+```go
+type debouncer struct {
+    timers map[string]*time.Timer
+    closed bool
+    mu     sync.Mutex
+    wg     sync.WaitGroup      // Tracks in-flight timer callbacks
+}
+
+func (d *debouncer) stopAndWait(timeout time.Duration) {
+    d.mu.Lock()
+    d.closed = true                          // Step 1: Stop accepting
+    for _, t := range d.timers {
+        t.Stop()
+    }
+    d.mu.Unlock()
+    
+    // Step 2: Wait for timer goroutines to complete
+    done := make(chan struct{})
+    go func() {
+        d.wg.Wait()
+        close(done)
+    }()
+    
+    select {
+    case <-done:
+        return
+    case <-time.After(timeout):
+        // Timeout protection against deadlock
+        return
+    }
+    // Step 3: Safe to close resources now
+}
+```
+
+**Aplicabilidade Ecossistêmica:**
+
+- **lifecycle**: Pode formalizar este padrão como `GracefulWorker` interface em v1.6+
+- **trellis**: Usar `WaitGroup` em batch-level execution para sincronizar task cleanup
+- **Geral**: Qualquer sistema com **async callbacks + channel closure** se beneficia deste padrão
+
 ## Limitações Técnicas Conhecidas (Caveats)
 
 ### 1. CSV Smart Parsing (Heurística)
