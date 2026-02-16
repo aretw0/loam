@@ -1,8 +1,30 @@
-loam.exe
-.loam/
+# Go Workspace
+go.work
+go.work.sum
+
+# Binaries
+/**/*.exe
+
+# Build Output
+dist/
+
+# Test Output
+*test*.txt
+
+# Coverage
+*coverage*.txt
+*coverage*.out
 coverage
+
+# Examples
+examples/**/config.json
 examples/**/*.exe
 examples/recipes/cli_scripting/*/*.*
 
+# Gemini
 .gemini/
 gha-creds-*.json
+secure-*.json
+
+# Internal
+.loam/
