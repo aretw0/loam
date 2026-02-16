@@ -427,6 +427,7 @@ O Loam adota padrões de observabilidade estabelecidos no `github.com/aretw0/lif
 ### Logger Pattern: Sane Default
 
 **Racional:**
+
 - O `lifecycle` adota um default global logger (`log/slog`) para garantir que logs nunca sejam silenciosos, mesmo se o consumidor esquecer de passar uma configuração.
 - O Loam alinha-se com esse padrão no FS Adapter:
 
@@ -465,6 +466,7 @@ if stack != "" {
 ```
 
 **Filosofia:**
+
 - **Desenvolvimento (LevelDebug):** Stack traces ativados para root cause analysis
 - **Produção (LevelInfo/Warn):** Stack omitido para reduzir log noise e I/O
 
@@ -483,11 +485,13 @@ make work-off-lifecycle
 ```
 
 **Racional:**
+
 - Durante fase de desenvolvimento de features que dependem de atualizações no `lifecycle` (ex: v1.5.1 conditional stacks), o `go.work` permite testar contra código local antes da publicação.
 - Evita "break during" scenarios onde o Loam antecipa patterns que ainda não foram publicados.
 - Fácil reversão: `make work-off-all` remove `go.work` para usar versões publicadas.
 
 **Caveat:**
+
 - Não manter `go.work` commitado (`go.work` está em `.gitignore`) para evitar conflitos em CI/CD e consumidores.
 - Local development only: Contributors e CI pipelines usam versões publicadas (v1.5.1+).
 

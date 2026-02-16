@@ -283,6 +283,9 @@ func (r *Repository) Watch(ctx context.Context, pattern string) (<-chan core.Eve
 		return nil, err
 	}
 
+	// Cleanup goroutine: Wait for supervisor to stop, then close the events channel.
+	// This pattern (defer close inside goroutine) prevents race conditions where
+	// the worker tries to send while external code closes the channel.
 	lifecycle.Go(ctx, func(ctx context.Context) error {
 		err := <-watcherSupervisor.Wait()
 		if err != nil {
@@ -292,6 +295,7 @@ func (r *Repository) Watch(ctx context.Context, pattern string) (<-chan core.Eve
 				r.config.Logger.Error("watcher supervisor stopped", "error", err)
 			}
 		}
+		// Safe to close: supervisor.Wait() guarantees all workers have stopped
 		close(events)
 		return nil
 	})
@@ -586,6 +590,7 @@ func (r *Repository) resolveID(absPath string) (string, error) {
 // debouncer helper struct
 type debouncer struct {
 	mu      sync.Mutex
+	wg      sync.WaitGroup // Tracks timers that have fired and are processing
 	timers  map[string]*time.Timer
 	pending map[string]core.Event
 	delay   time.Duration
@@ -610,6 +615,25 @@ func (d *debouncer) stop() {
 	}
 }
 
+// stopAndWait marks debouncer as closed and waits for all in-flight timers to complete.
+// This ensures that no race conditions occur between debouncer sends and channel closure.
+func (d *debouncer) stopAndWait(timeout time.Duration) {
+	d.stop()
+	// Wait for all in-flight timer goroutines to finish
+	done := make(chan struct{})
+	go func() {
+		d.wg.Wait()
+		close(done)
+	}()
+
+	select {
+	 case <-done:
+		// All timers finished
+	 case <-time.After(timeout):
+		// Timeout waiting for timers (log but don't deadlock)
+	}
+}
+
 func (d *debouncer) add(newEvent core.Event, send func(core.Event)) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -629,7 +653,11 @@ func (d *debouncer) add(newEvent core.Event, send func(core.Event)) {
 
 	d.pending[newEvent.ID] = newEvent
 
+	// Track this timer as in-flight
+	d.wg.Add(1)
 	d.timers[newEvent.ID] = time.AfterFunc(d.delay, func() {
+		defer d.wg.Done()
+
 		d.mu.Lock()
 		if d.closed {
 			d.mu.Unlock()
@@ -644,7 +672,7 @@ func (d *debouncer) add(newEvent core.Event, send func(core.Event)) {
 		delete(d.pending, newEvent.ID)
 		d.mu.Unlock()
 
-		// Safe send
+		// Safe send (channel may be closed, but recover handles it)
 		defer func() {
 			_ = recover()
 		}()

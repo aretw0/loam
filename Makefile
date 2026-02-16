@@ -1,4 +1,4 @@
-.PHONY: all build test test-fast coverage clean check install \
+.PHONY: all build test test-full test-careful coverage clean check install \
 	cross-build build-linux build-windows build-darwin \
 	work-on-lifecycle work-on-procio work-on-introspection \
 	work-off-lifecycle work-off-procio work-off-introspection work-off-all
@@ -37,18 +37,24 @@ build:
 	@echo "Building for $(GOOS)/$(GOARCH)..."
 	$(GOBUILD) -v -o $(BINARY_NAME) ./cmd/loam
 
-# Run tests
+# Run tests excluding stress/benchmarks (Fast Feedback)
 test:
-	@echo "Running tests..."
+	@echo "Running tests (excluding stress/benchmarks)..."
+	$(GOTEST) -timeout 60s ./pkg/... ./cmd/... ./internal/... ./tests/e2e ./tests/reactivity ./tests/typed
+
+# Run all tests
+test-full:
+	@echo "Running all tests (including stress/benchmarks)..."
 	$(GOTEST) -race -timeout 120s ./...
 
-# Run tests excluding stress/benchmarks (Fast Feedback)
-test-fast:
-	@echo "Running fast tests (skipping stress/benchmarks)..."
-	$(GOTEST) -timeout 60s ./pkg/... ./cmd/... ./internal/... ./tests/e2e ./tests/reactivity ./tests/typed
+# Run tests about concurrency and file system (slower, more careful)
+test-careful:
+	@echo "Running careful tests (concurrency and file system)..."
+	$(GOTEST) -race -timeout 60s -v ./pkg/adapters/fs ./pkg/adapters/lifecycle
 
 # Run coverage tests
 coverage:
+	@echo "Running tests with coverage..."
 	$(GOTEST) -race -timeout 120s -coverprofile="coverage.out" ./...
 	$(GOTOOL) cover -func="coverage.out"
 
