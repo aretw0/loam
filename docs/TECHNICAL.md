@@ -407,7 +407,7 @@ Para evitar loops infinitos onde o Loam reage à própria escrita (Self-Writes),
 
 Erros de runtime no watcher (ex: falha ao resolver um path relativo ou perda de permissão) não encerram o loop de observação. Eles são:
 
-1. Logados via `slog.Logger` (se configurado).
+1. Logados via `slog.Logger` (sempre disponível, com fallback stderr se não configurado).
 2. Emitidos via callback `WithWatcherErrorHandler`, permitindo que a aplicação reaja (ex: exiba um toast de erro na UI).
 
 ## Limitações Técnicas Conhecidas (Caveats)
