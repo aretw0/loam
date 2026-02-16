@@ -15,10 +15,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/aretw0/lifecycle"
+	"github.com/aretw0/lifecycle/pkg/core/supervisor"
+	"github.com/aretw0/lifecycle/pkg/core/worker"
 	"github.com/bmatcuk/doublestar/v4"
 	"github.com/fsnotify/fsnotify"
 
-	"github.com/aretw0/lifecycle"
 	"github.com/aretw0/loam/pkg/core"
 	"github.com/aretw0/loam/pkg/git"
 )
@@ -41,9 +43,9 @@ type Repository struct {
 	readOnly bool
 
 	// Observability fields (protected by mu)
-	mu             sync.RWMutex
-	watcherActive  bool
-	lastReconcile  *time.Time
+	mu            sync.RWMutex
+	watcherActive bool
+	lastReconcile *time.Time
 }
 
 // Config holds the configuration for the filesystem repository.
@@ -63,6 +65,14 @@ type Config struct {
 
 // NewRepository creates a new filesystem-backed repository.
 func NewRepository(config Config) *Repository {
+	// Ensure logger is never nil (sane default for observability).
+	// Aligns with lifecycle v1.5.1+ convention: Global fallback prevents silent failures.
+	if config.Logger == nil {
+		config.Logger = slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+			Level: slog.LevelInfo,
+		}))
+	}
+
 	return &Repository{
 		Path:        config.Path,
 		git:         git.NewClient(config.Path, config.SystemDir+".lock", config.Logger),
@@ -249,160 +259,42 @@ func (r *Repository) Sync(ctx context.Context) error {
 //  2. OS Limits: Large repositories may hit file descriptor limits (inotify limits).
 //  3. Debouncing: Events are debounced by 50ms. Rapid atomic writes (Create+Modify) are merged.
 func (r *Repository) Watch(ctx context.Context, pattern string) (<-chan core.Event, error) {
-	watcher, err := fsnotify.NewWatcher()
-	if err != nil {
-		return nil, fmt.Errorf("failed to create watcher: %w", err)
-	}
-
 	events := make(chan core.Event)
 
-	// 1. Recursive Watch
-	if err := r.recursiveAdd(watcher); err != nil {
-		watcher.Close()
+	watcherBackoff := supervisor.Backoff{
+		InitialInterval: 250 * time.Millisecond,
+		MaxInterval:     5 * time.Second,
+		Multiplier:      2,
+		ResetDuration:   30 * time.Second,
+		MaxRestarts:     10,
+		MaxDuration:     1 * time.Minute,
+	}
+
+	spec := supervisor.Spec{
+		Name:          "fs-watcher",
+		Type:          string(worker.TypeGoroutine),
+		Factory:       func() (worker.Worker, error) { return newWatchWorker(r, pattern, events), nil },
+		Backoff:       watcherBackoff,
+		RestartPolicy: supervisor.RestartOnFailure,
+	}
+
+	watcherSupervisor := supervisor.New("loam-watcher", supervisor.StrategyOneForOne, spec)
+	if err := watcherSupervisor.Start(ctx); err != nil {
 		return nil, err
 	}
 
-	// Monitor .git for index.lock (concurrency control)
-	// We ignore errors here because .git might not exist if it's not a git repo
-	_ = watcher.Add(filepath.Join(r.Path, ".git"))
-
-	// Mark watcher as active
-	r.setWatcherActive(true)
-
-	// 2. Start Event Loop with lifecycle.Go() for panic recovery and tracking
-	task := lifecycle.Go(ctx, func(ctx context.Context) error {
-		debouncer := newDebouncer(50 * time.Millisecond)
-		defer close(events)
-		defer debouncer.stop()
-		defer watcher.Close()
-		defer r.setWatcherActive(false)
-
-		var gitLocked bool
-
-		for {
-			select {
-			case <-ctx.Done():
-				return nil
-			case event, ok := <-watcher.Events:
-				if !ok {
-					return nil
-				}
-
-				// Global Git Lock Detection
-				// We detect .git/index.lock to pause processing during batch git operations
-				if filepath.Base(event.Name) == "index.lock" {
-					// Ensure it is indeed the git lock
-					dir := filepath.Dir(event.Name)
-					if filepath.Base(dir) == ".git" {
-						if event.Has(fsnotify.Create) {
-							gitLocked = true
-							if r.config.Logger != nil {
-								r.config.Logger.Debug("git operations detected, pausing watcher")
-							}
-							continue
-						} else if event.Has(fsnotify.Remove) || event.Has(fsnotify.Rename) {
-							gitLocked = false
-							if r.config.Logger != nil {
-								r.config.Logger.Debug("git operations finished, reconciling")
-							}
-							// Trigger Reconcile to catch up using lifecycle.Go() for panic recovery
-							lifecycle.Go(ctx, func(ctx context.Context) error {
-								reconciledEvents, err := r.Reconcile(ctx)
-								if err != nil {
-									if r.config.Logger != nil {
-										r.config.Logger.Error("reconcile failed", "error", err)
-									}
-									return err
-								}
-								for _, e := range reconciledEvents {
-									debouncer.add(e, func(finalE core.Event) {
-										select {
-										case events <- finalE:
-										case <-ctx.Done():
-										}
-									})
-								}
-								return nil
-							}, lifecycle.WithErrorHandler(func(err error) {
-								if r.config.ErrorHandler != nil {
-									r.config.ErrorHandler(fmt.Errorf("reconcile panic: %w", err))
-								} else if r.config.Logger != nil {
-									r.config.Logger.Error("reconcile panic", "error", err)
-								}
-							}))
-							continue
-						}
-					}
-				}
-
-				// If Git is locked, we ignore all other events to prevent storms.
-				// We rely on the Reconcile call (on unlock) to catch up.
-				if gitLocked {
-					continue
-				}
-
-				if r.config.Logger != nil {
-					r.config.Logger.Debug("event received", "name", event.Name)
-				}
-
-				// 3. Filter Events
-				if r.shouldIgnore(event, pattern) {
-					continue
-				}
-
-				// 4. Map to Domain Event
-				eType := r.mapEventType(event)
-				if eType == "" {
-					continue
-				}
-
-				id, err := r.resolveID(event.Name)
-				if err != nil {
-					if r.config.ErrorHandler != nil {
-						r.config.ErrorHandler(fmt.Errorf("failed to resolve ID for %s: %w", event.Name, err))
-					} else if r.config.Logger != nil {
-						// Existing Logger fallback (already does debug above, but maybe error here?)
-						// resolveID error usually means path is outside vault, which shouldn't happen if watcher set up right.
-						r.config.Logger.Debug("resolveID failed", "path", event.Name, "err", err)
-					}
-					continue
-				}
-
-				// 5. Debounce & Send
-				debouncer.add(core.Event{
-					Type:      eType,
-					ID:        id,
-					Timestamp: time.Now().Unix(),
-				}, func(e core.Event) {
-					select {
-					case events <- e:
-					case <-ctx.Done():
-					}
-				})
-
-			case err, ok := <-watcher.Errors:
-				if !ok {
-					return nil
-				}
-				if r.config.Logger != nil {
-					r.config.Logger.Error("fsnotify error", "error", err)
-				}
-				// Callback
-				if r.config.ErrorHandler != nil {
-					r.config.ErrorHandler(err)
-				}
+	lifecycle.Go(ctx, func(ctx context.Context) error {
+		err := <-watcherSupervisor.Wait()
+		if err != nil {
+			if r.config.ErrorHandler != nil {
+				r.config.ErrorHandler(fmt.Errorf("watcher supervisor stopped: %w", err))
+			} else if r.config.Logger != nil {
+				r.config.Logger.Error("watcher supervisor stopped", "error", err)
 			}
 		}
-	}, lifecycle.WithErrorHandler(func(err error) {
-		if r.config.ErrorHandler != nil {
-			r.config.ErrorHandler(fmt.Errorf("watcher panic: %w", err))
-		} else if r.config.Logger != nil {
-			r.config.Logger.Error("watcher panic", "error", err)
-		}
-	}))
-
-	// Don't wait for task completion - it runs in background until ctx cancels
-	_ = task
+		close(events)
+		return nil
+	})
 
 	return events, nil
 }

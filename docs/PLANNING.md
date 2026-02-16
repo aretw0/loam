@@ -71,7 +71,7 @@
 
 - [x] CLI com `lifecycle.Run()` para graceful shutdown
 - [x] Bridge `ChannelSource` para consumidores lifecycle-aware (Trellis)
-- [ ] `lifecycle.Supervisor` para watcher auto-healing
+- [x] `lifecycle.Supervisor` para watcher auto-healing
 - [ ] Diagramas Mermaid do vault via `introspection.TreeDiagram()`
 - [ ] `lifecycle.Group` em transações
 - [ ] Documentar integrações no `TECHNICAL.md`

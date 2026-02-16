@@ -420,6 +420,77 @@ O parser CSV tenta ser inteligente para recuperar estruturas aninhadas (`map`/`s
 - **Risco:** Dados legítimos que *parecem* JSON mas não são (ex: `"{ nota: rascunho }"`) falharão na decodificação silenciosamente (fallback para string) ou, pior, serão convertidos quando não deveriam.
 - **Contorno:** Utilize `Strict Mode` para garantir fidelidade de tipos numéricos dentro desses JSONs, mas esteja ciente da ambiguidade estrutural.
 
+## Estratégia de Observabilidade
+
+O Loam adota padrões de observabilidade estabelecidos no `github.com/aretw0/lifecycle` v1.5.1+ para garantir consistência arquitetural e facilitar debugging em desenvolvimento.
+
+### Logger Pattern: Sane Default
+
+**Racional:**
+- O `lifecycle` adota um default global logger (`log/slog`) para garantir que logs nunca sejam silenciosos, mesmo se o consumidor esquecer de passar uma configuração.
+- O Loam alinha-se com esse padrão no FS Adapter:
+
+```go
+// pkg/adapters/fs/repository.go
+func NewRepository(config Config) *Repository {
+    if config.Logger == nil {
+        config.Logger = slog.New(slog.NewTextHandler(os.Stderr, ...))
+    }
+    return &Repository{...}
+}
+```
+
+**Benefício:** Panics, erros de watcher e falhas de sincronização nunca são silenciados. Desenvolvedores sempre têm visibilidade, mesmo com setup mínimo.
+
+### Conditional Panic Stack Traces (Nível 1)
+
+O watcher (`watch_worker.go`) implementa a estratégia de observability do `lifecycle` v1.5.1:
+
+```go
+// Conditional stack trace (only capture if debug logging enabled)
+var stack string
+if w.repo.config.Logger.Enabled(ctx, slog.LevelDebug) {
+    stack = string(debug.Stack())
+}
+
+// Log with optional stack
+if stack != "" {
+    w.repo.config.Logger.Error("watcher panic",
+        "error", panicErr,
+        "stack", stack,
+    )
+} else {
+    w.repo.config.Logger.Error("watcher panic", "error", panicErr)
+}
+```
+
+**Filosofia:**
+- **Desenvolvimento (LevelDebug):** Stack traces ativados para root cause analysis
+- **Produção (LevelInfo/Warn):** Stack omitido para reduzir log noise e I/O
+
+**Roadmap v1.6:** O `lifecycle` planeja adicionar `WithStackCapture(bool)` e `Observer.OnGoroutinePanicked()` para customização explícita. Quando v1.6 for lançado, o Loam poderá adotar essas capacidades.
+
+### Dependency Coordination: go.work Strategy
+
+O Loam utiliza `go.work` para desenvolvimento sincronizado com `lifecycle`, `procio`, e `introspection`:
+
+```bash
+# Enable local development
+make work-on-lifecycle
+
+# Use published versions
+make work-off-lifecycle
+```
+
+**Racional:**
+- Durante fase de desenvolvimento de features que dependem de atualizações no `lifecycle` (ex: v1.5.1 conditional stacks), o `go.work` permite testar contra código local antes da publicação.
+- Evita "break during" scenarios onde o Loam antecipa patterns que ainda não foram publicados.
+- Fácil reversão: `make work-off-all` remove `go.work` para usar versões publicadas.
+
+**Caveat:**
+- Não manter `go.work` commitado (`go.work` está em `.gitignore`) para evitar conflitos em CI/CD e consumidores.
+- Local development only: Contributors e CI pipelines usam versões publicadas (v1.5.1+).
+
 ## Estratégia de Lifecycle
 
 A CLI do Loam (`loam`) utiliza a biblioteca [lifecycle](https://github.com/aretw0/lifecycle) para gerenciamento robusto de execução.
@@ -431,3 +502,9 @@ Todos os comandos da CLI são executados dentro de um `lifecycle.Run`, que prov�
 1. **Contexto de Sinal (`SignalContext`)**: Captura `SIGINT` (Ctrl+C) e `SIGTERM` para cancelar o contexto. Comandos long-running (como `watch`) devem respeitar `ctx.Done()`.
 2. **Panic Recovery**: Panics não tratados são capturados e logados com stack trace, evitando crashes silenciosos.
 3. **Shutdown Hooks**: Permite registrar callbacks de limpeza (`OnShutdown`) que são executados antes da aplicação encerrar.
+
+### Watcher Auto-Healing (Supervisor)
+
+O watcher do adapter `fs` roda sob um `lifecycle.Supervisor` com política **OneForOne** e `RestartOnFailure`.
+Em caso de falha (ex: canais do `fsnotify` fechados), o supervisor reinicia o worker com backoff exponencial.
+Isso evita que erros transitórios derrubem o mecanismo de reatividade.
