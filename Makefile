@@ -1,3 +1,4 @@
+.PHONY: all build test test-fast clean check install cross-build build-linux build-windows build-darwin
 # Makefile for the loam project
 
 # Go parameters
@@ -18,6 +19,7 @@ build:
 	$(GOBUILD) -v -o $(BINARY_NAME) ./cmd/loam
 
 # Run tests
+test:
 	@echo "Running tests..."
 	$(GOTEST) -v ./...
 
@@ -58,5 +60,3 @@ build-windows:
 build-darwin:
 	@echo "Building for macOS..."
 	GOOS=darwin GOARCH=amd64 $(GOBUILD) -v -o $(BINARY_NAME)-darwin-amd64 ./cmd/loam
-
-.PHONY: all build test clean install cross-build build-linux build-windows build-darwin
