@@ -253,7 +253,24 @@ flowchart LR
 1. **Performance:** A recursão tem custo CPU linear ao tamanho do documento. Para documentos gigantescos com deep nesting, isso pode ser perceptível.
 2. **Overhead de Alocação:** Recria mapas e slices para garantir a tipagem correta.
 
-### 5. Segurança (Dev Safety) & Read-Only
+### 5. Content Extraction & Generic Data
+
+O Loam pode operar em dois modos para JSON/YAML/CSV:
+
+- **Extraction ON (Default):** A chave `content` e o corpo de Markdown viram `Document.Content` (comportamento CMS-like).
+- **Extraction OFF:** O payload inteiro do arquivo e o corpo Markdown ficam em `Document.Metadata`, preservando 1:1 o formato de origem.
+
+**Opcoes:**
+
+- `WithContentExtraction(bool)`: controla a extracao de `content`.
+- `WithMarkdownBodyKey(string)`: quando a extracao estiver desativada, define a chave usada para armazenar o corpo do Markdown (default `body`).
+
+**Notas:**
+
+- Para JSON/YAML com `WithContentExtraction(false)`, o payload inteiro eh preservado em `Metadata`.
+- `WithMarkdownBodyKey` so afeta Markdown quando a extracao estiver desativada.
+
+### 6. Segurança (Dev Safety) & Read-Only
 
 O Loam prioriza a segurança dos dados do usuário, prevenindo acidentes durante o desenvolvimento.
 
@@ -261,7 +278,7 @@ O Loam prioriza a segurança dos dados do usuário, prevenindo acidentes durante
 - **Read-Only Mode (`WithReadOnly(true)`)**: Permite operações de **leitura** no diretório real (bypassing sandbox), mas bloqueia qualquer escrita (`Save`, `Delete`, `Sync`) retornando erro `ErrReadOnly`. Ideal para ferramentas de visualização (Trellis) ou análise.
 - **Unsafe Override (`WithDevSafety(false)`)**: Permite que desenvolvedores desabilitem explicitamente a sandbox para testar escritas reais via `go run`. **Use com cautela**.
 
-### 6. Interfaces de Capacidade (Capability Interfaces)
+### 7. Interfaces de Capacidade (Capability Interfaces)
 
 **Decisão:** Utilizar interfaces granulares (`Watchable`, `Syncable`, `Reconcilable`) em vez de adicionar métodos ao contrato base `Repository`.
 
@@ -271,7 +288,7 @@ O Loam prioriza a segurança dos dados do usuário, prevenindo acidentes durante
 - **Flexibilidade:** Adapters podem implementar apenas o que suportam (Interface Segregation Principle).
 - **Runtime Check:** O `Service` verifica capacidades em tempo de execução via *type assertion*.
 
-### 7. Startup Reconciliation
+### 8. Startup Reconciliation
 
 **Problema:** Quando a aplicação está parada (offline), arquivos podem ser modificados ou deletados externamente. Ao iniciar, o estado do Cache (`index.json`) está desatualizado (stale).
 

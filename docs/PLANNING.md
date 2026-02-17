@@ -116,10 +116,10 @@ Propostas originais para v1.6 (arquivadas):
 
  **Objetivo:** Permitir que o Loam seja usado para carregar "Dados Puros" (Configs, Manifests) sem sequestrar a chave `content`.
 
-- [ ] **Feature**: `WithContentExtraction(bool)`
-  - [ ] Default `true` (Comportamento atual, CMS-like).
-  - [ ] Se `false`, o arquivo JSON/YAML é carregado 1:1 para o Metadata. As implicações das regras de preenchimento do `doc.Content` precisam ser avaliadas.
-  - [ ] Essencial para `config.yaml`, `tools.yaml` e outros arquivos de configuração.
+- [x] **Feature**: `WithContentExtraction(bool)`
+  - [x] Default `true` (Comportamento atual, CMS-like).
+  - [x] Se `false`, o arquivo JSON/YAML é carregado 1:1 para o Metadata. As implicações das regras de preenchimento do `doc.Content` precisam ser avaliadas.
+  - [x] Essencial para `config.yaml`, `tools.yaml` e outros arquivos de configuração.
 
 ## RFC 0.X.X: Robust CSV & Schema Control (Backlog)
 
