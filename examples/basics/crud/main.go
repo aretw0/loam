@@ -82,5 +82,29 @@ func main() {
 		fmt.Printf(" - %s\n", n.ID)
 	}
 
+	// Optional: Transactions for multi-step operations
+	fmt.Println("\n[6] Multi-step transaction...")
+	ctxMsg := context.WithValue(ctx, core.ChangeReasonKey, "multi-step CREATE")
+	tx, err := service.Begin(ctxMsg)
+	if err != nil {
+		panic(err)
+	}
+
+	// Stage multiple documents sequentially
+	for i := 1; i <= 3; i++ {
+		id := fmt.Sprintf("batch/doc%d", i)
+		doc := core.Document{ID: id, Content: fmt.Sprintf("Transactional doc %d", i)}
+		if err := tx.Save(ctx, doc); err != nil {
+			_ = tx.Rollback(ctx)
+			panic(err)
+		}
+	}
+
+	// Atomic commit
+	if err := tx.Commit(ctx, "transaction: batch CREATE"); err != nil {
+		panic(err)
+	}
+	fmt.Println("Batch transaction committed.")
+
 	fmt.Println("\nSuccess! Full CRUD cycle completed without Git.")
 }

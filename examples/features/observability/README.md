@@ -32,6 +32,11 @@ Under the hood, Loam now uses:
 - **`lifecycle.Go()`**: For panic-safe goroutine management in the watcher and reconcile loops
 - **Error handlers**: Propagate panics via configured error callbacks
 
+### 4. Mermaid Vault Diagram
+
+The example renders a Mermaid diagram for the vault topology using `introspection.TreeDiagram()`.
+This gives a visual overview of repository, watcher, and cache state.
+
 ## Running
 
 ```sh
@@ -54,6 +59,21 @@ Saving documents...
 
 === Repository State (with active watcher) ===
 {Path:./demo-vault SystemDir:.loam CacheSize:2 Gitless:true ReadOnly:false Strict:false Serializers:[.md .json .yaml .csv] WatcherActive:true LastReconcile:2026-02-15T...}
+
+=== Vault Diagram (Mermaid) ===
+graph TD
+	classDef running fill:#d1ecf1,stroke:#bee5eb,color:#0c5460;
+	classDef goroutine stroke-dasharray: 5 5;
+	classDef container stroke-width:3px,stroke-dasharray: 0;
+	classDef process stroke-width:1px;
+	...
+	vault["<b>📦 Vault</b><br/>Status: ready"]:::container
+	vault1["<b>⚙️ Repository</b><br/>Status: ready"]:::process
+	vault2("<b>λ Watcher</b><br/>Status: active"):::goroutine
+	vault3[["<b>📦 Cache</b><br/>Status: ready"]]:::container
+	vault --> vault1
+	vault1 --> vault2
+	vault1 --> vault3
 
 Component Type: repository
 

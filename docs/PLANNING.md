@@ -72,9 +72,9 @@
 - [x] CLI com `lifecycle.Run()` para graceful shutdown
 - [x] Bridge `ChannelSource` para consumidores lifecycle-aware (Trellis)
 - [x] `lifecycle.Supervisor` para watcher auto-healing
-- [ ] Diagramas Mermaid do vault via `introspection.TreeDiagram()`
-- [ ] `lifecycle.Group` em transações
-- [ ] Documentar integrações no `TECHNICAL.md`
+- [x] Diagramas Mermaid do vault via `introspection.TreeDiagram()`
+- [x] `lifecycle.Group` em transações
+- [x] Documentar integrações no `TECHNICAL.md`
 - [ ] Contribuir RFCs upstream ao lifecycle (DirWatchSource, Debouncing Middleware)
 
 ## Fase 0.10.8: Generic Data Support (Configurable Content)

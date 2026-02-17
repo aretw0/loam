@@ -76,12 +76,16 @@ func initFS(path string, o *options) (core.Repository, error) {
 	useTemp := tempDir || (IsDevRun() && !bypassSafety)
 	resolvedPath := ResolveVaultPath(path, useTemp)
 
-	// Log warning if running unsafely in Dev
-	if IsDevRun() && !bypassSafety && o.logger != nil {
-		if isReadOnly {
-			o.logger.Debug("running in READ-ONLY mode (bypassing dev sandbox)", "path", resolvedPath)
+	// Log dev safety mode for clarity
+	if IsDevRun() && o.logger != nil {
+		if bypassSafety {
+			if isReadOnly {
+				o.logger.Debug("running in READ-ONLY mode (bypassing dev sandbox)", "path", resolvedPath)
+			} else {
+				o.logger.Warn("running in UNSAFE mode (bypassing dev sandbox)", "path", resolvedPath)
+			}
 		} else {
-			o.logger.Warn("running in UNSAFE mode (bypassing dev sandbox)", "path", resolvedPath)
+			o.logger.Debug("running in SAFE mode (dev sandbox enabled)", "path", resolvedPath)
 		}
 	}
 

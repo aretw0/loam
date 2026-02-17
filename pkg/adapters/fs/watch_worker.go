@@ -171,6 +171,13 @@ func (w *watchWorker) processFilesystemEvent(ctx context.Context, event fsnotify
 // sendEvent enqueues an event via the debouncer, protecting against channel closure during shutdown.
 // source param is for logging/debugging (e.g., "filesystem", "reconciliation").
 func (w *watchWorker) sendEvent(ctx context.Context, event core.Event, source string) {
+	if w.repo.config.Logger != nil && w.repo.config.Logger.Enabled(ctx, slog.LevelDebug) {
+		w.repo.config.Logger.Debug("event queued",
+			"source", source,
+			"type", event.Type,
+			"id", event.ID,
+		)
+	}
 	w.debouncer.add(event, func(e core.Event) {
 		defer func() {
 			// Recover from panic if channel was closed (worker stopping)

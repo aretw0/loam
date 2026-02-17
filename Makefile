@@ -37,6 +37,11 @@ build:
 	@echo "Building for $(GOOS)/$(GOARCH)..."
 	$(GOBUILD) -v -o $(BINARY_NAME) ./cmd/loam
 
+# Run go vet for static analysis
+vet:
+	@echo "Running go vet..."
+	$(GOCMD) vet ./...
+
 # Run tests excluding stress/benchmarks (Fast Feedback)
 test:
 	@echo "Running tests (excluding stress/benchmarks)..."

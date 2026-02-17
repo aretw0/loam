@@ -526,6 +526,53 @@ if stack != "" {
 
 **Roadmap v1.6:** O `lifecycle` planeja adicionar `WithStackCapture(bool)` e `Observer.OnGoroutinePanicked()` para customização explícita. Quando v1.6 for lançado, o Loam poderá adotar essas capacidades.
 
+### Mermaid Diagramming (Vault Topology)
+
+O Loam expõe estado via `introspection.Introspectable`, permitindo gerar diagramas Mermaid com `introspection.TreeDiagram()`.
+No exemplo de observabilidade, o estado do repositório é convertido em uma árvore simples (Vault -> Repository -> Watcher/Cache) e renderizado como grafo.
+
+```go
+config := introspection.DefaultDiagramConfig()
+config.SecondaryID = "vault"
+config.SecondaryLabel = "Vault Topology"
+diagram := introspection.TreeDiagram(buildVaultTree(repoState), config)
+fmt.Println(diagram)
+```
+
+### Transações em Lote
+
+Para operações em lote, o padrão recomendado é staging **sequencial** dentro de uma transação:
+
+```go
+tx, _ := service.Begin(ctx)
+
+for _, doc := range batch {
+    if err := tx.Save(ctx, doc); err != nil {
+        _ = tx.Rollback(ctx)
+        return err
+    }
+}
+
+return tx.Commit(ctx, "batch: CREATE documents")
+```
+
+Para paralelismo com safety garantido, use `lifecycle.Group` **sem transações**:
+
+```go
+group, ctx := lifecycle.NewGroup(ctx)
+
+for _, doc := range batch {
+    d := doc
+    group.Go(func(ctx context.Context) error {
+        return service.SaveDocument(ctx, d.ID, d.Content, nil)
+    })
+}
+
+return group.Wait()
+```
+
+**Nota:** `Transaction.Save()` não é thread-safe. Para concorrência, trabalhe diretamente com `Service`.
+
 ### Dependency Coordination: go.work Strategy
 
 O Loam utiliza `go.work` para desenvolvimento sincronizado com `lifecycle`, `procio`, e `introspection`:
