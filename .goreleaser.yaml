@@ -36,6 +36,13 @@ archives:
         formats:
           - zip
 
+release:
+  github:
+    owner: aretw0
+    name: loam
+  draft: true
+  prerelease: auto
+
 changelog:
   sort: asc
   filters:
@@ -59,3 +66,34 @@ changelog:
       order: 2
     - title: "Others"
       order: 999
+
+brews:
+  - repository:
+      owner: aretw0
+      name: homebrew-tap
+    directory: Formula
+    homepage: "https://github.com/aretw0/loam"
+    description: "An Embedded Reactive & Transactional Engine for Content & Metadata."
+    license: "AGPL-3.0"
+
+scoops:
+  - repository:
+      owner: aretw0
+      name: scoop-bucket
+    homepage: "https://github.com/aretw0/loam"
+    description: "An Embedded Reactive & Transactional Engine for Content & Metadata."
+    license: "AGPL-3.0"
+
+winget:
+  - publisher: aretw0
+    publisher_url: "https://github.com/aretw0"
+    publisher_support_url: "https://github.com/aretw0/loam/issues"
+    package_identifier: "aretw0.loam"
+    name: "loam"
+    homepage: "https://github.com/aretw0/loam"
+    license: "AGPL-3.0"
+    license_url: "https://github.com/aretw0/loam/blob/main/LICENSE.txt"
+    short_description: "An Embedded Reactive & Transactional Engine for Content & Metadata."
+    repository:
+      owner: aretw0
+      name: winget-pkgs
