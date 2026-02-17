@@ -619,19 +619,15 @@ func (d *debouncer) stop() {
 // This ensures that no race conditions occur between debouncer sends and channel closure.
 func (d *debouncer) stopAndWait(timeout time.Duration) {
 	d.stop()
+	
 	// Wait for all in-flight timer goroutines to finish
 	done := make(chan struct{})
 	go func() {
 		d.wg.Wait()
 		close(done)
 	}()
-
-	select {
-	 case <-done:
-		// All timers finished
-	 case <-time.After(timeout):
-		// Timeout waiting for timers (log but don't deadlock)
-	}
+	
+	_ = lifecycle.BlockWithTimeout(done, timeout)
 }
 
 func (d *debouncer) add(newEvent core.Event, send func(core.Event)) {
