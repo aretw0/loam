@@ -134,6 +134,27 @@ Objetivo: Permitir que ferramentas externas (não-Go) interajam com o Loam via r
   - [ ] Authorization (Read-Only vs Read-Write tokens).
   - [ ] TLS Support (para exposição segura).
 
+## RFC 0.X.X: Concurrent Batching (Backlog / Awaiting Use Case)
+
+**Status:** Awaiting real-world use cases. Currently **NOT planned** without demand.
+
+**Objetivo:** Investigar se há necessidade de staging paralelo dentro de transações para padrões de bulk update de alto volume.
+
+**Contexto:**
+
+- `Transaction` já é thread-safe (usa `sync.Mutex` em todos os métodos)
+- Padrão típico é sequencial: `stage → stage → ... → commit`
+- Se precisa concorrência: `Service.SaveDocument()` (thread-safe) é alternativa direta
+- `lifecycle.Group` + `tx.Save()` **já funciona** tecnicamente, mas não há caso de uso documentado
+
+**Possíveis Abordagens (se demanda surgir):**
+
+1. **Status Quo**: Continuar com Transaction simples + Service para paralelismo direto
+2. **RWMutex Optimization**: Trocar `sync.Mutex` por `sync.RWMutex` se contention em leituras transacionais for problema (baixa prioridade)
+3. **ConcurrentTransaction API**: Criar abstração explícita com semantics claras para bulk parallel staging
+
+**Decision:** Adiar até feedback real de usuários. Simplicidade > Premature Optimization.
+
 ## Futuro / Blue Sky
 
 - **Multi-Document Support**: Aumentar suporte a Coleções JSON/YAML e **implementar indexação de sub-documentos no cache** para resolver gargalos de performance no `List`.
