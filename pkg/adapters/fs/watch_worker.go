@@ -237,7 +237,15 @@ func (w *watchWorker) run(ctx context.Context) (err error) {
 
 	// Shutdown debouncer: stop accepting new events and wait for all in-flight timers to complete.
 	// This ensures no race conditions when cleanup closes the events channel.
-	w.debouncer.stopAndWait(5 * time.Second)
+	// Log timeout as warning (incomplete shutdown), but don't fail the worker exit.
+	if debounceErr := w.debouncer.stopAndWait(5 * time.Second); debounceErr != nil {
+		if w.repo.config.Logger != nil {
+			w.repo.config.Logger.Warn("debouncer shutdown timeout",
+				"error", debounceErr,
+				"hint", "some in-flight events may have been dropped",
+			)
+		}
+	}
 
 	return err
 }

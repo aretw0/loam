@@ -617,7 +617,8 @@ func (d *debouncer) stop() {
 
 // stopAndWait marks debouncer as closed and waits for all in-flight timers to complete.
 // This ensures that no race conditions occur between debouncer sends and channel closure.
-func (d *debouncer) stopAndWait(timeout time.Duration) {
+// Returns an error if the timeout expires before all timers complete (indicates incomplete shutdown).
+func (d *debouncer) stopAndWait(timeout time.Duration) error {
 	d.stop()
 	
 	// Wait for all in-flight timer goroutines to finish
@@ -627,7 +628,7 @@ func (d *debouncer) stopAndWait(timeout time.Duration) {
 		close(done)
 	}()
 	
-	_ = lifecycle.BlockWithTimeout(done, timeout)
+	return lifecycle.BlockWithTimeout(done, timeout)
 }
 
 func (d *debouncer) add(newEvent core.Event, send func(core.Event)) {
