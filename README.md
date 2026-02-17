@@ -7,9 +7,9 @@
 [![License](https://img.shields.io/github/license/aretw0/loam.svg)](LICENSE.txt)
 [![Release](https://img.shields.io/github/release/aretw0/loam.svg?branch=main)](https://github.com/aretw0/loam/releases)
 
-**Loam** é uma engine reativa e transacional de documentos embutida, desenhada para aplicações centradas em conteúdo e metadados.
+**Loam** é uma engine embutida de documentos desenhada para persistência transacional de conteúdo e metadados.
 
-Por padrão, o Loam utiliza o **Sistema de Arquivos + Git** como banco de dados (`.md`, `.yaml`, `.json`, `.csv`), oferecendo controle de versão zero-config e legibilidade humana. No entanto, sua arquitetura *Core* é agnóstica, pronta para escalar para outros backends (S3, SQL) sem alterar o código do aplicativo.
+Por padrão, utiliza o **Sistema de Arquivos + Git** como banco de dados (`.md`, `.yaml`, `.json`, `.csv`), oferecendo controle de versão nativo e legibilidade humana. Sua arquitetura é desacoplada, permitindo a evolução para diferentes backends sem alterar a lógica da aplicação.
 
 É ideal para **toolmakers** que constroem:
 
@@ -33,11 +33,10 @@ Por padrão, o Loam utiliza o **Sistema de Arquivos + Git** como banco de dados 
 
 ## 🤔 Por que Loam? <a name="why-loam"></a>
 
-Por que não apenas usar `os.WriteFile` ou SQLite?
-
-- **Local-First & Soberania**: Seus dados são simples arquivos de texto (`.md`, `.json`). Você tem total controle e não depende do Loam para acessá-los.
-- **GitOps Nativo**: Todo `Save` gera um histórico auditável. Reverta erros e gerencie estado de configuração com a mesma segurança de infraestrutura.
-- **Automação Segura (ACID)**: Transações em lote e file-locking garantem que seus scripts de automação nunca corrompam o repositório.
+- **Local-First**: Seus dados são arquivos de texto simples. Você mantém controle total e soberania sem depender da engine para acessá-los.
+- **Histórico Nativo**: Todo `Save` gera um rastro auditável no Git. Gerencie versões e correções com a mesma segurança de um repositório de código.
+- **Integridade**: Transações em lote e file-locking garantem que automações e scripts nunca corrompam o estado do cofre.
+- **Reatividade**: Reaja a mudanças externas em tempo real, integrando perfeitamente fluxos locais com sua aplicação.
 
 ## 📄 Arquivos Suportados (Smart Persistence) <a name="files"></a>
 

@@ -477,9 +477,9 @@ func (d *debouncer) stopAndWait(timeout time.Duration) {
 
 **Aplicabilidade Ecossistêmica:**
 
-- **lifecycle**: Pode formalizar este padrão como `GracefulWorker` interface em v1.6+
-- **trellis**: Usar `WaitGroup` em batch-level execution para sincronizar task cleanup
-- **Geral**: Qualquer sistema com **async callbacks + channel closure** se beneficia deste padrão
+- **lifecycle**: Este padrão foi formalizado na v1.6.0 como o helper `lifecycle.BlockWithTimeout` e documentado como padrão oficial do ecossistema.
+- **trellis**: Utiliza este padrão para sincronizar a limpeza de tarefas durante o desligamento.
+- **Geral**: Essencial para qualquer sistema que utilize callbacks assíncronos e fechamento de canais.
 
 ## Limitações Técnicas Conhecidas (Caveats)
 
@@ -538,10 +538,10 @@ if stack != "" {
 
 **Filosofia:**
 
-- **Desenvolvimento (LevelDebug):** Stack traces ativados para root cause analysis
-- **Produção (LevelInfo/Warn):** Stack omitido para reduzir log noise e I/O
+- **Desenvolvimento (LevelDebug):** Stack traces ativados para análise de causa raiz.
+- **Produção (LevelInfo/Warn):** Stack omitido para reduzir ruído de log e overhead de I/O.
 
-**Roadmap v1.6:** O `lifecycle` planeja adicionar `WithStackCapture(bool)` e `Observer.OnGoroutinePanicked()` para customização explícita. Quando v1.6 for lançado, o Loam poderá adotar essas capacidades.
+**Update v1.6.0:** O `lifecycle` v1.6.0 introduziu `Observer.OnGoroutinePanicked()` e captura de stack nativa via `WithStackCapture(bool)`. O Loam utiliza essas capacidades para garantir observabilidade total sem boilerplate adicional.
 
 ### Mermaid Diagramming (Vault Topology)
 
@@ -627,6 +627,4 @@ Todos os comandos da CLI são executados dentro de um `lifecycle.Run`, que prov�
 
 ### Watcher Auto-Healing (Supervisor)
 
-O watcher do adapter `fs` roda sob um `lifecycle.Supervisor` com política **OneForOne** e `RestartOnFailure`.
-Em caso de falha (ex: canais do `fsnotify` fechados), o supervisor reinicia o worker com backoff exponencial.
-Isso evita que erros transitórios derrubem o mecanismo de reatividade.
+O watcher do adapter `fs` roda sob um `lifecycle.Supervisor` que garante que o processo de observação seja reiniciado em caso de falhas transitórias (ex: esgotamento de handles do SO). Isso é fundamental para manter a reatividade de longa duração.
