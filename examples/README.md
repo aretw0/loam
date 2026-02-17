@@ -6,7 +6,10 @@ Este diretório contém exemplos de uso e provas de conceito do projeto Loam.
 
 - **[Demos](./demos)**: Aplicações completas demonstrando casos de uso reais.
 - **[Basics](./basics)**: Exemplos focados em funcionalidades específicas da API.
+- **[Features](./features)**: Exemplos focados em uma feature específica do core.
 - **[Recipes](./recipes)**: Receitas de uso comuns.
+- **[Benchmarks](./benchmarks)**: Benchmarks e stress tests isolados do core.
+- **[Limitations](./limitations)**: Casos limite e cenários de risco conhecidos.
 
 ## Basics
 
@@ -34,6 +37,16 @@ Este diretório contém exemplos de uso e provas de conceito do projeto Loam.
 | **[Benchmark](./demos/benchmark)** | Compara performance de escritas individuais vs Batch Transactions. |
 | **[Read-Only](./demos/readonly)** | Demonstra o acesso seguro a arquivos reais em modo `go run`. |
 | **[Typed Watch](./demos/typed-watch)** | Demonstra reatividade em repositórios tipados. |
+
+## Features (Funcionalidades Isoladas)
+
+- **[Config Loading](./features/config-loading)**: Carregamento de configs sem sequestro da chave `content`.
+- **[CSV Smart JSON](./features/csv_smart_json)**: Parsing inteligente de JSON aninhado em CSV.
+- **[Observability](./features/observability)**: Introspecao e diagnostico via `introspection`.
+
+## Benchmarks
+
+- **[Scale Bench](./benchmarks)**: Testes de escala e performance do adapter.
 
 ## Limitations (Edge Cases)
 
