@@ -50,19 +50,19 @@ type Repository struct {
 
 // Config holds the configuration for the filesystem repository.
 type Config struct {
-	Path         string
-	AutoInit     bool
-	Gitless      bool
-	MustExist    bool
-	Logger       *slog.Logger
-	SystemDir    string            // e.g. ".loam"
-	IDMap        map[string]string // Map filename -> ID column name (e.g. "users.csv": "email"). User must ensure uniqueness of values in this column.
-	MetadataKey  string            // If set, metadata will be nested under this key in JSON/YAML (e.g. "meta" or "frontmatter"). Contents will be in "content" (unless empty).
-	Strict       bool              // If true, enforces strict type fidelity (e.g. json.Number) across all serializers.
-	ContentExtraction *bool         // If false, preserves content fields inside metadata for JSON/YAML/CSV.
-	MarkdownBodyKey   string        // Key used to store Markdown body when ContentExtraction is false.
-	ErrorHandler func(error)       // Optional callback for handling runtime watcher errors.
-	ReadOnly     bool              // If true, disables all write operations.
+	Path              string
+	AutoInit          bool
+	Gitless           bool
+	MustExist         bool
+	Logger            *slog.Logger
+	SystemDir         string            // e.g. ".loam"
+	IDMap             map[string]string // Map filename -> ID column name (e.g. "users.csv": "email"). User must ensure uniqueness of values in this column.
+	MetadataKey       string            // If set, metadata will be nested under this key in JSON/YAML (e.g. "meta" or "frontmatter"). Contents will be in "content" (unless empty).
+	Strict            bool              // If true, enforces strict type fidelity (e.g. json.Number) across all serializers.
+	ContentExtraction *bool             // If false, preserves content fields inside metadata for JSON/YAML/CSV.
+	MarkdownBodyKey   string            // Key used to store Markdown body when ContentExtraction is false.
+	ErrorHandler      func(error)       // Optional callback for handling runtime watcher errors.
+	ReadOnly          bool              // If true, disables all write operations.
 }
 
 // NewRepository creates a new filesystem-backed repository.
@@ -111,39 +111,35 @@ func (r *Repository) Begin(ctx context.Context) (core.Transaction, error) {
 
 // Initialize performs the necessary setup for the repository (mkdir, git init).
 func (r *Repository) Initialize(ctx context.Context) error {
-	// 1. Directory Initialization
-	if r.config.MustExist {
+	if err := r.initDir(); err != nil {
+		return err
+	}
+	return r.initGit()
+}
+
+func (r *Repository) initDir() error {
+	if r.config.MustExist || r.config.ReadOnly {
 		info, err := os.Stat(r.Path)
 		if os.IsNotExist(err) {
 			return fmt.Errorf("vault path does not exist: %s", r.Path)
 		}
+		if err != nil {
+			return fmt.Errorf("failed to check vault path: %w", err)
+		}
 		if !info.IsDir() {
 			return fmt.Errorf("vault path is not a directory: %s", r.Path)
 		}
-	} else if r.config.ReadOnly {
-		// In ReadOnly mode, we do NOT create the directory if it doesn't exist.
-		// However, if MustExist wasn't set, we might just proceed?
-		// Better to fail if it doesn't exist, OR just do nothing and let subsequent reads fail.
-		// Standard: If ReadOnly, we just check if it exists implicitly.
-		// But we definitely skip MkdirAll.
-		if _, err := os.Stat(r.Path); os.IsNotExist(err) {
-			// If not MustExist, we might just be opening a potential location?
-			// But for ReadOnly, opening a non-existent vault is useless.
-			// Let's assume it's fine to do nothing here but subsequent Get/List will fail or return empty?
-			// Actually, let's warn.
-			if r.config.Logger != nil {
-				r.config.Logger.Warn("vault path does not exist (read-only mode)", "path", r.Path)
-			}
-		}
-	} else {
-		if err := os.MkdirAll(r.Path, 0755); err != nil {
-			return fmt.Errorf("failed to create vault directory: %w", err)
-		}
+		return nil
 	}
 
-	// 2. Git Initialization
+	if err := os.MkdirAll(r.Path, 0755); err != nil {
+		return fmt.Errorf("failed to create vault directory: %w", err)
+	}
+	return nil
+}
+
+func (r *Repository) initGit() error {
 	if r.config.ReadOnly {
-		// Skip Git Init
 		return nil
 	}
 
@@ -182,9 +178,6 @@ func (r *Repository) Initialize(ctx context.Context) error {
 			} else {
 				return fmt.Errorf("path is not a git repository: %s", r.Path)
 			}
-		} else {
-			// Existing repo: We do NOT touch .gitignore automatically.
-			// This respects user's manual configuration.
 		}
 	} else if r.config.AutoInit {
 		// If Gitless + AutoInit, ensure we create the system directory as a marker.
@@ -630,14 +623,14 @@ func (d *debouncer) stop() {
 // Returns an error if the timeout expires before all timers complete (indicates incomplete shutdown).
 func (d *debouncer) stopAndWait(timeout time.Duration) error {
 	d.stop()
-	
+
 	// Wait for all in-flight timer goroutines to finish
 	done := make(chan struct{})
 	go func() {
 		d.wg.Wait()
 		close(done)
 	}()
-	
+
 	return lifecycle.BlockWithTimeout(done, timeout)
 }
 
