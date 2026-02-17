@@ -75,7 +75,42 @@
 - [x] Diagramas Mermaid do vault via `introspection.TreeDiagram()`
 - [x] `lifecycle.Group` em transações
 - [x] Documentar integrações no `TECHNICAL.md`
-- [ ] Contribuir RFCs upstream ao lifecycle (DirWatchSource, Debouncing Middleware)
+- [x] **lifecycle v1.6.0 Catching Up:**
+  - [x] ✅ **Panic Observability com Stack Capture**: `Observer.OnGoroutinePanicked(recovered, stack)` + `WithStackCapture(bool)` entregue.
+    - Loam atual: Conditional logging baseado em log level
+    - v1.6.0: API explícita para custom panic handling
+    - Ação: Considerar migrar `watch_worker.go` para usar hook se houver customizações futuras
+  - [x] ✅ **Protected Resource Cleanup Pattern**: Documentado formalmente no lifecycle TECHNICAL.md (STOP → WAIT → CLOSE) com `lifecycle.BlockWithTimeout` helper público
+    - Loam já implementa este padrão em `watch_worker.go` via `stopAndWait(5s)`
+    - Nenhuma mudança necessária (já está alinhado)
+  - [x] ✅ **BaseSource Helper Pattern**: Reduz boilerplate em implementações de Source via embedding
+    - Relevância Loam: Baixa prioridade (não temos Source customizado hoje)
+    - Aplicável se criarmos FileWatchSource reutilizável futuramente
+
+### Contribuições Upstream
+
+Status: **Completed - Lifecycle v1.6.0 entregou padrões críticos**
+
+Benefício Efetativo:
+
+- [x] **Protected Resource Cleanup Pattern** (Feb 2026): Descoberto e documentado no lifecycle TECHNICAL.md
+  - Loam já implementava este padrão em `watch_worker.go` via `stopAndWait(timeout)`
+  - lifecycle v1.6.0 formalizou com `lifecycle.BlockWithTimeout(done, timeout)` helper
+  - Refatorado: Débouncer simplificado de 11 → 5 linhas usando a nova API
+  - Resultado: Código mais claro, menos boilerplate, padrão validado
+
+Propostas originais para v1.6 (arquivadas):
+
+- `DirWatchSource`: Generalização do watcher do Loam para lifecycle
+  - **Decisão**: Arquivado - Loam watcher é muito Git-specific para abstração genérica
+  - **Evidência**: lifecycle já tem `FileWatchSource` adequado; nosso watcher precisa de reconcile + Git awareness
+- `Debouncing Middleware`: Middleware para debouncer eventos do Router
+  - **Decisão**: Arquivado - Padrão de debouncing do Loam é muito específico para transactionality
+  - **Evidência**: Resolvido via Protected Resource Cleanup pattern + `lifecycle.BlockWithTimeout`
+  - **Viabilidade**: Alta - padrão genérico e reutilizável em múltiplos Sources
+  - **Next Steps**: Investigar se v1.7+ roadmap menciona isso
+
+**Decision**: Manter ativo para acompanhar v1.7, mas sem urgência. Loam agora funciona bem com v1.6.0 como está.
 
 ## Fase 0.10.8: Generic Data Support (Configurable Content)
 
