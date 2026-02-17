@@ -2,6 +2,8 @@ github.com/aretw0/introspection v0.1.3 h1:Ob7vxbTrQ2myb7hOnZiSPEExshsNPTpBBpNgeN
 github.com/aretw0/introspection v0.1.3/go.mod h1:fuUaJL8subAkzhwSOVvb0EQTpzDtwOHrwQuhPEK/3m0=
 github.com/aretw0/lifecycle v1.5.1 h1:J+wl+Ej0NacVssRP1fnB152IZdo/3kQllqSESMIX5Jk=
 github.com/aretw0/lifecycle v1.5.1/go.mod h1:8zxyrZxzZZWbNntqYh1mbkdFGXBgmiN4BvbH1d7nC1w=
+github.com/aretw0/lifecycle v1.6.0 h1:oZNJRufXtqPiMZXiaRw8WezWdZ0aHpnlrJA6Qed6TwU=
+github.com/aretw0/lifecycle v1.6.0/go.mod h1:8zxyrZxzZZWbNntqYh1mbkdFGXBgmiN4BvbH1d7nC1w=
 github.com/aretw0/procio v0.1.2 h1:2lLAOS/ndbLxcI6c7e//Qa8Y72/JceYuQmPIkDFTq98=
 github.com/aretw0/procio v0.1.2/go.mod h1:8yx5yAy5EzBhOBiyr7z6kmHJln1NrtIGjQTXxsA9PZI=
 github.com/bmatcuk/doublestar/v4 v4.9.1 h1:X8jg9rRZmJd4yRy7ZeNDRnM+T3ZfHv15JiBJ/avrEXE=
