@@ -78,6 +78,18 @@ func WithStrict(strict bool) Option {
 	return platform.WithStrict(strict)
 }
 
+// WithContentExtraction controls whether JSON/YAML/CSV content fields are extracted into Document.Content.
+// When disabled, the file payload is preserved 1:1 in Metadata.
+func WithContentExtraction(enabled bool) Option {
+	return platform.WithContentExtraction(enabled)
+}
+
+// WithMarkdownBodyKey sets the metadata key used to store Markdown body when content extraction is disabled.
+// Defaults to "body".
+func WithMarkdownBodyKey(key string) Option {
+	return platform.WithMarkdownBodyKey(key)
+}
+
 // WithSerializer registers a custom serializer for a specific extension.
 // The serializer must implement the adapter's Serializer interface.
 func WithSerializer(ext string, s any) Option {

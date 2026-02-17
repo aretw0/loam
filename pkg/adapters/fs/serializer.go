@@ -16,7 +16,7 @@ import (
 // Serializer defines how to read and write a specific file format.
 type Serializer interface {
 	// Parse reads from r and returns a Document.
-	Parse(r io.Reader, metadataKey string) (*core.Document, error)
+	Parse(r io.Reader, metadataKey string, extractContent bool, bodyKey string) (*core.Document, error)
 	// Serialize converts the Document to bytes.
 	Serialize(doc core.Document, metadataKey string) ([]byte, error)
 }
@@ -46,7 +46,7 @@ func NewJSONSerializer(strict bool) *JSONSerializer {
 	return &JSONSerializer{Strict: strict}
 }
 
-func (s *JSONSerializer) Parse(r io.Reader, metadataKey string) (*core.Document, error) {
+func (s *JSONSerializer) Parse(r io.Reader, metadataKey string, extractContent bool, bodyKey string) (*core.Document, error) {
 	data, err := io.ReadAll(r)
 	if err != nil {
 		return nil, err
@@ -62,20 +62,25 @@ func (s *JSONSerializer) Parse(r io.Reader, metadataKey string) (*core.Document,
 	}
 
 	doc := &core.Document{Metadata: make(core.Metadata)}
-	if metadataKey != "" {
-		if meta, ok := payload[metadataKey].(map[string]interface{}); ok {
-			doc.Metadata = meta
-			delete(payload, metadataKey)
+	if extractContent {
+		if metadataKey != "" {
+			if meta, ok := payload[metadataKey].(map[string]interface{}); ok {
+				doc.Metadata = meta
+				delete(payload, metadataKey)
+			}
+		} else {
+			doc.Metadata = payload
+		}
+
+		if c, ok := payload["content"].(string); ok {
+			doc.Content = c
+			if metadataKey == "" {
+				delete(doc.Metadata, "content")
+			}
 		}
 	} else {
+		// Raw mode: metadata mirrors the file payload 1:1.
 		doc.Metadata = payload
-	}
-
-	if c, ok := payload["content"].(string); ok {
-		doc.Content = c
-		if metadataKey == "" {
-			delete(doc.Metadata, "content")
-		}
 	}
 
 	return doc, nil
@@ -112,7 +117,7 @@ func NewYAMLSerializer(strict bool) *YAMLSerializer {
 	return &YAMLSerializer{Strict: strict}
 }
 
-func (s *YAMLSerializer) Parse(r io.Reader, metadataKey string) (*core.Document, error) {
+func (s *YAMLSerializer) Parse(r io.Reader, metadataKey string, extractContent bool, bodyKey string) (*core.Document, error) {
 	data, err := io.ReadAll(r)
 	if err != nil {
 		return nil, err
@@ -124,20 +129,25 @@ func (s *YAMLSerializer) Parse(r io.Reader, metadataKey string) (*core.Document,
 	}
 
 	doc := &core.Document{Metadata: make(core.Metadata)}
-	if metadataKey != "" {
-		if meta, ok := payload[metadataKey].(map[string]interface{}); ok {
-			doc.Metadata = meta
-			delete(payload, metadataKey)
+	if extractContent {
+		if metadataKey != "" {
+			if meta, ok := payload[metadataKey].(map[string]interface{}); ok {
+				doc.Metadata = meta
+				delete(payload, metadataKey)
+			}
+		} else {
+			doc.Metadata = payload
+		}
+
+		if c, ok := payload["content"].(string); ok {
+			doc.Content = c
+			if metadataKey == "" {
+				delete(doc.Metadata, "content")
+			}
 		}
 	} else {
+		// Raw mode: metadata mirrors the file payload 1:1.
 		doc.Metadata = payload
-	}
-
-	if c, ok := payload["content"].(string); ok {
-		doc.Content = c
-		if metadataKey == "" {
-			delete(doc.Metadata, "content")
-		}
 	}
 
 	if s.Strict {
@@ -178,7 +188,7 @@ func NewMarkdownSerializer(strict bool) *MarkdownSerializer {
 	return &MarkdownSerializer{Strict: strict}
 }
 
-func (s *MarkdownSerializer) Parse(r io.Reader, metadataKey string) (*core.Document, error) {
+func (s *MarkdownSerializer) Parse(r io.Reader, metadataKey string, extractContent bool, bodyKey string) (*core.Document, error) {
 	data, err := io.ReadAll(r)
 	if err != nil {
 		return nil, err
@@ -187,7 +197,15 @@ func (s *MarkdownSerializer) Parse(r io.Reader, metadataKey string) (*core.Docum
 	doc := &core.Document{Metadata: make(core.Metadata)}
 
 	if !bytes.HasPrefix(data, []byte("---\n")) && !bytes.HasPrefix(data, []byte("---\r\n")) {
-		doc.Content = string(data)
+		if extractContent {
+			doc.Content = string(data)
+			return doc, nil
+		}
+
+		if bodyKey == "" {
+			bodyKey = "body"
+		}
+		doc.Metadata[bodyKey] = string(data)
 		return doc, nil
 	}
 
@@ -204,8 +222,16 @@ func (s *MarkdownSerializer) Parse(r io.Reader, metadataKey string) (*core.Docum
 		return nil, fmt.Errorf("failed to parse frontmatter: %w", err)
 	}
 
-	doc.Content = strings.TrimPrefix(string(contentData), "\n")
-	doc.Content = strings.TrimPrefix(doc.Content, "\r\n")
+	body := strings.TrimPrefix(string(contentData), "\n")
+	body = strings.TrimPrefix(body, "\r\n")
+	if extractContent {
+		doc.Content = body
+	} else {
+		if bodyKey == "" {
+			bodyKey = "body"
+		}
+		doc.Metadata[bodyKey] = body
+	}
 
 	if s.Strict {
 		doc.Metadata = recursiveNormalize(doc.Metadata).(core.Metadata)
@@ -243,7 +269,7 @@ func NewCSVSerializer(strict bool) *CSVSerializer {
 	return &CSVSerializer{Strict: strict}
 }
 
-func (s *CSVSerializer) Parse(r io.Reader, metadataKey string) (*core.Document, error) {
+func (s *CSVSerializer) Parse(r io.Reader, metadataKey string, extractContent bool, bodyKey string) (*core.Document, error) {
 	// CSV parsing for a SINGLE document usually implies reading the *first row*?
 	// Or is this only used for "raw file" handling?
 	//
@@ -272,12 +298,12 @@ func (s *CSVSerializer) Parse(r io.Reader, metadataKey string) (*core.Document, 
 	doc := &core.Document{Metadata: make(core.Metadata)}
 	for i, h := range headers {
 		val := row[i]
-		if strings.EqualFold(h, "content") {
+		if extractContent && strings.EqualFold(h, "content") {
 			doc.Content = val
-		} else {
-			valTrimmed := strings.TrimSpace(val)
-			doc.Metadata[h] = UnmarshalCSVValue(valTrimmed, s.Strict)
+			continue
 		}
+		valTrimmed := strings.TrimSpace(val)
+		doc.Metadata[h] = UnmarshalCSVValue(valTrimmed, s.Strict)
 	}
 
 	if s.Strict {

@@ -56,6 +56,11 @@ func initFS(path string, o *options) (core.Repository, error) {
 	tempDir, _ := o.config["temp_dir"].(bool)
 	mustExist, _ := o.config["must_exist"].(bool)
 	strict, _ := o.config["strict"].(bool)
+	contentExtraction, ok := o.config["content_extraction"].(bool)
+	if !ok {
+		contentExtraction = true
+	}
+	markdownBodyKey, _ := o.config["markdown_body_key"].(string)
 	systemDir, _ := o.config["system_dir"].(string)
 	errorHandler, _ := o.config["watcher_error_handler"].(func(error))
 
@@ -142,6 +147,8 @@ func initFS(path string, o *options) (core.Repository, error) {
 		Strict:       strict,
 		Logger:       o.logger,
 		SystemDir:    systemDir,
+		ContentExtraction: &contentExtraction,
+		MarkdownBodyKey:   markdownBodyKey,
 		ErrorHandler: errorHandler,
 		ReadOnly:     isReadOnly,
 	}

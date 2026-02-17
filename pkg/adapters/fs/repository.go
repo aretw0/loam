@@ -59,6 +59,8 @@ type Config struct {
 	IDMap        map[string]string // Map filename -> ID column name (e.g. "users.csv": "email"). User must ensure uniqueness of values in this column.
 	MetadataKey  string            // If set, metadata will be nested under this key in JSON/YAML (e.g. "meta" or "frontmatter"). Contents will be in "content" (unless empty).
 	Strict       bool              // If true, enforces strict type fidelity (e.g. json.Number) across all serializers.
+	ContentExtraction *bool         // If false, preserves content fields inside metadata for JSON/YAML/CSV.
+	MarkdownBodyKey   string        // Key used to store Markdown body when ContentExtraction is false.
 	ErrorHandler func(error)       // Optional callback for handling runtime watcher errors.
 	ReadOnly     bool              // If true, disables all write operations.
 }
@@ -71,6 +73,14 @@ func NewRepository(config Config) *Repository {
 		config.Logger = slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
 			Level: slog.LevelInfo,
 		}))
+	}
+
+	if config.ContentExtraction == nil {
+		enabled := true
+		config.ContentExtraction = &enabled
+	}
+	if config.MarkdownBodyKey == "" {
+		config.MarkdownBodyKey = "body"
 	}
 
 	return &Repository{
@@ -846,7 +856,7 @@ func (r *Repository) Get(ctx context.Context, id string) (core.Document, error) 
 		return core.Document{}, fmt.Errorf("no serializer registered for extension %s", ext)
 	}
 
-	doc, err := serializer.Parse(f, r.config.MetadataKey)
+	doc, err := serializer.Parse(f, r.config.MetadataKey, *r.config.ContentExtraction, r.config.MarkdownBodyKey)
 	if err != nil {
 		return core.Document{}, fmt.Errorf("failed to parse document %s: %w", id, err)
 	}
@@ -1324,7 +1334,7 @@ func ParseDocument(r io.Reader, ext, metadataKey string) (*core.Document, error)
 		// Fallback to markdown if unknown, matching old behavior
 		s = defaults[".md"]
 	}
-	return s.Parse(r, metadataKey)
+	return s.Parse(r, metadataKey, true, "body")
 }
 
 // SerializeDocument converts a Document to bytes based on extension.

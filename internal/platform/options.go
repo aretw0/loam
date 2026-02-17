@@ -24,7 +24,7 @@ func defaultOptions() *options {
 		repository:  nil,
 		logger:      nil,
 		adapter:     "fs",
-		config:      make(map[string]interface{}),
+		config:      map[string]interface{}{"content_extraction": true, "markdown_body_key": "body"},
 		serializers: make(map[string]any),
 	}
 }
@@ -114,6 +114,22 @@ func WithEventBuffer(size int) Option {
 func WithStrict(strict bool) Option {
 	return func(o *options) {
 		o.config["strict"] = strict
+	}
+}
+
+// WithContentExtraction controls whether JSON/YAML/CSV content fields are extracted into Document.Content.
+// When disabled, the file payload is preserved 1:1 in Metadata.
+func WithContentExtraction(enabled bool) Option {
+	return func(o *options) {
+		o.config["content_extraction"] = enabled
+	}
+}
+
+// WithMarkdownBodyKey sets the metadata key used to store Markdown body when content extraction is disabled.
+// Defaults to "body".
+func WithMarkdownBodyKey(key string) Option {
+	return func(o *options) {
+		o.config["markdown_body_key"] = key
 	}
 }
 
