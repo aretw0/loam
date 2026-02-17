@@ -23,12 +23,12 @@ func TestPolyglotConsistency(t *testing.T) {
 	yamlSerializer := &fs.YAMLSerializer{Strict: true}
 
 	// 3. Parse
-	docJSON, err := jsonSerializer.Parse(bytes.NewReader([]byte(jsonBody)), "")
+	docJSON, err := jsonSerializer.Parse(bytes.NewReader([]byte(jsonBody)), "", true, "body")
 	if err != nil {
 		t.Fatalf("Failed to parse JSON: %v", err)
 	}
 
-	docYAML, err := yamlSerializer.Parse(bytes.NewReader([]byte(yamlBody)), "")
+	docYAML, err := yamlSerializer.Parse(bytes.NewReader([]byte(yamlBody)), "", true, "body")
 	if err != nil {
 		t.Fatalf("Failed to parse YAML: %v", err)
 	}

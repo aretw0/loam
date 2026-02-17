@@ -45,7 +45,7 @@ func TestSerializers(t *testing.T) {
 			}
 
 			// Parse back
-			parsed, err := s.Parse(bytes.NewReader(data), "")
+			parsed, err := s.Parse(bytes.NewReader(data), "", true, "body")
 			if err != nil {
 				t.Fatalf("Parse failed: %v", err)
 			}
@@ -108,7 +108,7 @@ func TestSerializers(t *testing.T) {
 		csvData := `content,val
 foo,"[invalid_json"`
 
-		doc, err := s.Parse(strings.NewReader(csvData), "")
+		doc, err := s.Parse(strings.NewReader(csvData), "", true, "body")
 		if err != nil {
 			t.Fatalf("Parse failed: %v", err)
 		}
@@ -119,7 +119,7 @@ foo,"[invalid_json"`
 		// Case 2: Valid JSON-like string which we WANT to be a string?
 		val := "{Alice}"
 		// IMPORTANT: Check error to avoid panic if Parse fails
-		doc2, err := s.Parse(strings.NewReader("content,val\nfoo,"+val), "")
+		doc2, err := s.Parse(strings.NewReader("content,val\nfoo,"+val), "", true, "body")
 		if err != nil {
 			t.Fatalf("Parse failed for case 2: %v", err)
 		}
@@ -130,7 +130,7 @@ foo,"[invalid_json"`
 		// Case 3: Valid JSON Object (Should be parsed as Map)
 		// CSV: foo,"{""key"":""value""}" -> Cell: {"key":"value"}
 		val3 := `"{""key"":""value""}"`
-		doc3, err := s.Parse(strings.NewReader("content,val\nfoo,"+val3), "")
+		doc3, err := s.Parse(strings.NewReader("content,val\nfoo,"+val3), "", true, "body")
 		if err != nil {
 			t.Fatalf("Parse failed for case 3: %v", err)
 		}
@@ -145,13 +145,118 @@ foo,"[invalid_json"`
 	})
 }
 
+func TestContentExtractionDisabled_JSON(t *testing.T) {
+	jsonContent := `{"content": "Hello", "title": "Config"}`
+	reader := strings.NewReader(jsonContent)
+
+	s := NewJSONSerializer(false)
+	doc, err := s.Parse(reader, "", false, "body")
+	if err != nil {
+		t.Fatalf("Parse failed: %v", err)
+	}
+
+	if doc.Content != "" {
+		t.Errorf("Expected empty content when extraction is disabled")
+	}
+	if doc.Metadata["content"] != "Hello" {
+		t.Errorf("Expected metadata to preserve content field")
+	}
+	if doc.Metadata["title"] != "Config" {
+		t.Errorf("Expected metadata to preserve title field")
+	}
+}
+
+func TestContentExtractionDisabled_YAML(t *testing.T) {
+	yamlContent := "content: Hello\ntitle: Config"
+	reader := strings.NewReader(yamlContent)
+
+	s := NewYAMLSerializer(false)
+	doc, err := s.Parse(reader, "", false, "body")
+	if err != nil {
+		t.Fatalf("Parse failed: %v", err)
+	}
+
+	if doc.Content != "" {
+		t.Errorf("Expected empty content when extraction is disabled")
+	}
+	if doc.Metadata["content"] != "Hello" {
+		t.Errorf("Expected metadata to preserve content field")
+	}
+	if doc.Metadata["title"] != "Config" {
+		t.Errorf("Expected metadata to preserve title field")
+	}
+}
+
+func TestContentExtractionDisabled_MarkdownDefaultBodyKey(t *testing.T) {
+	mdContent := "---\ntitle: Config\n---\nBody text"
+	reader := strings.NewReader(mdContent)
+
+	s := NewMarkdownSerializer(false)
+	doc, err := s.Parse(reader, "", false, "body")
+	if err != nil {
+		t.Fatalf("Parse failed: %v", err)
+	}
+
+	if doc.Content != "" {
+		t.Errorf("Expected empty content when extraction is disabled")
+	}
+	if doc.Metadata["body"] != "Body text" {
+		t.Errorf("Expected metadata to include body under default key")
+	}
+	if doc.Metadata["title"] != "Config" {
+		t.Errorf("Expected metadata to preserve title field")
+	}
+}
+
+func TestContentExtractionDisabled_MarkdownCustomBodyKey(t *testing.T) {
+	mdContent := "---\ntitle: Config\n---\nBody text"
+	reader := strings.NewReader(mdContent)
+
+	s := NewMarkdownSerializer(false)
+	doc, err := s.Parse(reader, "", false, "text")
+	if err != nil {
+		t.Fatalf("Parse failed: %v", err)
+	}
+
+	if doc.Content != "" {
+		t.Errorf("Expected empty content when extraction is disabled")
+	}
+	if doc.Metadata["text"] != "Body text" {
+		t.Errorf("Expected metadata to include body under custom key")
+	}
+	if _, ok := doc.Metadata["body"]; ok {
+		t.Errorf("Did not expect default body key when custom key is set")
+	}
+}
+
+func TestContentExtractionDisabled_CSV(t *testing.T) {
+	csvData := "content,title\nHello,Config"
+	reader := strings.NewReader(csvData)
+
+	s := NewCSVSerializer(false)
+	doc, err := s.Parse(reader, "", false, "body")
+	if err != nil {
+		t.Fatalf("Parse failed: %v", err)
+	}
+
+	if doc.Content != "" {
+		t.Errorf("Expected empty content when extraction is disabled")
+	}
+	if doc.Metadata["content"] != "Hello" {
+		t.Errorf("Expected metadata to preserve content column")
+	}
+	if doc.Metadata["title"] != "Config" {
+		t.Errorf("Expected metadata to preserve title column")
+	}
+}
+
 func TestJSONSerializer_Strict(t *testing.T) {
 	jsonContent := `{"big_id": 9223372036854775807}` // Max Int64
 	reader := strings.NewReader(jsonContent)
 
 	// 1. Strict Mode
 	strictSerializer := NewJSONSerializer(true)
-	doc, err := strictSerializer.Parse(reader, "")
+	doc, err := strictSerializer.Parse(reader, "", true, "body")
 	if err != nil {
 		t.Fatalf("Strict Parse failed: %v", err)
 	}
@@ -165,7 +270,7 @@ func TestJSONSerializer_Strict(t *testing.T) {
 	// 2. Loose Mode (Default)
 	reader.Reset(jsonContent)
 	looseSerializer := NewJSONSerializer(false)
-	docLoose, err := looseSerializer.Parse(reader, "")
+	docLoose, err := looseSerializer.Parse(reader, "", true, "body")
 	if err != nil {
 		t.Fatalf("Loose Parse failed: %v", err)
 	}
@@ -185,7 +290,7 @@ func TestYAMLSerializer_Strict(t *testing.T) {
 
 	// 1. Strict Mode
 	s := NewYAMLSerializer(true)
-	doc, err := s.Parse(reader, "")
+	doc, err := s.Parse(reader, "", true, "body")
 	if err != nil {
 		t.Fatalf("Strict Parse failed: %v", err)
 	}
@@ -209,7 +314,7 @@ func TestYAMLSerializer_Strict(t *testing.T) {
 	// 2. Loose Mode (Default)
 	reader.Reset(yamlContent)
 	sLoose := NewYAMLSerializer(false)
-	docLoose, err := sLoose.Parse(reader, "")
+	docLoose, err := sLoose.Parse(reader, "", true, "body")
 	if err != nil {
 		t.Fatalf("Loose Parse failed: %v", err)
 	}
@@ -242,7 +347,7 @@ score: 99.9
 
 	// 1. Strict Mode
 	s := NewMarkdownSerializer(true)
-	doc, err := s.Parse(reader, "")
+	doc, err := s.Parse(reader, "", true, "body")
 	if err != nil {
 		t.Fatalf("Strict Parse failed: %v", err)
 	}
@@ -269,7 +374,7 @@ foo,"{""big_id"": 9223372036854775807}"`
 
 	// 1. Strict Mode
 	s := NewCSVSerializer(true)
-	doc, err := s.Parse(reader, "")
+	doc, err := s.Parse(reader, "", true, "body")
 	if err != nil {
 		t.Fatalf("Strict Parse failed: %v", err)
 	}
@@ -290,7 +395,7 @@ foo,"{""big_id"": 9223372036854775807}"`
 	// 2. Loose Mode (Default)
 	reader.Reset(csvContent)
 	sLoose := NewCSVSerializer(false)
-	docLoose, err := sLoose.Parse(reader, "")
+	docLoose, err := sLoose.Parse(reader, "", true, "body")
 	if err != nil {
 		t.Fatalf("Loose Parse failed: %v", err)
 	}

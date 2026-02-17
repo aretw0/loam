@@ -288,7 +288,7 @@ func contains(s, substr string) bool {
 // Mock serializer for testing registration
 type mockSerializer struct{}
 
-func (m *mockSerializer) Parse(r io.Reader, k string) (*core.Document, error) {
+func (m *mockSerializer) Parse(r io.Reader, k string, extractContent bool, bodyKey string) (*core.Document, error) {
 	return &core.Document{Content: "mocked"}, nil
 }
 func (m *mockSerializer) Serialize(doc core.Document, k string) ([]byte, error) {
