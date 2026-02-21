@@ -96,6 +96,20 @@
   - [x] Se `false`, o arquivo JSON/YAML é carregado 1:1 para o Metadata. As implicações das regras de preenchimento do `doc.Content` precisam ser avaliadas.
   - [x] Essencial para `config.yaml`, `tools.yaml` e outros arquivos de configuração.
 
+## Fase 0.10.9: Event Broker Delegation (Lifecycle v1.7.0)
+
+**Objetivo:** Descarregar a carga cognitiva da arquitetura Event-Driven (Broker, Watchers recursivos, Debouncers) do Loam diretamente para o **Lifecycle v1.7.0 Control Plane**.
+
+- [ ] **Channel Subscriptions**:
+  - [ ] Consumir a nova primitiva de Canais do `lifecycle` para substituir a orquestração manual do `Service.Watch`.
+  - [ ] Adaptar o fluxo atual do Loam para depender dos middlewares padrão.
+- [ ] **Generic Debounce Middleware**:
+  - [ ] Remover o arquivo `debouncer.go` proprietário do Loam.
+  - [ ] Plugar o middleware genérico fornecido nativamente pela biblioteca *upstream*.
+- [ ] **DirectoryWatchSource**:
+  - [ ] Substituir a goroutine e o laço customizado do `watch_worker.go` pelo uso direto da nova API do Source.
+  - [ ] Injetar a lógica de pausa de rebases do Git (`index.lock`) usando a nova API de *Filtering/Inhibition*.
+
 ## RFC 0.X.X: Robust CSV & Schema Control (Backlog)
 
  **Objetivo:** Resolver ambiguidades na detecção de tipos do CSV e permitir controle explícito (Hardening).
