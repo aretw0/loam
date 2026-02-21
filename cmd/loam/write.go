@@ -101,9 +101,12 @@ var writeCmd = &cobra.Command{
 			}
 
 			// Parse content using the shared logic
-			doc, err := fs.ParseDocument(strings.NewReader(writeContent), ext, "") // We assume default metadata key for now? Or get from config?
-			// NOTE: We don't have access to repo config here easily without creating repo.
-			// Ideally loam service exposes this, but for now we assume standard behavior.
+			defaults := fs.DefaultSerializers(false)
+			serializer, ok := defaults[ext]
+			if !ok {
+				serializer = defaults[".md"]
+			}
+			doc, err := serializer.Parse(strings.NewReader(writeContent), "", true, "body")
 			if err != nil {
 				fatal("Failed to parse raw content", err)
 			}

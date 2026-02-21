@@ -106,14 +106,15 @@ O mecanismo protege a aplicação de "Event Storms" (ex: `git checkout`) e garan
 
 ```mermaid
 flowchart LR
-    OS[OS File System] -->|Raw Event| Watcher
-    Watcher -->|Check| GitLock{Git Locked?}
-    GitLock -- Yes --> Drop[Drop Event]
-    GitLock -- No --> Filter{Ignored?}
-    Filter -- Yes --> Drop
-    Filter -- No --> Debounce[Debouncer]
-    Debounce -->|Burst| Buffer[Event Buffer]
-    Buffer -->|Buffered Stream| App[User Application]
+    OS[OS File System] -->|fsnotify| Source[DirectoryWatchSource]
+    
+    subgraph Lifecycle Control Plane
+        Source -->|Raw Event| Router[Event Router]
+        Router -->|Route: *| Debounce[Debounce Middleware]
+        Debounce -->|MergedEvent| Channel[Channel Adapter]
+    end
+    
+    Channel -->|Buffered Stream| App[User Application]
 ```
 
 ### Startup Reconciliation (Cold Start)
@@ -350,26 +351,22 @@ Medem a performance do Adapter e eficácia do Cache.
 
 ## Watcher Engine & Event Loop
 
-O mecanismo de reatividade (`Service.Watch`) permite que aplicações reajam a mudanças no disco em tempo real. Ele opera acoplado ao `fsnotify` mas implementa camadas de proteção cruciais, incluindo **Git Awareness**.
+O mecanismo de reatividade (`Repository.Watch`) permite que aplicações reajam a mudanças no disco em tempo real. Ele opera agora totalmente delegado ao **Lifecycle v1.7.0 Control Plane**.
 
 ```mermaid
 flowchart TD
-    Start[Service.Watch] --> Setup[Recursive Setup]
-    Setup -->|Add Watchers| OS[OS Watcher - fsnotify]
+    Start[Repository.Watch] --> Setup[Initialize Control Plane]
+    Setup -->|Mount| Source[DirectoryWatchSource]
     
-    OS -->|Error| ErrorHandler{ErrorHandler?}
-    ErrorHandler -- Yes --> Callback[Invoke Callback]
-    ErrorHandler -- No --> Log[Log Error]
-
-    OS -->|Raw Event| Dispatcher{Event Dispatcher}
-
+    OS[OS File System] -->|fsnotify| Source
+    
     subgraph GitAwareness [Git Lock Monitor]
-        Dispatcher -- "index.lock" --> LockState{Git Status}
-        LockState -- "Created (Lock)" --> Pause[Pause Processing]
-        LockState -- "Removed (Unlock)" --> Resume[Resume & Reconcile]
+        Source -- "index.lock" --> LockState{Git Status}
+        LockState -- "Created (Lock)" --> Pause[Inibição Local]
+        LockState -- "Removed (Unlock)" --> Resume[Reconcile & Emit]
     end
 
-    Dispatcher -- "Other Files" --> Gate{Is Locked?}
+    Source -- "Other Files" --> Gate{Is Locked?}
     Gate -- Yes --> Ignore[Ignore - Prevent Storm]
     Gate -- No --> Filter{Ignore Pattern?}
     
@@ -377,109 +374,31 @@ flowchart TD
     Filter -- No --> SelfWrite{Is Self-Write?}
     
     SelfWrite -- Yes (Checksum Match) --> Drop
-    SelfWrite -- No --> Mapper[Map to Domain Event]
+    SelfWrite -- No --> EmitRouter[Emit Event]
 
-    subgraph filtering [Pipeline de Filtros]
-        Filter
-        SelfWrite
-    end
-
-    Mapper --> Debouncer{Debouncer}
+    EmitRouter -->|To Router| Debouncer{Debounce Middleware}
     
     subgraph processing [Processamento Temporal]
         Debouncer -- "Wait 50ms" --> Timer[Buffer]
-        Debouncer -- "Rapid Fire" --> Merge[Merge Events]
+        Debouncer -- "Rapid Fire" --> Merge[Merge Events via MergedEvent]
         Note2[Prioridade: CREATE > MODIFY]
     end
     
     Resume -->|Trigger| ReconcileLogic[Startup Reconciliation]
-    ReconcileLogic -->|Missed Events| Debouncer
+    ReconcileLogic -->|Missed Events| EmitRouter
 
-    Timer -->|Timeout| AdapterEmit[Emit Adapter Event]
+    Timer -->|Timeout| AdapterEmit[Final Handler]
     Merge --> Timer
 
-    AdapterEmit --> Broker{Service Broker}
-    Broker -->|Buffered Channel| User[User Application]
+    AdapterEmit -->|Buffered Channel| User[User Application]
 ```
 
 ### Arquitetura do Watcher
 
-1. **Recursividade Estática**: Ao iniciar, o watcher percorre a árvore de diretórios e adiciona monitores.
-2. **Git Awareness**: O sistema monitora explicitamente o arquivo `.git/index.lock`.
-    - **Lock Detected**: O processamento de eventos é pausado para evitar "Event Storms" durante operações em lote do Git (`checkout`, `pull`, `rebase`).
-    - **Unlock Detected**: O sistema dispara uma **Reconciliação** imediata para detectar mudanças que ocorreram durante o bloqueio e emite os eventos acumulados.
-3. **Event Debouncing**: Eventos rápidos são agrupados em janelas de 50ms.
-4. **Event Broker (Desacoplamento)**: Um buffer configurável separa a recepção de eventos da entrega. Isso garante que se sua aplicação for lenta para processar um evento, o Watcher não trava (Backpressure Management).
-
-### Estratégias de Robustez
-
-#### Robust Ignore (Self-Healing)
-
-Para evitar loops infinitos onde o Loam reage à própria escrita (Self-Writes), o `Repository.Save` utiliza uma estratégia híbrida de **Janela Temporal + Checksum**.
-
-- **Mecânica:** Ao salvar, calculamos o SHA256 do conteúdo e associamos ao caminho do arquivo em um mapa temporário (TTL 2s).
-- **Verificação:** Ao detectar um evento `WRITE`, o Watcher re-calcula o hash do arquivo no disco. Se coincidir com o hash salvo, o evento é descartado como "Eco". Se diferir, é propagado como uma mudança externa legítima (mesmo que ocorra frações de segundo após o save).
-
-#### Error Visibility
-
-Erros de runtime no watcher (ex: falha ao resolver um path relativo ou perda de permissão) não encerram o loop de observação. Eles são:
-
-1. Logados via `slog.Logger` (sempre disponível, com fallback stderr se não configurado).
-2. Emitidos via callback `WithWatcherErrorHandler`, permitindo que a aplicação reaja (ex: exiba um toast de erro na UI).
-
-#### Protected Resource Cleanup Pattern
-
-Um dos desafios críticos ao implementar watchers e debouncing é evitar **race conditions entre callbacks assincronos e fechamento de canais**. O Loam implementa o padrão **Protected Resource Cleanup** para garantir sincronização segura.
-
-**Padrão Base (3 Etapas):**
-
-```
-1. STOP accepting new work       (flag: debouncer.closed = true)
-2. WAIT for in-flight work       (sync.WaitGroup tracking timers)
-3. THEN close the resource       (events channel)
-```
-
-**Implementação no Debouncer:**
-
-```go
-type debouncer struct {
-    timers map[string]*time.Timer
-    closed bool
-    mu     sync.Mutex
-    wg     sync.WaitGroup      // Tracks in-flight timer callbacks
-}
-
-func (d *debouncer) stopAndWait(timeout time.Duration) {
-    d.mu.Lock()
-    d.closed = true                          // Step 1: Stop accepting
-    for _, t := range d.timers {
-        t.Stop()
-    }
-    d.mu.Unlock()
-    
-    // Step 2: Wait for timer goroutines to complete
-    done := make(chan struct{})
-    go func() {
-        d.wg.Wait()
-        close(done)
-    }()
-    
-    select {
-    case <-done:
-        return
-    case <-time.After(timeout):
-        // Timeout protection against deadlock
-        return
-    }
-    // Step 3: Safe to close resources now
-}
-```
-
-**Aplicabilidade Ecossistêmica:**
-
-- **lifecycle**: Este padrão foi formalizado na v1.6.0 como o helper `lifecycle.BlockWithTimeout` e documentado como padrão oficial do ecossistema.
-- **trellis**: Utiliza este padrão para sincronizar a limpeza de tarefas durante o desligamento.
-- **Geral**: Essencial para qualquer sistema que utilize callbacks assíncronos e fechamento de canais.
+1. **Delegação ao Control Plane**: A orquestração (debouncing, roteamento, canais) é nativamente delegada ao `lifecycle.Router` e `lifecycle.DebounceHandler`.
+2. **Git Awareness Integrado**: O `DirectoryWatchSource` atua como a fronteira (Edge) do sistema, provendo Inibição Local caso detecte operações no `.git`.
+3. **Event Debouncing (Aggregated)**: Utilizamos um `mergeFunc` customizado em conjunto com o `DebounceHandler` nativo para garantir agregação segura por arquivo (`MergedEvent`) e evitar afogamentos de CPU.
+4. **Protected Resource Cleanup Pattern**: O `lifecycle.Supervisor` gerencia a finalização limpa e assíncrona da Source e das GoRoutines agregadas pelo middleware.
 
 ## Limitações Técnicas Conhecidas (Caveats)
 

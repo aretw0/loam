@@ -155,8 +155,14 @@ func (t *Transaction) Commit(ctx context.Context, changeReason string) error {
 			return fmt.Errorf("failed to create directories for %s: %w", id, err)
 		}
 
+		ext := filepath.Ext(filename)
+		serializer, ok := t.repo.serializers[ext]
+		if !ok {
+			serializer = t.repo.serializers[".md"]
+		}
+
 		// Use shared serialization logic
-		buf, err := SerializeDocument(n, filepath.Ext(filename), t.repo.config.MetadataKey)
+		buf, err := serializer.Serialize(n, t.repo.config.MetadataKey)
 		if err != nil {
 			return fmt.Errorf("failed to serialize %s: %w", id, err)
 		}

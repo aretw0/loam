@@ -140,17 +140,17 @@ func initFS(path string, o *options) (core.Repository, error) {
 	}
 
 	repoConfig := fs.Config{
-		Path:         resolvedPath,
-		AutoInit:     autoInit,
-		Gitless:      gitless,
-		MustExist:    mustExist || (!autoInit && !useTemp),
-		Strict:       strict,
-		Logger:       o.logger,
-		SystemDir:    systemDir,
+		Path:              resolvedPath,
+		AutoInit:          autoInit,
+		Gitless:           gitless,
+		MustExist:         mustExist || (!autoInit && !useTemp),
+		Strict:            strict,
+		Logger:            o.logger,
+		SystemDir:         systemDir,
 		ContentExtraction: &contentExtraction,
 		MarkdownBodyKey:   markdownBodyKey,
-		ErrorHandler: errorHandler,
-		ReadOnly:     isReadOnly,
+		ErrorHandler:      errorHandler,
+		ReadOnly:          isReadOnly,
 	}
 
 	repo := fs.NewRepository(repoConfig)

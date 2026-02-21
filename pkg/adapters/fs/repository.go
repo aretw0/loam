@@ -18,6 +18,7 @@ import (
 	"github.com/aretw0/lifecycle"
 	"github.com/aretw0/lifecycle/pkg/core/supervisor"
 	"github.com/aretw0/lifecycle/pkg/core/worker"
+	"github.com/aretw0/lifecycle/pkg/events"
 	"github.com/bmatcuk/doublestar/v4"
 	"github.com/fsnotify/fsnotify"
 
@@ -262,33 +263,104 @@ func (r *Repository) Sync(ctx context.Context) error {
 //  2. OS Limits: Large repositories may hit file descriptor limits (inotify limits).
 //  3. Debouncing: Events are debounced by 50ms. Rapid atomic writes (Create+Modify) are merged.
 func (r *Repository) Watch(ctx context.Context, pattern string) (<-chan core.Event, error) {
-	events := make(chan core.Event)
+	out := make(chan core.Event, 100)
 
-	watcherBackoff := supervisor.Backoff{
-		InitialInterval: 250 * time.Millisecond,
-		MaxInterval:     5 * time.Second,
-		Multiplier:      2,
-		ResetDuration:   30 * time.Second,
-		MaxRestarts:     10,
-		MaxDuration:     1 * time.Minute,
-	}
+	source := newDirectoryWatchSource(r, pattern)
+	debounced := r.buildDebounceMiddleware(out)
 
-	spec := supervisor.Spec{
-		Name:          "fs-watcher",
-		Type:          string(worker.TypeGoroutine),
-		Factory:       func() (worker.Worker, error) { return newWatchWorker(r, pattern, events), nil },
-		Backoff:       watcherBackoff,
-		RestartPolicy: supervisor.RestartOnFailure,
-	}
-
-	watcherSupervisor := supervisor.New("loam-watcher", supervisor.StrategyOneForOne, spec)
-	if err := watcherSupervisor.Start(ctx); err != nil {
+	if err := r.startWatcherSupervisor(ctx, source, debounced, out); err != nil {
 		return nil, err
 	}
 
-	// Cleanup goroutine: Wait for supervisor to stop, then close the events channel.
-	// This pattern (defer close inside goroutine) prevents race conditions where
-	// the worker tries to send while external code closes the channel.
+	return out, nil
+}
+
+func (r *Repository) buildDebounceMiddleware(out chan<- core.Event) events.Handler {
+	mergeFn := func(a, b events.Event) events.Event {
+		var merged MergedEvent
+		if m, ok := a.(MergedEvent); ok {
+			merged = m
+		} else if ev, ok := a.(core.Event); ok {
+			merged = MergedEvent{Events: map[string]core.Event{ev.ID: ev}}
+		} else {
+			merged = MergedEvent{Events: make(map[string]core.Event)}
+		}
+
+		if m, ok := b.(MergedEvent); ok {
+			for k, v := range m.Events {
+				merged.Events[k] = v
+			}
+		} else if ev, ok := b.(core.Event); ok {
+			if old, exists := merged.Events[ev.ID]; exists {
+				if old.Type == core.EventCreate && ev.Type == core.EventModify {
+					ev.Type = core.EventCreate
+				}
+			}
+			merged.Events[ev.ID] = ev
+		}
+		return merged
+	}
+
+	finalHandler := events.HandlerFunc(func(c context.Context, e events.Event) error {
+		var toSend []core.Event
+		if m, ok := e.(MergedEvent); ok {
+			for _, ev := range m.Events {
+				toSend = append(toSend, ev)
+			}
+		} else if ce, ok := e.(core.Event); ok {
+			toSend = append(toSend, ce)
+		}
+		for _, ev := range toSend {
+			select {
+			case out <- ev:
+			case <-c.Done():
+				return c.Err()
+			}
+		}
+		return nil
+	})
+
+	return events.DebounceHandler(finalHandler, 50*time.Millisecond, mergeFn, events.WithMaxWait(200*time.Millisecond))
+}
+
+func (r *Repository) startWatcherSupervisor(ctx context.Context, source *directoryWatchSource, debounced events.Handler, out chan core.Event) error {
+	spec := supervisor.Spec{
+		Name: "loam-watcher-source",
+		Type: string(worker.TypeGoroutine),
+		Factory: func() (worker.Worker, error) {
+			return worker.FromFunc("loam-watcher", func(ctx context.Context) error {
+				// Start source internally
+				go func() {
+					if err := source.Start(ctx); err != nil && err != context.Canceled {
+						if r.config.Logger != nil {
+							r.config.Logger.Error("directory watch source failed", "error", err)
+						}
+					}
+				}()
+
+				// Consume events and feed to debouncer middleware
+				for {
+					select {
+					case <-ctx.Done():
+						return ctx.Err()
+					case e, ok := <-source.Events():
+						if !ok {
+							return nil
+						}
+						// Direct pass-through to middleware pipeline
+						_ = debounced.HandleEvent(ctx, e)
+					}
+				}
+			}), nil
+		},
+		RestartPolicy: supervisor.RestartOnFailure,
+	}
+
+	watcherSupervisor := supervisor.New("loam-fs-watcher", supervisor.StrategyOneForOne, spec)
+	if err := watcherSupervisor.Start(ctx); err != nil {
+		return err
+	}
+
 	lifecycle.Go(ctx, func(ctx context.Context) error {
 		err := <-watcherSupervisor.Wait()
 		if err != nil {
@@ -298,12 +370,10 @@ func (r *Repository) Watch(ctx context.Context, pattern string) (<-chan core.Eve
 				r.config.Logger.Error("watcher supervisor stopped", "error", err)
 			}
 		}
-		// Safe to close: supervisor.Wait() guarantees all workers have stopped
-		close(events)
 		return nil
 	})
 
-	return events, nil
+	return nil
 }
 
 // recursiveAdd adds the root path and all subdirectories to the watcher.
@@ -335,17 +405,43 @@ func (r *Repository) Reconcile(ctx context.Context) ([]core.Event, error) {
 	}
 
 	// 2. Prepare "Visited" Map to track deletions
-	// Key: RelPath (consistent with cache key)
+	visited := r.buildVisitedMap()
+
+	// 3. Walk Filesystem (Detect Creates & Modifies)
+	events, dirty, err := r.scanFileSystemForChanges(ctx, visited)
+	if err != nil {
+		return nil, err
+	}
+
+	// 4. Detect Deletions (Unvisited Cache Entries)
+	deletedEvents, deletedDirty := r.detectDeletions(visited)
+	events = append(events, deletedEvents...)
+	dirty = dirty || deletedDirty
+
+	// 5. Persist Cache Updates
+	if dirty {
+		r.persistCacheUpdates()
+	}
+
+	// Record reconcile completion for observability
+	r.recordReconcile()
+
+	return events, nil
+}
+
+func (r *Repository) buildVisitedMap() map[string]bool {
 	visited := make(map[string]bool)
 	r.cache.Range(func(relPath string, entry *indexEntry) bool {
 		visited[relPath] = false
 		return true
 	})
+	return visited
+}
 
+func (r *Repository) scanFileSystemForChanges(ctx context.Context, visited map[string]bool) ([]core.Event, bool, error) {
 	var events []core.Event
 	dirty := false
 
-	// 3. Walk Filesystem (Detect Creates & Modifies)
 	err := filepath.WalkDir(r.Path, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -430,11 +526,12 @@ func (r *Repository) Reconcile(ctx context.Context) ([]core.Event, error) {
 		return nil
 	})
 
-	if err != nil {
-		return nil, err
-	}
+	return events, dirty, err
+}
 
-	// 4. Detect Deletions (Unvisited Cache Entries)
+func (r *Repository) detectDeletions(visited map[string]bool) ([]core.Event, bool) {
+	var events []core.Event
+	dirty := false
 	for relPath, foundOnDisk := range visited {
 		if !foundOnDisk {
 			// It was in cache, but not found on walk -> DELETED.
@@ -463,29 +560,24 @@ func (r *Repository) Reconcile(ctx context.Context) ([]core.Event, error) {
 			dirty = true
 		}
 	}
+	return events, dirty
+}
 
-	// 5. Persist Cache Updates
-	if dirty {
-		if r.config.ReadOnly {
-			// In ReadOnly, we update the IN-MEMORY cache (done above), but we DO NOT persist to disk.
-			// This allows the default List() behavior to work with the updated state for this session,
-			// without touching the filesystem.
+func (r *Repository) persistCacheUpdates() {
+	if r.config.ReadOnly {
+		// In ReadOnly, we update the IN-MEMORY cache (done above), but we DO NOT persist to disk.
+		// This allows the default List() behavior to work with the updated state for this session,
+		// without touching the filesystem.
+		if r.config.Logger != nil {
+			r.config.Logger.Debug("skipping cache persistence (read-only mode)")
+		}
+	} else {
+		if err := r.cache.Save(); err != nil {
 			if r.config.Logger != nil {
-				r.config.Logger.Debug("skipping cache persistence (read-only mode)")
-			}
-		} else {
-			if err := r.cache.Save(); err != nil {
-				if r.config.Logger != nil {
-					r.config.Logger.Error("failed to save cache after reconciliation", "err", err)
-				}
+				r.config.Logger.Error("failed to save cache after reconciliation", "err", err)
 			}
 		}
 	}
-
-	// Record reconcile completion for observability
-	r.recordReconcile()
-
-	return events, nil
 }
 
 // shouldIgnore checks if the event should be filtered out.
@@ -515,9 +607,7 @@ func (r *Repository) shouldIgnore(event fsnotify.Event, pattern string) bool {
 
 	// 3. Check Ignore Map (Self-Modification)
 	if val, ok := r.ignoreMap.Load(event.Name); ok {
-		// It's in the map. Attempt to verify if it is indeed the same content.
-		// If we can't read the file (e.g. deleted), we assume it matched (event about deletion/rename of ignored file).
-		// But here we are mostly concerned with Write events (echoes).
+		// Track Write events (echoes). For deletion/rename, presence in map defaults to ignore.
 
 		if event.Has(fsnotify.Write) || event.Has(fsnotify.Create) {
 			expectedHash, ok := val.(string)
@@ -537,22 +627,15 @@ func (r *Repository) shouldIgnore(event fsnotify.Event, pattern string) bool {
 					// If hash mismatch, it might be a subsequent external write!
 					// Do NOT ignore.
 				} else {
-					// If we can't read, maybe it was deleted rapidly?
-					// Or permission error.
-					// If we can't verify, fallback to "ignore if inside window" logic?
-					// For now, if we can't read, we probably can't process it anyway.
-					// But let's log debug.
 					if r.config.Logger != nil {
 						r.config.Logger.Debug("failed to verify ignore hash", "path", event.Name, "err", err)
 					}
-					// Conservative: If explicitly in ignore map, we ignore it to prevent loop.
+					// Conservative loop-prevention fallback.
 					return true
 				}
 			}
 		} else {
-			// For non-write events (e.g. Rename/Chmod), we just trust the map presence?
-			// The original logic was time-based. "If present, ignore".
-			// Let's keep it simple: If present, ignore.
+			// For non-write events (e.g. Rename/Chmod), trust the map presence.
 			return true
 		}
 	}
@@ -590,95 +673,12 @@ func (r *Repository) resolveID(absPath string) (string, error) {
 	return id, nil
 }
 
-// debouncer helper struct
-type debouncer struct {
-	mu      sync.Mutex
-	wg      sync.WaitGroup // Tracks timers that have fired and are processing
-	timers  map[string]*time.Timer
-	pending map[string]core.Event
-	delay   time.Duration
-	closed  bool
+// MergedEvent aggregates multiple core.Event into a single event for debouncing.
+type MergedEvent struct {
+	Events map[string]core.Event
 }
 
-// newDebouncer creates a new debouncer.
-func newDebouncer(delay time.Duration) *debouncer {
-	return &debouncer{
-		timers:  make(map[string]*time.Timer),
-		pending: make(map[string]core.Event),
-		delay:   delay,
-	}
-}
-
-func (d *debouncer) stop() {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-	d.closed = true
-	for _, t := range d.timers {
-		t.Stop()
-	}
-}
-
-// stopAndWait marks debouncer as closed and waits for all in-flight timers to complete.
-// This ensures that no race conditions occur between debouncer sends and channel closure.
-// Returns an error if the timeout expires before all timers complete (indicates incomplete shutdown).
-func (d *debouncer) stopAndWait(timeout time.Duration) error {
-	d.stop()
-
-	// Wait for all in-flight timer goroutines to finish
-	done := make(chan struct{})
-	go func() {
-		d.wg.Wait()
-		close(done)
-	}()
-
-	return lifecycle.BlockWithTimeout(done, timeout)
-}
-
-func (d *debouncer) add(newEvent core.Event, send func(core.Event)) {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-
-	if d.closed {
-		return
-	}
-
-	if t, ok := d.timers[newEvent.ID]; ok {
-		t.Stop()
-		// Merge logic
-		oldEvent := d.pending[newEvent.ID]
-		if oldEvent.Type == core.EventCreate && newEvent.Type == core.EventModify {
-			newEvent.Type = core.EventCreate
-		}
-	}
-
-	d.pending[newEvent.ID] = newEvent
-
-	// Track this timer as in-flight
-	d.wg.Add(1)
-	d.timers[newEvent.ID] = time.AfterFunc(d.delay, func() {
-		defer d.wg.Done()
-
-		d.mu.Lock()
-		if d.closed {
-			d.mu.Unlock()
-			return
-		}
-		eventToSend, ok := d.pending[newEvent.ID]
-		if !ok {
-			d.mu.Unlock()
-			return
-		}
-		delete(d.timers, newEvent.ID)
-		delete(d.pending, newEvent.ID)
-		d.mu.Unlock()
-
-		// Safe send (channel may be closed, but recover handles it)
-		defer func() {
-			_ = recover()
-		}()
-		send(eventToSend)
-	})
-}
+func (m MergedEvent) String() string { return "merged" }
 
 // Save persists a document to the filesystem and commits it to Git.
 // If the document belongs to a collection (e.g. CSV), it updates the specific row.
@@ -698,6 +698,30 @@ func (r *Repository) Save(ctx context.Context, doc core.Document) error {
 		return fmt.Errorf("document has no ID")
 	}
 
+	ext, filename := r.resolveExtAndFilename(doc)
+	fullPath := filepath.Join(r.Path, filename)
+
+	// Ensure parent directory exists
+	// But first, check if we should intercept for Multi-Doc (Collection)
+	if collectionPath, colExt, key, found := r.findCollection(doc.ID); found {
+		return r.saveToCollection(doc, collectionPath, colExt, key)
+	}
+
+	if err := r.serializeAndWriteAtomic(doc, ext, fullPath); err != nil {
+		return err
+	}
+
+	if err := r.commitToGit(ctx, doc.ID, filename); err != nil {
+		return err
+	}
+
+	// Update Cache (Optimistic)
+	r.optimisticCacheUpdate(doc, fullPath)
+
+	return nil
+}
+
+func (r *Repository) resolveExtAndFilename(doc core.Document) (string, string) {
 	ext := filepath.Ext(doc.ID)
 	// Smart Extension Detection
 	if val, ok := doc.Metadata["ext"].(string); ok && val != "" {
@@ -715,15 +739,10 @@ func (r *Repository) Save(ctx context.Context, doc core.Document) error {
 	if filepath.Ext(doc.ID) != ext {
 		filename = doc.ID + ext
 	}
+	return ext, filename
+}
 
-	fullPath := filepath.Join(r.Path, filename)
-
-	// Ensure parent directory exists
-	// But first, check if we should intercept for Multi-Doc (Collection)
-	if collectionPath, colExt, key, found := r.findCollection(doc.ID); found {
-		return r.saveToCollection(doc, collectionPath, colExt, key)
-	}
-
+func (r *Repository) serializeAndWriteAtomic(doc core.Document, ext, fullPath string) error {
 	if err := os.MkdirAll(filepath.Dir(fullPath), 0755); err != nil {
 		return fmt.Errorf("failed to create directories: %w", err)
 	}
@@ -753,7 +772,10 @@ func (r *Repository) Save(ctx context.Context, doc core.Document) error {
 	if err := writeFileAtomic(fullPath, data, 0644); err != nil {
 		return fmt.Errorf("failed to write file: %w", err)
 	}
+	return nil
+}
 
+func (r *Repository) commitToGit(ctx context.Context, docID, filename string) error {
 	if !r.config.Gitless && r.git.IsRepo() {
 		unlock, err := r.git.Lock()
 		if err != nil {
@@ -765,7 +787,7 @@ func (r *Repository) Save(ctx context.Context, doc core.Document) error {
 			return fmt.Errorf("failed to git add: %w", err)
 		}
 
-		msg := "update " + doc.ID
+		msg := "update " + docID
 		if val, ok := ctx.Value(core.ChangeReasonKey).(string); ok && val != "" {
 			msg = val
 		}
@@ -774,8 +796,10 @@ func (r *Repository) Save(ctx context.Context, doc core.Document) error {
 			return fmt.Errorf("failed to git commit: %w", err)
 		}
 	}
+	return nil
+}
 
-	// Update Cache (Optimistic)
+func (r *Repository) optimisticCacheUpdate(doc core.Document, fullPath string) {
 	if info, err := os.Stat(fullPath); err == nil {
 		// Extract Generic Metadata from doc
 		relPath, _ := filepath.Rel(r.Path, fullPath)
@@ -785,13 +809,9 @@ func (r *Repository) Save(ctx context.Context, doc core.Document) error {
 			Metadata:     doc.Metadata,
 			LastModified: info.ModTime(),
 		})
-		// We can save lazily or immediately.
-		// For consistency, let's just log error if save fails but not fail the operation?
-		// Or ignore.
+		// Optimistic immediate cache persistence
 		_ = r.cache.Save()
 	}
-
-	return nil
 }
 
 // Get retrieves a document from the filesystem.
@@ -1310,34 +1330,4 @@ func (r *Repository) Delete(ctx context.Context, id string) error {
 // IsGitInstalled checks if git is available in the system path.
 func IsGitInstalled() bool {
 	return git.IsInstalled()
-}
-
-// --- Serialization Helpers (Public) ---
-
-// ParseDocument parses raw content into a Core Document based on extension.
-// Exposed for use by CLI "raw mode".
-// DEPRECATED: Use Serializer interface instead. This is kept briefly or should be removed if no external consumers.
-// Refactoring: We will bridge this to use DefaultSerializers to maintain signature compat if needed,
-// OR just remove it if it's internal package. It is Exported.
-// To be safe, let's reimplement it using the new registry.
-func ParseDocument(r io.Reader, ext, metadataKey string) (*core.Document, error) {
-	defaults := DefaultSerializers(false)
-	s, ok := defaults[ext]
-	if !ok {
-		// Fallback to markdown if unknown, matching old behavior
-		s = defaults[".md"]
-	}
-	return s.Parse(r, metadataKey, true, "body")
-}
-
-// SerializeDocument converts a Document to bytes based on extension.
-// Exposed for reuse if needed.
-// DEPRECATED: Use Serializer interface instead.
-func SerializeDocument(doc core.Document, ext, metadataKey string) ([]byte, error) {
-	defaults := DefaultSerializers(false)
-	s, ok := defaults[ext]
-	if !ok {
-		s = defaults[".md"]
-	}
-	return s.Serialize(doc, metadataKey)
 }
