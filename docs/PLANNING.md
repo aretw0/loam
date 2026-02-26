@@ -114,6 +114,18 @@
 
 - [x] Adicionar Github Actions Workflows (`ci.yml`) configurados para usar git account virtual e rodar as suítes fast/full.
 
+## Fase 0.10.10: Context Propagation Hygiene (Patch)
+
+**Objetivo:** Propagar `context.Context` pelas operações de plataforma (`platform.Init`, `platform.Sync`) para que sejam cancellable quando chamadas dentro de um worker lifecycle, evitando bloqueios silenciosos no shutdown do ecossistema.
+
+**Contexto:** Identificado na auditoria de Chained Cancels do `lifecycle v1.7.1`. As chamadas em `internal/platform/ops.go` usam `context.Background()` diretamente — aceitável para CLI standalone (`loam init`, `loam sync`), mas um bloqueio potencial quando o Loam é embutido num `lifecycle.Worker`.
+
+- [ ] **`internal/platform/ops.go`**:
+  - [ ] Adicionar `ctx context.Context` como primeiro parâmetro de `Init(ctx, uri, opts...)`.
+  - [ ] Adicionar `ctx context.Context` como primeiro parâmetro de `Sync(ctx, uri, opts...)`.
+  - [ ] Propagar o `ctx` para `repo.Initialize(ctx)` e `syncable.Sync(ctx)` respectivamente.
+- [ ] **Consumidores internos**: Atualizar chamadas em `cmd/loam/` para passar o contexto de sinal correto (derivado de `lifecycle.Run`).
+
 ## RFC 0.X.X: Robust CSV & Schema Control (Backlog)
 
  **Objetivo:** Resolver ambiguidades na detecção de tipos do CSV e permitir controle explícito (Hardening).
@@ -190,4 +202,14 @@ Objetivo: Permitir que ferramentas externas (não-Go) interajam com o Loam via r
 - **Definir imagem mínima**: Containerização eficiente e segura.
 - **Multi-Tenant**: Suporte a múltiplos vaults simultâneos no servidor.
 - **Admin Dashboard (Debug only)**: Visualização técnica simples acoplada ao `loam serve` (para inspeção, não edição rica).
-- **Distribuição**: Publicação via Homebrew/Scoop.
+
+## Ecosystem Readiness (Lifecycle v1.8+)
+
+Objetivo: Preparar o Loam para as inovações de infraestrutura planejadas para o `lifecycle` v1.8 e v1.9.
+
+- [ ] **Status Probing (v1.8)**:
+  - [ ] Implementar a nova interface `lifecycle.Prober` no Watcher para reportar a saúde real do handle do filesystem (permitindo detectar permissões negadas ou desconexões de rede em mounts remotos).
+- [ ] **Dependency Gates (v1.8)**:
+  - [ ] Definir o Loam como um "Persistent Provider" que deve ser o último a entrar em quiescência, garantindo que o Trellis consiga salvar o estado final antes do FS fechar.
+- [ ] **Benchmarking (v1.9)**:
+  - [ ] Contribuir com métricas de overhead do Loam para o estudo de caso oficial de performance do ecossistema.
