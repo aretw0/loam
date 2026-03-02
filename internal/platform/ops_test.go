@@ -1,6 +1,7 @@
 package platform_test
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -16,7 +17,7 @@ func setupOpsTest(t *testing.T, opts ...loam.Option) (*fs.Repository, string) {
 	t.Helper()
 	tmpDir := t.TempDir()
 
-	repo, err := loam.Init(tmpDir, opts...)
+	repo, err := loam.Init(context.Background(), tmpDir, opts...)
 	if err != nil {
 		t.Fatalf("Init failed: %v", err)
 	}
@@ -51,7 +52,7 @@ func TestInit(t *testing.T) {
 		tmpDir := t.TempDir()
 		vaultPath := filepath.Join(tmpDir, "missing")
 
-		_, err := loam.Init(vaultPath, loam.WithAutoInit(false), loam.WithMustExist(true))
+		_, err := loam.Init(context.Background(), vaultPath, loam.WithAutoInit(false), loam.WithMustExist(true))
 		if err == nil {
 			t.Error("Expected failure for missing directory when AutoInit=false")
 		}
@@ -80,7 +81,7 @@ func TestInit(t *testing.T) {
 func TestSync(t *testing.T) {
 	t.Run("Sync Fails if Gitless", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		err := loam.Sync(tmpDir, loam.WithVersioning(false))
+		err := loam.Sync(context.Background(), tmpDir, loam.WithVersioning(false))
 		if err == nil {
 			t.Error("Expected Sync to fail in gitless mode")
 		}
@@ -94,7 +95,7 @@ func TestSync(t *testing.T) {
 		_ = client.Commit("initial commit") // commit so we have HEAD
 
 		// This might fail due to "No such remote 'origin'" or similar
-		err := loam.Sync(tmpDir, loam.WithVersioning(true))
+		err := loam.Sync(context.Background(), tmpDir, loam.WithVersioning(true))
 		if err == nil {
 			t.Error("Expected Sync to fail without remote")
 		}

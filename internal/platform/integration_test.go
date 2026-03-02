@@ -22,7 +22,7 @@ func setupService(t *testing.T, opts ...loam.Option) (*core.Service, string) {
 	baseOpts := []loam.Option{loam.WithAutoInit(true)}
 	finalOpts := append(baseOpts, opts...)
 
-	service, err := loam.New(tmpDir, finalOpts...)
+	service, err := loam.New(context.Background(), tmpDir, finalOpts...)
 	if err != nil {
 		t.Fatalf("Failed to init service: %v", err)
 	}
@@ -176,7 +176,7 @@ func TestService_MustExist(t *testing.T) {
 	tmpDir := t.TempDir()
 	nonExistent := filepath.Join(tmpDir, "does-not-exist")
 
-	_, err := loam.New(nonExistent, loam.WithMustExist(true))
+	_, err := loam.New(context.Background(), nonExistent, loam.WithMustExist(true))
 	if err == nil {
 		t.Error("Expected New to fail with MustExist for non-existent path, but it succeeded")
 	}
@@ -189,7 +189,7 @@ func TestService_GitlessSync(t *testing.T) {
 	// But we can check behavior (e.g. Sync not supported if we exposed Sync in service).
 
 	// Check loam.Sync behavior directly
-	err := loam.Sync(tmpDir, loam.WithVersioning(false))
+	err := loam.Sync(context.Background(), tmpDir, loam.WithVersioning(false))
 	if err == nil {
 		t.Error("Expected loam.Sync to fail in gitless mode, but it succeeded")
 	} else if err.Error() != "cannot sync in gitless mode" {
