@@ -120,11 +120,23 @@
 
 **Contexto:** Identificado na auditoria de Chained Cancels do `lifecycle v1.7.1`. As chamadas em `internal/platform/ops.go` usam `context.Background()` diretamente — aceitável para CLI standalone (`loam init`, `loam sync`), mas um bloqueio potencial quando o Loam é embutido num `lifecycle.Worker`.
 
-- [ ] **`internal/platform/ops.go`**:
-  - [ ] Adicionar `ctx context.Context` como primeiro parâmetro de `Init(ctx, uri, opts...)`.
-  - [ ] Adicionar `ctx context.Context` como primeiro parâmetro de `Sync(ctx, uri, opts...)`.
-  - [ ] Propagar o `ctx` para `repo.Initialize(ctx)` e `syncable.Sync(ctx)` respectivamente.
-- [ ] **Consumidores internos**: Atualizar chamadas em `cmd/loam/` para passar o contexto de sinal correto (derivado de `lifecycle.Run`).
+- [x] **`internal/platform/ops.go`**:
+  - [x] Adicionar `ctx context.Context` como primeiro parâmetro de `Init(ctx, uri, opts...)`.
+  - [x] Adicionar `ctx context.Context` como primeiro parâmetro de `Sync(ctx, uri, opts...)`.
+  - [x] Propagar o `ctx` para `repo.Initialize(ctx)` e `syncable.Sync(ctx)` respectivamente.
+- [x] **Consumidores internos**: Atualizar chamadas em `cmd/loam/` para passar o contexto de sinal correto (derivado de `lifecycle.Run`).
+- [x] **Wrappers públicos**: Atualizar `loam.Init`, `loam.New`, `loam.Sync`, e `OpenTypedRepository`/`OpenTypedService` para aceitar contexto.
+- [x] **Factory interno**: Atualizar `platform.New` para aceitar e propagar contexto.
+- [x] **CLI**: Atualizar todos os comandos para passar `cmd.Context()`.
+- [x] **Exemplos e testes**: Atualizar para usar `context.Background()` onde apropriado.
+- [x] **Dependências**: Atualizar para `lifecycle v1.7.2` (latest).
+
+**Impacto:**
+
+- Todas as funções públicas de `loam.Init`, `loam.New`, `loam.Sync` agora requerem `context.Context` como primeiro parâmetro.
+- Cancelamento em shutdown é agora propagado corretamente para operações de plataforma.
+- CLI passa `cmd.Context()` derivado de `lifecycle.Run`, permitindo graceful shutdown.
+- Exemplos e testes usam `context.Background()` como padrão seguro.
 
 ## RFC 0.X.X: Robust CSV & Schema Control (Backlog)
 
