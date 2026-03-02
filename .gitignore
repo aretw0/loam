@@ -4,6 +4,7 @@ go.work.sum
 
 # Binaries
 /**/*.exe
+/loam
 
 # Build Output
 dist/
