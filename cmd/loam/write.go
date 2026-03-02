@@ -83,7 +83,7 @@ var writeCmd = &cobra.Command{
 			opts = append(opts, loam.WithVersioning(!nover))
 		}
 
-		service, err := loam.New(root, opts...)
+		service, err := loam.New(cmd.Context(), root, opts...)
 		if err != nil {
 			fatal("Failed to initialize loam", err)
 		}

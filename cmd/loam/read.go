@@ -44,7 +44,7 @@ var readCmd = &cobra.Command{
 			}
 		}
 
-		service, err := loam.New(root,
+		service, err := loam.New(cmd.Context(), root,
 			loam.WithAdapter(adapter),
 			loam.WithVersioning(useVersioning),
 			loam.WithMustExist(true),

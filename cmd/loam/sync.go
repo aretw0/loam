@@ -22,7 +22,7 @@ It integrates remote changes and pushes local changes.`,
 		}
 
 		fmt.Println("Syncing...")
-		if err := loam.Sync(cwd,
+		if err := loam.Sync(cmd.Context(), cwd,
 			loam.WithAdapter(adapter),
 			loam.WithVersioning(!nover),
 			loam.WithLogger(slog.Default()),

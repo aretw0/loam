@@ -8,9 +8,10 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/spf13/cobra"
+
 	"github.com/aretw0/loam"
 	"github.com/aretw0/loam/pkg/core"
-	"github.com/spf13/cobra"
 )
 
 var (
@@ -43,7 +44,7 @@ var listCmd = &cobra.Command{
 			}
 		}
 
-		service, err := loam.New(root,
+		service, err := loam.New(cmd.Context(), root,
 			loam.WithAdapter(adapter),
 			loam.WithVersioning(useVersioning),
 			loam.WithMustExist(true),

@@ -21,7 +21,7 @@ var initCmd = &cobra.Command{
 		}
 
 		// loam init -> AutoInit=true
-		_, err = loam.Init(cwd,
+		_, err = loam.Init(cmd.Context(), cwd,
 			loam.WithAdapter(adapter),
 			loam.WithAutoInit(true),
 			loam.WithVersioning(!nover),
