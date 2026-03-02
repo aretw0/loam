@@ -1,6 +1,7 @@
 package loam
 
 import (
+	"context"
 	"log/slog"
 
 	"github.com/aretw0/loam/internal/platform"
@@ -114,13 +115,13 @@ func WithDevSafety(enabled bool) Option {
 // --- Factory ---
 
 // New creates a new Loam Service.
-func New(path string, opts ...Option) (*core.Service, error) {
-	return platform.New(path, opts...)
+func New(ctx context.Context, path string, opts ...Option) (*core.Service, error) {
+	return platform.New(ctx, path, opts...)
 }
 
 // Init initializes a repository explicitly.
-func Init(path string, opts ...Option) (core.Repository, error) {
-	return platform.Init(path, opts...)
+func Init(ctx context.Context, path string, opts ...Option) (core.Repository, error) {
+	return platform.Init(ctx, path, opts...)
 }
 
 // --- Typed Factories ---
@@ -136,8 +137,8 @@ func NewTypedService[T any](svc *core.Service) *typed.Service[T] {
 }
 
 // OpenTypedRepository simplifies creating a TypedRepository from a path.
-func OpenTypedRepository[T any](path string, opts ...Option) (*typed.Repository[T], error) {
-	repo, err := Init(path, opts...)
+func OpenTypedRepository[T any](ctx context.Context, path string, opts ...Option) (*typed.Repository[T], error) {
+	repo, err := Init(ctx, path, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -145,8 +146,8 @@ func OpenTypedRepository[T any](path string, opts ...Option) (*typed.Repository[
 }
 
 // OpenTypedService simplifies creating a TypedService from a path.
-func OpenTypedService[T any](path string, opts ...Option) (*typed.Service[T], error) {
-	svc, err := New(path, opts...)
+func OpenTypedService[T any](ctx context.Context, path string, opts ...Option) (*typed.Service[T], error) {
+	svc, err := New(ctx, path, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -156,8 +157,8 @@ func OpenTypedService[T any](path string, opts ...Option) (*typed.Service[T], er
 // --- Operations ---
 
 // Sync performs a synchronization (pull/push) of the vault.
-func Sync(path string, opts ...Option) error {
-	return platform.Sync(path, opts...)
+func Sync(ctx context.Context, path string, opts ...Option) error {
+	return platform.Sync(ctx, path, opts...)
 }
 
 // --- Safety & Utils ---
