@@ -14,7 +14,7 @@ import (
 // The 'uri' argument is adapter-specific (e.g., file path for 'fs', connection string for others).
 //
 // It returns the configured core.Repository.
-func Init(uri string, opts ...Option) (core.Repository, error) {
+func Init(ctx context.Context, uri string, opts ...Option) (core.Repository, error) {
 	o := defaultOptions()
 	for _, opt := range opts {
 		opt(o)
@@ -41,7 +41,7 @@ func Init(uri string, opts ...Option) (core.Repository, error) {
 	}
 
 	// 3. Run Initialization
-	if err := repo.Initialize(context.Background()); err != nil {
+	if err := repo.Initialize(ctx); err != nil {
 		return nil, err
 	}
 
@@ -171,7 +171,7 @@ func initFS(path string, o *options) (core.Repository, error) {
 }
 
 // Sync synchronizes the vault at the given URI with its remote.
-func Sync(uri string, opts ...Option) error {
+func Sync(ctx context.Context, uri string, opts ...Option) error {
 	o := defaultOptions()
 	for _, opt := range opts {
 		opt(o)
@@ -207,5 +207,5 @@ func Sync(uri string, opts ...Option) error {
 		return fmt.Errorf("repository does not support synchronization")
 	}
 
-	return syncable.Sync(context.Background())
+	return syncable.Sync(ctx)
 }
