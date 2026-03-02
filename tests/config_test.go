@@ -14,7 +14,7 @@ func TestConfig_SystemDir(t *testing.T) {
 		tmpDir := t.TempDir()
 		customName := ".custom-sys"
 
-		service, err := loam.New(tmpDir,
+		service, err := loam.New(context.Background(), tmpDir,
 			loam.WithAutoInit(true),
 			loam.WithForceTemp(true),
 			loam.WithSystemDir(customName),

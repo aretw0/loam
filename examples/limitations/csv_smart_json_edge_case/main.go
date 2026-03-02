@@ -16,7 +16,7 @@ func main() {
 	}
 	defer os.RemoveAll(tmpDir)
 
-	srv, _ := loam.New(tmpDir,
+	srv, _ := loam.New(context.Background(), tmpDir,
 		loam.WithAdapter("fs"),
 		loam.WithAutoInit(true),
 		loam.WithLogger(slog.New(slog.NewTextHandler(os.Stdout, nil))),

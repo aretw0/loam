@@ -21,11 +21,11 @@ func setupWatchTest(t *testing.T) (string, *loam.TypedService[map[string]any], c
 	tmp := t.TempDir()
 
 	// Initialize a vault
-	_, err := loam.Init(tmp)
+	_, err := loam.Init(context.Background(), tmp)
 	require.NoError(t, err)
 
 	// Open Typed Service
-	svc, err := loam.OpenTypedService[map[string]any](tmp)
+	svc, err := loam.OpenTypedService[map[string]any](context.Background(), tmp)
 	require.NoError(t, err)
 
 	// Create context with timeout
@@ -131,10 +131,10 @@ func TestWatch_ErrorHandler(t *testing.T) {
 	})
 
 	// Initialize
-	_, err := loam.Init(tmp)
+	_, err := loam.Init(context.Background(), tmp)
 	require.NoError(t, err)
 
-	svc, err := loam.OpenTypedService[map[string]any](tmp, handlerOpt)
+	svc, err := loam.OpenTypedService[map[string]any](context.Background(), tmp, handlerOpt)
 	require.NoError(t, err)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

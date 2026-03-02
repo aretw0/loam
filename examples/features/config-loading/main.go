@@ -17,7 +17,7 @@ func main() {
 	vaultPath := loam.ResolveVaultPath(vaultName, true)
 	_ = os.RemoveAll(vaultPath)
 
-	service, err := loam.New(vaultName,
+	service, err := loam.New(context.Background(), vaultName,
 		loam.WithLogger(logger),
 		loam.WithForceTemp(true),
 		loam.WithAutoInit(true),

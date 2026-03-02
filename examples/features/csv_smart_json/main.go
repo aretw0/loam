@@ -19,7 +19,7 @@ func main() {
 
 	// Initialize Loam
 	// We use WithAutoInit(true) to ensure repo creation
-	srv, err := loam.New(tmpDir,
+	srv, err := loam.New(context.Background(), tmpDir,
 		loam.WithAdapter("fs"),
 		loam.WithAutoInit(true),
 		loam.WithLogger(slog.New(slog.NewTextHandler(os.Stdout, nil))),

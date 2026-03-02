@@ -15,7 +15,7 @@ import (
 
 func main() {
 	// Create a loam service
-	svc, err := loam.New("./demo-vault", loam.WithAutoInit(true), loam.WithVersioning(false))
+	svc, err := loam.New(context.Background(), "./demo-vault", loam.WithAutoInit(true), loam.WithVersioning(false))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -44,7 +44,7 @@ func main() {
 	// Note: In production, you'd use a public method to get the repository
 	// For now, we'll demonstrate with a typed service setup
 
-	repo, err := loam.Init("./demo-vault", loam.WithAutoInit(true), loam.WithVersioning(false))
+	repo, err := loam.Init(context.Background(), "./demo-vault", loam.WithAutoInit(true), loam.WithVersioning(false))
 	if err != nil {
 		log.Fatal(err)
 	}

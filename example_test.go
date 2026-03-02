@@ -22,7 +22,7 @@ func Example_basic() {
 
 	// Initialize the Loam service (Vault) targeting the temporary directory.
 	// WithAutoInit(true) ensures the underlying storage (git repo) is initialized.
-	vault, err := loam.New(tmpDir, loam.WithAutoInit(true))
+	vault, err := loam.New(context.Background(), tmpDir, loam.WithAutoInit(true))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -59,7 +59,7 @@ func ExampleNewTypedRepository() {
 	defer os.RemoveAll(tmpDir)
 
 	// Use loam.Init to get the Repository directly
-	repo, err := loam.Init(filepath.Join(tmpDir, "vault"), loam.WithAutoInit(true))
+	repo, err := loam.Init(context.Background(), filepath.Join(tmpDir, "vault"), loam.WithAutoInit(true))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -109,7 +109,7 @@ func Example_csvNestedData() {
 	}
 	defer os.RemoveAll(tmpDir)
 
-	repo, err := loam.Init(filepath.Join(tmpDir, "vault"), loam.WithAutoInit(true))
+	repo, err := loam.Init(context.Background(), filepath.Join(tmpDir, "vault"), loam.WithAutoInit(true))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -165,7 +165,7 @@ func Example_strictMode() {
 
 	// Initialize with Global Strict Mode
 	// This applies strict parsing (json.Number) to all serializers.
-	repo, err := loam.Init(filepath.Join(tmpDir, "vault"),
+	repo, err := loam.Init(context.Background(), filepath.Join(tmpDir, "vault"),
 		loam.WithAutoInit(true),
 		loam.WithStrict(true),
 	)

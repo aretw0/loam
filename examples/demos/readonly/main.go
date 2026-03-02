@@ -28,7 +28,7 @@ func main() {
 	// but you want to guarantee you won't corrupt it.
 	fmt.Println("\n🔒 [Demo 1] Initializing in READ-ONLY mode...")
 
-	repoSafe, err := loam.Init(".", loam.WithReadOnly(true))
+	repoSafe, err := loam.Init(context.Background(), ".", loam.WithReadOnly(true))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -56,7 +56,7 @@ func main() {
 	// while running via `go run`.
 	fmt.Println("\n🔓 [Demo 2] Initializing in UNSAFE DEV mode...")
 
-	repoUnsafe, err := loam.Init(".", loam.WithDevSafety(false))
+	repoUnsafe, err := loam.Init(context.Background(), ".", loam.WithDevSafety(false))
 	if err != nil {
 		log.Fatal(err)
 	}

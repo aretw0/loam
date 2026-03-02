@@ -27,7 +27,7 @@ func TestReconcile_ColdStart(t *testing.T) {
 
 	// 2. Initialize Loam
 	// We rely on Reconcile for the events
-	service, err := loam.New(dir)
+	service, err := loam.New(context.Background(), dir)
 	require.NoError(t, err)
 
 	// 3. Run Reconcile
@@ -48,7 +48,7 @@ func TestReconcile_ColdStart(t *testing.T) {
 // made while the service was "offline" (simulated).
 func TestReconcile_OfflineChange(t *testing.T) {
 	dir := t.TempDir()
-	service, err := loam.New(dir)
+	service, err := loam.New(context.Background(), dir)
 	require.NoError(t, err)
 	ctx := context.Background()
 
@@ -97,7 +97,7 @@ Version 2 (Offline Edit)`), 0644)
 // TestReconcile_OfflineDelete verifies detection of deleted files.
 func TestReconcile_OfflineDelete(t *testing.T) {
 	dir := t.TempDir()
-	service, err := loam.New(dir)
+	service, err := loam.New(context.Background(), dir)
 	require.NoError(t, err)
 	ctx := context.Background()
 
@@ -128,7 +128,7 @@ func TestReconcile_OfflineDelete(t *testing.T) {
 // This ensures the ID is correctly inferred (or retrieved) without the extension.
 func TestReconcile_OfflineDelete_Extensions(t *testing.T) {
 	dir := t.TempDir()
-	service, err := loam.New(dir)
+	service, err := loam.New(context.Background(), dir)
 	require.NoError(t, err)
 	ctx := context.Background()
 

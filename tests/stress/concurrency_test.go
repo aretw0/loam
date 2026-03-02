@@ -27,7 +27,7 @@ func TestConcurrency_ExternalVsInternal(t *testing.T) {
 	}
 
 	dir := t.TempDir()
-	service, err := loam.New(dir, loam.WithAdapter("fs"), loam.WithAutoInit(true))
+	service, err := loam.New(context.Background(), dir, loam.WithAdapter("fs"), loam.WithAutoInit(true))
 	require.NoError(t, err)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

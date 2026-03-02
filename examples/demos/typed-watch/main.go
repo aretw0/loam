@@ -40,7 +40,7 @@ func main() {
 
 	// Create the Typed Repository
 	// We use the helper loam.OpenTypedRepository to initialize the repository.
-	configRepo, err := loam.OpenTypedRepository[AppConfig](tmpDir, startOpts...)
+	configRepo, err := loam.OpenTypedRepository[AppConfig](context.Background(), tmpDir, startOpts...)
 	if err != nil {
 		panic(err)
 	}

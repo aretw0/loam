@@ -29,7 +29,7 @@ func TestReadOnlyMode(t *testing.T) {
 
 	// 2. Initialize in Read-Only Mode
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
-	repo, err := loam.Init(tempDir, loam.WithReadOnly(true), loam.WithLogger(logger))
+	repo, err := loam.Init(context.Background(), tempDir, loam.WithReadOnly(true), loam.WithLogger(logger))
 	require.NoError(t, err)
 
 	ctx := context.Background()
@@ -102,7 +102,7 @@ func TestReadOnlyMode(t *testing.T) {
 
 func prepareRepo(t *testing.T, dir string) {
 	// Initialize a standard repo first to create structure and git
-	repo, err := loam.Init(dir, loam.WithAutoInit(true))
+	repo, err := loam.Init(context.Background(), dir, loam.WithAutoInit(true))
 	require.NoError(t, err)
 
 	// Add a document

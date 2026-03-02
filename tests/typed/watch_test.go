@@ -24,11 +24,11 @@ func TestTypedWatch(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	// 2. Initialize Vault
-	_, err := loam.Init(tmpDir)
+	_, err := loam.Init(context.Background(), tmpDir)
 	require.NoError(t, err)
 
 	// 3. Open Typed Repository
-	typedRepo, err := loam.OpenTypedRepository[TestMetadata](tmpDir,
+	typedRepo, err := loam.OpenTypedRepository[TestMetadata](context.Background(), tmpDir,
 		loam.WithVersioning(false), // Ensure option is passed here too just in case config reloads
 	)
 	require.NoError(t, err)

@@ -26,7 +26,7 @@ func main() {
 
 	// Initialize with Strict JSON Serializer
 	// This ensures large integers are read as json.Number, not float64
-	repo, err := loam.Init(filepath.Join(tmpDir, "vault"),
+	repo, err := loam.Init(context.Background(), filepath.Join(tmpDir, "vault"),
 		loam.WithAutoInit(true),
 		loam.WithSerializer(".json", fs.NewJSONSerializer(true)),
 	)

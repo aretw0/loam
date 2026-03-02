@@ -34,7 +34,7 @@ func BenchmarkList_10k_Files(b *testing.B) {
 	// 3. Initialize Service (Cold Start)
 	// We use a separate service instance for "Cold" vs "Warm" usually,
 	// but here we want to benchmark the *process* of listing.
-	srv, err := loam.New(dir, loam.WithAdapter("fs"), loam.WithAutoInit(true))
+	srv, err := loam.New(context.Background(), dir, loam.WithAdapter("fs"), loam.WithAutoInit(true))
 	require.NoError(b, err)
 	ctx := context.Background()
 
@@ -69,7 +69,7 @@ func TestScale_List_ColdVsWarm(t *testing.T) {
 		_ = os.WriteFile(filepath.Join(dir, fmt.Sprintf("bench-%d.md", i)), []byte("content"), 0644)
 	}
 
-	srv, err := loam.New(dir, loam.WithAdapter("fs"), loam.WithAutoInit(true))
+	srv, err := loam.New(context.Background(), dir, loam.WithAdapter("fs"), loam.WithAutoInit(true))
 	require.NoError(t, err)
 
 	// Cold Run

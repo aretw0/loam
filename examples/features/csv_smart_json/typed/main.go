@@ -32,7 +32,7 @@ func main() {
 	ctx := context.Background()
 
 	// 1. Initialize Typed Repository
-	repo, err := loam.OpenTypedRepository[DataModel](tmpDir,
+	repo, err := loam.OpenTypedRepository[DataModel](context.Background(), tmpDir,
 		loam.WithAdapter("fs"),
 		loam.WithAutoInit(true),
 		loam.WithLogger(slog.New(slog.NewTextHandler(os.Stdout, nil))),
