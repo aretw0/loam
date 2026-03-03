@@ -2,141 +2,90 @@
 
 > **Nota:** Para análise detalhada do ecossistema `lifecycle`, `introspection` e `procio`, consulte [ECOSYSTEM.md](ECOSYSTEM.md).
 
-## Fase 0.10.4: Polyglot Consistency (Completed)
+---
 
-**Objetivo:** Resolver inconsistências de tipos numéricos entre adapters (JSON Strict vs YAML/Markdown) e garantir interoperabilidade robusta ("Polyglot Vaults"). Referência: Issue #1.
+## Current Release: v0.10.10 (Context Propagation)
 
-- [x] **Reproduction / Test Case**: Criar teste que carrega mesmo dado via JSON e Markdown/YAML e falha na asserção de tipo.
-- [x] **Normalization Middleware**: Implementar estratégia para normalizar números (ex: unificar em `json.Number` ou converter para nativos de forma segura) em todos os adapters.
-- [x] **Smart Accessors**: (Opcional) Helpers para acesso seguro a `map[string]any` em Documentos Tipados.
-- [x] **YAML Serializer Compatibility**: Garantir que gravar `json.Number` em YAML funcione corretamente (Sanitizer).
+**Objetivo:** Propagar `context.Context` pelas operações de plataforma para cancelamento correto em shutdown.
 
-## Fase 0.10.5: Robust Watcher & Error Handling (Completed)
+**Principais Mudanças:**
 
-**Objetivo:** Endereçar riscos de concorrência e visibilidade de erros identificados na auditoria (Sober Review).
+- Todas as funções públicas (`loam.Init`, `loam.New`, `loam.Sync`) requerem `context.Context` como primeiro parâmetro
+- Cancelamento propagado corretamente para operações Git
+- CLI usa `cmd.Context()` derivado de `lifecycle.Run` para graceful shutdown
+- Dependências atualizadas: `lifecycle v1.7.2`
 
-- [x] **Robust Watcher (Concurrency)**:
-  - [x] Remover janela de `ignoreMap` (2s) fixa e usar IDs de transação ou hashes para ignorar self-writes com precisão.
-  - [x] Mitigar risco de "echo" em sistemas lentos.
-- [x] **Error Visibility**:
-  - [x] Expor erros de resolução de path no Watcher (hoje engolidos) via callback opcional (`WithWatcherErrorHandler`).
+**Status:** ✅ Released
 
-## Fase 0.10.6: Read-Only & Dev Safety Improvements (Completed)
+---
 
-**Objetivo:** Melhorar DX para consumidores (como Trellis) permitindo bypass seguro da sandbox via Read-Only Mode.
+## Fase 0.11: Ecosystem Positioning & Strategy Clarity (In Progress)
 
-- [x] **New Options**:
-  - [x] `WithDevSafety(bool)`: Controle manual da sandbox de desenvolvimento.
-  - [x] `WithReadOnly(bool)`: Modo seguro para leitura em caminhos reais (bypass sandbox).
-- [x] **Implementation**:
-  - [x] Atualizar `fs` adapter para respeitar `ReadOnly` (bloquear escritas).
-  - [x] Garantir que `Read-Only` bypassa sandbox apenas para leitura.
-- [x] **Documentation**:
-  - [x] Atualizar `TECHNICAL.md` com as novas opções de segurança.
-- [x] **Automated Tests**:
-  - [x] Integration test (`readonly_test.go`) currently failing on ghost file detection. Debugging.
+**Objetivo:** Documentar e cristalizar o papel de Loam no ecossistema "Everything as Code", baseado em análise crítica de fevereiro/2026, respeitando **autonomia com sinergia emergente**.
 
-## Fase 0.10.7: Lifecycle Ecosystem Integration (Completed)
+**Context:** Loam foi e permanece como "engine genérica para múltiplos use cases". Análise recente revelou **profunda sinergia emergente com Trellis**, que escolheu usar Loam como built-in parser centralizado para workflows. Essa análise clarifica a relação sem forçar acoplamento.
 
-**Objetivo:** Integrar componentes do ecossistema `lifecycle`, `introspection` e `procio` no Loam para melhorar resiliência e observabilidade.
+### Key Insights Discovered
 
-**Referência Detalhada:** [ECOSYSTEM.md](ECOSYSTEM.md)
+1. **Trellis Demonstra o Poder de Loam**
+   - Trellis.New(repoPath) inicializa Loam por escolha natural
+   - pkg/adapters/loam/ (~500 linhas) converte documents em nodes
+   - Features de Loam são valiosas para Trellis (Strict Mode, ReadOnly, Watch)
+   - Mas Loam continua auto-suficiente e utilizável fora de Trellis
 
-### Pesquisa & Análise
+2. **Loam Features são Especialização Intencional**
+   - FS + Git backend é escolha correta para "Everything as Code"
+   - Multi-format (YAML/JSON/Markdown) é genérico, não específico para Trellis
+   - Não vale adicionar adapters especulativamente (HTTP, DB, S3)
+   - Demand-driven strategy: implementar apenas quando há pressão real de mercado
 
-- [x] Mapear API completa de `introspection`, `procio`, `lifecycle`
-- [x] Comparar watchers (Loam vs lifecycle.FileWatchSource)
-- [x] Identificar patterns reutilizáveis do Loam para contribuição upstream
-- [x] Priorizar integrações por esforço/valor
-- [x] Documentar dependências e riscos de acoplamento
+3. **Posicionamento Deve Manter Autonomia**
+   - README posiciona Loam como engine genérica (correto)
+   - ECOSYSTEM.md documenta Trellis como caso de uso importante (não exclusivo)
+   - Resultado: Clareza sobre flexibilidade sem acoplamento forçado
 
-### Implementações (Quick Wins)
+### Changes Required
 
-- [x] **Goroutines Gerenciadas (`lifecycle.Go()`):**
-  - [x] Watcher loop com panic recovery
-  - [x] Reconcile goroutine com error handling
-  - [x] Dependência: `github.com/aretw0/lifecycle@v1.5.1`
-- [x] **Observabilidade (`introspection`):**
-  - [x] `Service` implementa `Introspectable` + `Component`
-  - [x] `Repository` (fs) implementa `Introspectable` + `Component`
-  - [x] Rastreamento de watcher status e reconcile timestamp
-  - [x] Método `cache.Len()` para expor tamanho
-  - [x] Exemplo: [examples/features/observability/](../examples/features/observability/)
-  - [x] Dependência: `github.com/aretw0/introspection@v0.1.3`
-- [x] **Git Client (`procio`):**
-  - [x] Análise: integração adiada (sem processos git assíncronos hoje)
-  - [x] Dependência preparatória: `github.com/aretw0/procio@v0.1.2`
+- [x] **Create ADR 013: Demand-Driven Adapter Strategy**
+  - [x] When to implement new adapters
+  - [x] 3-test framework for decisions
+  - [x] Roadmap priorizado por demanda real
 
-### Implementações (Clean-up)
+- [x] **Create ADR 014: Understanding Trellis-Loam Symbiosis**
+  - [x] Document Trellis integration como case study
+  - [x] Clarify autonomy with emergent synergies
+  - [x] Risk mitigation strategies (avoid forced dependencies)
 
-- [x] CLI com `lifecycle.Run()` para graceful shutdown
-- [x] Bridge `ChannelSource` para consumidores lifecycle-aware (Trellis)
-- [x] `lifecycle.Supervisor` para watcher auto-healing
-- [x] Diagramas Mermaid do vault via `introspection.TreeDiagram()`
-- [x] `lifecycle.Group` em transações
-- [x] Documentar integrações no `TECHNICAL.md`
-- [x] **lifecycle v1.6.0 Catching Up:**
-  - [x] ✅ **Panic Observability com Stack Capture**: `Observer.OnGoroutinePanicked(recovered, stack)` + `WithStackCapture(bool)` entregue.
-    - Loam atual: Conditional logging baseado em log level
-    - v1.6.0: API explícita para custom panic handling
-    - Ação: Considerar migrar `watch_worker.go` para usar hook se houver customizações futuras
-  - [x] ✅ **Protected Resource Cleanup Pattern**: Documentado formalmente no lifecycle TECHNICAL.md (STOP → WAIT → CLOSE) com `lifecycle.BlockWithTimeout` helper público
-    - Loam já implementa este padrão em `watch_worker.go` via `stopAndWait(5s)`
-    - Nenhuma mudança necessária (já está alinhado)
-  - [x] ✅ **BaseSource Helper Pattern**: Reduz boilerplate em implementações de Source via embedding
-    - Relevância Loam: Baixa prioridade (não temos Source customizado hoje)
-    - Aplicável se criarmos FileWatchSource reutilizável futuramente
+- [x] **Review README.md**
+  - [x] Mantém posicionamento genérico
+  - [x] Trellis como um caso de uso entre vários
+  - [x] Preserva autonomia do projeto
 
-## Fase 0.10.8: Generic Data Support (Configurable Content)
+- [ ] **Update ECOSYSTEM.md**
+  - [x] Clarify role in ecosystem hierarchy (emergent, not forced)
+  - [ ] Document Trellis integration as one important use case
+  - [x] Positioning relative to DALgo (complementary, not competitive)
 
- **Objetivo:** Permitir que o Loam seja usado para carregar "Dados Puros" (Configs, Manifests) sem sequestrar a chave `content`.
+- [ ] **Document Adapter Strategy**
+  - [ ] Clarify when to add HTTP, Redis, etc. (never "just in case")
+  - [ ] ETA: Implement only if Arbour/Life-DSL demand it
 
-- [x] **Feature**: `WithContentExtraction(bool)`
-  - [x] Default `true` (Comportamento atual, CMS-like).
-  - [x] Se `false`, o arquivo JSON/YAML é carregado 1:1 para o Metadata. As implicações das regras de preenchimento do `doc.Content` precisam ser avaliadas.
-  - [x] Essencial para `config.yaml`, `tools.yaml` e outros arquivos de configuração.
+### Success Criteria
 
-## Fase 0.10.9: Event Broker Delegation (Completed)
+- [x] ADRs document decisions clearly (autonomy with synergies)
+- [x] README mantém posicionamento genérico
+- [ ] Examples show Trellis integration como um caso de uso
+- [x] Community understands: Loam é genérico, Trellis demonstra suas capacidades
+- [x] Roadmap is demand-driven, not speculative
 
-**Objetivo:** Descarregar a carga cognitiva da arquitetura Event-Driven (Broker, Watchers recursivos, Debouncers) do Loam diretamente para o **Lifecycle v1.7.0 Control Plane**.
+### Timeline
 
-- [x] **Channel Subscriptions**:
-  - [x] Consumir a nova primitiva de Canais do `lifecycle` para substituir a orquestração manual do `Service.Watch`.
-  - [x] Adaptar o fluxo atual do Loam para depender dos middlewares padrão.
-- [x] **Generic Debounce Middleware**:
-  - [x] Remover o arquivo `debouncer.go` proprietário do Loam.
-  - [x] Plugar o middleware genérico fornecido nativamente pela biblioteca *upstream*.
-- [x] **DirectoryWatchSource**:
-  - [x] Substituir a goroutine e o laço customizado do `watch_worker.go` pelo uso direto da nova API do Source.
-  - [x] Injetar a lógica de pausa de rebases do Git (`index.lock`) usando a nova API de *Filtering/Inhibition*.
+- **Immediate (this week)**: ADRs 013 & 014 complete ✓
+- **This sprint (Mar 2-9)**: Correct forced dependencies in docs ✓
+- **Next sprint (Mar 10-16)**: Strategic documentation finalized ✓
+- **Following sprint (Mar 17-31)**: TECHNICAL.md updates + code comments
 
-## CI/CD Updates (Completed)
-
-- [x] Adicionar Github Actions Workflows (`ci.yml`) configurados para usar git account virtual e rodar as suítes fast/full.
-
-## Fase 0.10.10: Context Propagation Hygiene (Patch)
-
-**Objetivo:** Propagar `context.Context` pelas operações de plataforma (`platform.Init`, `platform.Sync`) para que sejam cancellable quando chamadas dentro de um worker lifecycle, evitando bloqueios silenciosos no shutdown do ecossistema.
-
-**Contexto:** Identificado na auditoria de Chained Cancels do `lifecycle v1.7.1`. As chamadas em `internal/platform/ops.go` usam `context.Background()` diretamente — aceitável para CLI standalone (`loam init`, `loam sync`), mas um bloqueio potencial quando o Loam é embutido num `lifecycle.Worker`.
-
-- [x] **`internal/platform/ops.go`**:
-  - [x] Adicionar `ctx context.Context` como primeiro parâmetro de `Init(ctx, uri, opts...)`.
-  - [x] Adicionar `ctx context.Context` como primeiro parâmetro de `Sync(ctx, uri, opts...)`.
-  - [x] Propagar o `ctx` para `repo.Initialize(ctx)` e `syncable.Sync(ctx)` respectivamente.
-- [x] **Consumidores internos**: Atualizar chamadas em `cmd/loam/` para passar o contexto de sinal correto (derivado de `lifecycle.Run`).
-- [x] **Wrappers públicos**: Atualizar `loam.Init`, `loam.New`, `loam.Sync`, e `OpenTypedRepository`/`OpenTypedService` para aceitar contexto.
-- [x] **Factory interno**: Atualizar `platform.New` para aceitar e propagar contexto.
-- [x] **CLI**: Atualizar todos os comandos para passar `cmd.Context()`.
-- [x] **Exemplos e testes**: Atualizar para usar `context.Background()` onde apropriado.
-- [x] **Dependências**: Atualizar para `lifecycle v1.7.2` (latest).
-
-**Impacto:**
-
-- Todas as funções públicas de `loam.Init`, `loam.New`, `loam.Sync` agora requerem `context.Context` como primeiro parâmetro.
-- Cancelamento em shutdown é agora propagado corretamente para operações de plataforma.
-- CLI passa `cmd.Context()` derivado de `lifecycle.Run`, permitindo graceful shutdown.
-- Exemplos e testes usam `context.Background()` como padrão seguro.
+Note: Trellis integration examples maintained in [trellis repo](https://github.com/aretw0/trellis) (not duplicated in Loam to avoid markdown bloat)
 
 ## RFC 0.X.X: Robust CSV & Schema Control (Backlog)
 
